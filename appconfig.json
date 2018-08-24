@@ -1,0 +1,16 @@
+{
+  "testMode" : true,
+  "dbConfiguration" : "path-to-dbconfig-json",
+  "defaultMaxJoinDepth" : 4,
+  "startRestServer" : false,
+  "restUrlBase" : "/orm",
+  "restPort" : 8888, 
+  "applicationName" : "Simple ORM",
+  "logFile" : "orm.log",
+  "logLevel" : "info",
+  "maxRowsForGetAll" : 100000,
+  "aliases" : {
+        "simplename1" : "somelongobjectnamingconvention1",
+        "simplename2" : "somelongobjectnamingconvention2"
+  }
+}

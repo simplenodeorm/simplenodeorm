@@ -1,0 +1,1807 @@
+"use strict";
+
+const orm = require('../orm.js');
+const util = require('./util.js');
+const insertSqlMap = new Map();
+const updateSqlMap = new Map();
+const logger = require('./Logger.js');
+const dbConfig = require('../db/dbConfiguration.js');
+
+/**
+ * this class is the heart of the orm - all the relations to object graph logic occurs here as well as the sql operations
+ */
+module.exports = class Repository {
+    constructor(poolAlias, metaData) {
+        this.metaData = metaData;
+        this.poolAlias = poolAlias;
+        this.selectedColumnFieldInfo = new Array();
+        this.columnPositions = new Array();
+        this.pkPositions = new Array();
+        this.namedDbOperations = new Map();
+        this.generatedSql = new Array();
+        
+        // default named db operations
+        this.namedDbOperations.set(util.FIND_ONE, this.buildFindOneNamedOperation(metaData));
+        this.namedDbOperations.set(util.GET_ALL, this.buildGetAllNamedOperation(metaData));
+        this.namedDbOperations.set(util.DELETE, this.buildDeleteNamedOperation(metaData));
+        this.selectClauses = new Array();
+        this.joinClauses = new Array();
+        
+        // load custom db operations in extening classes. These are object-based db operations, 
+        // below is an example of Account findOne(): 
+        // select Account o from Account where o.finCoaCd = :finCoaCd and o.accountNbr = :accountNbr
+        // currently the 'o' alias is important becausr the sql generator will key on 'o.'. Specify
+        // with dot notations for example o.subAccounts.subAcctNbr = :subAcctNbr
+        this.loadNamedDbOperations();
+    }
+    
+    loadNamedDbOperations() {
+    }
+    
+    /**
+     * 
+     * @returns pool alias associated with this repository
+     */
+    getPoolAlias() {
+        return this.poolAlias;
+    }
+    
+    /**
+     * 
+     * @returns meta data for the associated model
+     */
+    getMetaData() {
+        return this.metaData;
+    }
+
+    canJoin(alias, ref) {
+        return (ref.status === util.ENABLED);
+    }
+
+    /**
+     * 
+     * @returns relative js module path
+     */
+    getModule() {
+        return this.metaData.getModule().replace("model/", "repository/").replace(".js", "Repository.js");
+    }
+    
+    /**
+     * 
+     * @param {type} primaryKey - array of key values in order of primary key fields
+     * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will pull connection from pool if not set>
+     *     maxRows: <if set will limit rows returned>
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+    async findOne(primaryKey, options) {
+        options = checkOptions(options);
+        let res =  await this.executeNamedDbOperation(util.FIND_ONE, primaryKey, options);
+        
+        if (util.isDefined(res.result)) {
+            if (res.result.length > 0) {
+                return {result: res.result[0] };
+            } 
+        } else if (util.isDefined(res.error)) {
+            return res;
+        } 
+    }
+    
+    /**
+     * 
+     * @param {type} whereComparisons - array of where definitions using WhereComparison.js - if empty then will count all rows
+     * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     distinct: <true/false if true will do count distinct>
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+    async count(whereComparisons, options) {
+        options = checkOptions(options);
+        let sql = 'select count(';
+        let sep = '';
+        let pkfields = this.metaData.getPrimaryKeyFields();
+        sql += 'distinct ';
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (sep + 't0.' + pkfields[i].columnName);
+            sep = ' || \'.\' ||';
+        }
+        
+        sql += (') from ' + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth));
+        let params = [];
+        if (util.isDefined(whereComparisons) && (whereComparisons.length > 0)) {
+            sql += this.buildWhereClause(whereComparisons);
+            params = this.getParametersFromWhereComp(whereComparisons);
+        }
+        
+        let res = await this.executeSqlQuery(sql, params, options);
+        
+        if (util.isDefined(res.error)) {
+            return { error: res.error };
+        } else if (util.isDefined(res.result)) {
+            return {result: res.result.rows[0][0] };
+        }
+    }
+
+    /**
+     * 
+     * @param {type} whereComparisons - array of where definitions using WhereComparison.js - will fail if empty
+     * @param {type} orderByEntries - array of order by defininitions using OrderByEntry.js
+     * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     *     distint: <true/false - if true will force select distinct>
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+    async find(whereComparisons, orderByEntries, options) {
+        options = checkOptions(options);
+        let where = this.buildWhereClause(whereComparisons);
+        let params = this.getParametersFromWhereComp(whereComparisons);
+        let sql = (this.getSelectClause(options.joinDepth) + " from " + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth) + where);
+        
+        if (util.isDefined(orderByEntries)) {
+            let comma = '';
+            for (let i = 0; i < orderByEntries.length; ++i) {
+                sql += (comma + this.getColumnNameFromFieldName(orderByEntries[i]));
+                if (orderByEntries[i].isDescending()) {
+                    sql += ' desc';
+                }
+                
+                comma = ',';
+            }
+        } else { // order by primary key if no order by input
+            let pkfields = this.getMetaData().getPrimaryKeyFields();
+            let comma = '';
+            sql += ' order by ';
+            for (let i = 0; i < pkfields.length; ++i) {
+                sql += (comma + 't0.' + pkfields[i].columnName);
+                comma = ',';
+            }
+        }
+        
+        return await this.executeQuery(sql, params, options);
+    }
+
+    /**
+     * 
+    * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+
+    async getAll(options) {
+        options = checkOptions(options);
+        return await this.executeNamedDbOperation(util.GET_ALL, [], options);
+    }
+
+    /**
+     * 
+     * @param {type} modelInstances 1 or more model instances to delete
+     * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+   async delete(modelInstances, options) {
+        options = checkOptions(options);
+        let rowsAffected = 0;
+        let l = modelInstances;
+        
+        // allow a single model or an array of models
+        if (!(l instanceof Array)) {
+            l = new Array();
+            l.push(modelInstances);
+        }
+
+        if (l.length > 0) {
+            let md = orm.getMetaData(l[0].getObjectName());
+            let otodefs = md.getOneToOneDefinitions();
+            let otmdefs = md.getOneToOneDefinitions();
+
+            for (let i = 0; i < l.length; ++i) {
+                if (util.isDefined(otodefs)) {
+                    for (let j = 0; j < otodefs.length; ++j) {
+                        if (util.isDefined(otodefs[j].cascadeDelete) && otodefs[j].cascadeDelete) {
+                            let rel = l[i].getFieldValue(otodefs[j].fieldName);
+                            if (util.isDefined(rel)) {
+                                let ret = await this.delete(rel, options);
+                                if (util.isDefined(ret.error)) {
+                                    return {error: ret.error};
+                                } else if (util.isDefined(ret.rowsAffected)) {
+                                    rowsAffected += ret.rowsAffected;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (util.isDefined(otmdefs)) {
+                    for (let j = 0; j < otmdefs.length; ++j) {
+                        if (util.isDefined(otmdefs[j].cascadeDelete) && otmdefs[j].cascadeDelete) {
+                            let rel = l[i].getFieldValue(otmdefs[j].fieldName);
+                            if (util.isDefined(rel)) {
+                                let ret2 = await this.delete(rel, options);
+                                if (util.isDefined(ret2.error)) {
+                                    return {error: ret2.error};
+                                } else if (util.isDefined(ret2.rowsAffected)) {
+                                    rowsAffected += ret2.rowsAffected;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let ret3 = await this.executeNamedDbOperation(util.DELETE, this.getPrimaryKeyValuesFromModel(l[i]), options);
+                
+                if (util.isDefined(ret3.error)) {
+                    return {error: ret3.error};
+                } else if (util.isDefined(ret3.rowsAffected)) {
+                    rowsAffected += ret3.rowsAffected;
+                }
+            }
+        }
+        
+        return {rowsAffected: rowsAffected};
+    }
+
+    /**
+     * @param {type} model - model instance to update/insert
+     * @param {type} sql - insert/update sql
+     * @param {type} params - bind parameters - should have entries in sql of type :p1, :p2 etc in matching order
+     * @param {type} options - options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     *     returnValues: <true/false if true will return the updated results, otherwise only rowsAffected count is returned>
+     * }
+     * @returns return json error or rowsAffected: {error: <result> } or { rowsAffecetd: <cnt> }
+     */
+    async executeSave(model, sql, params, options) {
+        let rowsAffected = 0;
+        options = checkOptions(options);
+        
+        let result = {rowsAffected: 0};
+        if (model.isNew() || !(await this.exists(model, options))) {
+            result = await this.executeSql(sql, params, options);
+        } else if (model.isModified()) {
+            if (model.getMetaData().isVersioned()) {
+                let currentVersion = await this.getCurrentVersion(model, options);
+                if (util.isNotValidObject(currentVersion)) {
+                    currentVersion = -1;
+                } else if (currentVersion instanceof Date) {
+                    currentVersion = currentVersion.getTime();
+                }
+
+                let verField = this.getVersionField(model);
+                let ver = model.getFieldValue(verField.fieldName);
+
+                if (ver instanceof Date) {
+                    ver = ver.getTime();
+                }
+
+                if ((currentVersion > -1) && (ver  < currentVersion)) {
+                    util.throwError('OptimisticLockException', model.getObjectName() + ' has been modified by another user');
+                }
+            }
+            
+            try {
+                result = await this.executeSql(sql, params, options);
+                let md = model.getMetaData();
+            }
+            
+            catch (e) {
+                result.error = e;
+            }
+        }
+        
+        if (util.isDefined(result.error)) {
+            return {error: result.error};
+        } else {
+            if (util.isDefined(result.rowsAffected)) {
+                rowsAffected += result.rowsAffected;
+            }
+            
+            // do this to prevent returning child objects 
+            // if return values true
+            let childOptions = Object.assign(options);
+            childOptions.returnValues = false;
+            
+            let otodefs = this.metaData.getOneToOneDefinitions();
+            if (util.isValidObject(otodefs)) {
+                for (let i = 0; i < otodefs.length; ++i) {
+                    if (otodefs[i].cascadeUpdate) {
+                        let oto = model.getFieldValue(otodefs[i].fieldName, true);
+                        if (util.isValidObject(oto)) {
+                            this.populateReferenceColumns(model, otodefs[i], oto);
+                            let res  = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
+                            
+                            if (util.isDefined(res.error)) {
+                                return {error: res.error};
+                            } else if (util.isDefined(res.rowsAffected)) {
+                                rowsAffected += res.rowsAffected;
+                            }
+                        }
+                    }
+                }
+            }
+
+            let otmdefs = this.metaData.getOneToManyDefinitions();
+            if (util.isValidObject(otmdefs)) {
+                for (let i = 0; i < otmdefs.length; ++i) {
+                    if (otmdefs[i].cascadeUpdate) {
+                        let otm = model.getFieldValue(otmdefs[i].fieldName, true);
+                        if (util.isValidObject(otm) ) {
+                            this.populateReferenceColumns(model, otmdefs[i], otm);
+                            let res = await orm.getRepository(otmdefs[i].targetModelName).save(otm, childOptions);
+                            if (util.isDefined(res.error)) {
+                                return {error: res.error};
+                            } else if (util.isDefined(res.rowsAffected)) {
+                                rowsAffected += res.rowsAffected;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return {rowsAffected: rowsAffected};
+    }
+    
+    getVersionField(model) {
+        let retval;
+        let fields = orm.getMetaData(model.getObjectName()).getFields();
+        
+        if (util.isDefined(fields)) {
+            for (let i = 0; i < fields.length; ++i) {
+                if (util.isDefined(fields[i].versionColumn) && fields[i].versionColumn) {
+                    retval = fields[i];
+                    break;
+                }
+            }
+        }
+        
+        return retval;
+    }
+    
+    async getCurrentVersion(model, options) {
+        let md = orm.getMetaData(model.getObjectName());
+        let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.getTableName() + ' where ');
+
+        let params = new Array();
+        let pkfields = md.getPrimaryKeyFields();
+        let and = '';
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (and + pkfields[i].columnName + ' = :' + pkfields[i].fieldName);
+            params.push(model.getFieldValue(pkfields[i].fieldName));
+            and = ' and ';
+        }
+
+        let res = await this.executeSqlQuery(sql, params, options);
+        if (util.isDefined(res.error)) {
+            util.throwError('SQLError', res.error);
+        } else if (res.result.rows.length === 0) {
+            return 1;
+        } else {
+            return res.result.rows[0][0];
+        }
+    }
+    
+    /**
+     * @param {type} pmodel - parent model instance
+     * @param {type} refdef - relationship definition
+     * @param {type} cmodel - child model isntance to pupulate
+     */
+    populateReferenceColumns(pmodel, refdef, cmodel) {
+        let pcmap = orm.getMetaData(pmodel.getObjectName()).getColumnToFieldMap();
+        let ccmap = orm.getMetaData(refdef.targetModelName).getColumnToFieldMap();
+        
+        let l;
+
+        // allow a single model or an array of models
+        if (cmodel instanceof Array) {
+            l = cmodel;
+        } else {
+            l = new Array();
+            l.push(cmodel);
+        }
+       
+        let scols = refdef.joinColumns.sourceColumns.split(',');
+        let tcols = refdef.joinColumns.targetColumns.split(',');
+       
+        for (let i = 0; i < l.length; ++i) {
+            for (let j = 0; j < scols.length; ++j) {
+                l[i].setFieldValue(ccmap.get(tcols[j]), pmodel.getFieldValue(pcmap.get(scols[j])));
+            }
+        }
+    }
+    
+    /**
+     * @param {type} model - model object source fo sql insert parameter values list
+     * @param {type} options - options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     */
+    async loadInsertParameters(model, options) {
+        options = checkOptions(options);
+        let retval = new Array();
+        let fields = orm.getMetaData(model.getObjectName()).getFields();
+        
+        for (let i = 0; i < fields.length; ++i) {
+            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName), false);
+            
+            if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
+               if (util.isValidObject(fields[i].sequence)) {
+                   let val = await this.getNextSequenceValue(fields[i].sequence, options);
+                   model.setFieldValue(fields[i].fieldName, val);
+               } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
+                   val = fields[i].defaultValue;
+                   model.setFieldValue(fields[i].fieldName, val);
+               } else if (fields[i].versionColumn) {
+                   if (this.isDateType(fields[i])) {
+                       val = new Date();
+                   } else {
+                       val = 1;
+                   }
+                   model.setFieldValue(fields[i].fieldName, val);
+               } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                   val = new Date(val);
+                   model.setFieldValue(fields[i].fieldName, val);
+               }
+           }
+           
+           if (util.isNotValidObject(val)) {
+               val = null;
+           }
+           
+           retval.push(val);
+        }
+        
+        return retval;
+    }
+    
+    /**
+     * 
+     * @param {type} model
+     * @param {type} options
+     * @returns {Array|nm$_Repository.Repository.loadUpdateParameters.retval|Repository.loadUpdateParameters.retval}
+     */
+    async loadUpdateParameters(model, options) {
+        let retval = new Array();
+        let pkparams = new Array();
+        let md = orm.getMetaData(model.getObjectName());
+        let fields = md.getFields();
+        for (let i = 0; i < fields.length; ++i) {
+            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName), false);
+            
+            if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
+                pkparams.push(val);
+            } else {
+                if (fields[i].versionColumn) {
+                    if (this.isDateType(fields[i])) {
+                       retval.push(this.currentDateFunctionName());
+                    } else {
+                        let curver = await this.getCurrentVersion(model, options);
+                        retval.push(curver+1);
+                        
+                    }
+                } else {
+                    retval.push(val);
+                }
+            }
+        }
+        
+        for (let i = 0; i < pkparams.length; ++i) {
+            retval.push(pkparams[i]);
+        }
+        
+        return retval;
+    }
+
+    /**
+     * 
+     * @param {type} name - sequence nAME
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns next sequence value
+     */
+    async getAutoIncrementValue(name, options) {
+        let retval;
+        options = checkOptions(options);
+        let mr = options.maxRows;
+        options.maxRows = 1;
+        
+        let res;
+        switch(dbConfig.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);  
+                break;
+            case util.MYSQL:
+                // TODO: something here for myssql
+                break;
+        }
+        
+        if (util.isDefined(res)) {
+            if (util.isDefined(mr)) {
+                options.maxRows = mr;
+            } else {
+                options.maxRows = null;
+            }
+            
+            retval = res.result.rows[0][0];
+        }
+        
+        return retval;
+    }
+    
+    /**
+     * 
+     * @param {type} model - source model for insert sql
+     * @returns insert sql string
+     */
+    getInsertSql(model) {
+        let retval = insertSqlMap.get(model.getObjectName());
+        if (util.isNotValidObject(retval)) {
+            let md = orm.getMetaData(model.getObjectName());
+            retval = ('insert into ' + md.getTableName() + '(');
+            let fields = md.getFields();
+            let comma = '';
+            for (let i = 0; i < fields.length; ++i) {
+                retval += (comma + fields[i].columnName);
+                comma = ',';
+            }
+
+            retval += ') values (';
+
+            comma = '';
+            for (let i = 0; i < fields.length; ++i) {
+                retval += (comma + ' :' + fields[i].fieldName);
+                comma = ',';
+            }
+
+            retval += ')';
+            insertSqlMap.set(model.getObjectName(), retval);
+        }
+        
+        return retval;
+    }
+    
+    /**
+     * 
+     * @param {type} model - source model for update sql
+     * @returns update sql string
+     */
+    getUpdateSql(model) {
+        let nm = model.getObjectName();
+        let retval = updateSqlMap.get(nm);
+        if (util.isNotValidObject(retval)) {
+            let md = orm.getMetaData(nm);
+            retval = ('update ' + md.getTableName() + ' ');
+            let where = ' where ';
+            let fields = md.getFields();
+            let comma = '';
+            let and = '';
+            let set = ' set ';
+            for (let i = 0; i < fields.length; ++i) {
+                if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
+                    where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
+                    and = ' and ';
+                } else {
+                    retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
+                    comma = ', ';
+                    set = '';
+                }
+            }
+            retval += where;
+            updateSqlMap.set(nm, retval);
+        }
+        
+        return retval;
+    }
+
+    /**
+     * 
+     * @param {type} modelInstances - 1 or more model instances to save, if new will insert, if exists will update
+     * @param {type} options - query options as json of the form below
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+    async save(modelInstances, options) {
+        options = checkOptions(options);
+        let rowsAffected = 0;
+        let l = modelInstances;
+        let updatedValues = new Array();
+        // allow a single model or an array of models
+        if (!(l instanceof Array)) {
+            l = new Array();
+            l.push(modelInstances);
+        }
+        
+        let wantReturnValues = options.returnValues;
+        
+        for (let i = 0; i < l.length; ++i) {
+            let res;
+            if (l[i].isNew()) {
+                res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+            } else {
+                res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
+            }
+            if (util.isDefined(res.error)) {
+                return {error: res.error};
+            } else if (util.isDefined(res.rowsAffected)) {
+                rowsAffected += res.rowsAffected;
+            }
+            
+            if (wantReturnValues) {
+                let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
+
+                if (util.isDefined(res2.result)) {
+                    updatedValues.push(res2.result);
+                }
+            }
+        }
+
+        if (updatedValues.length > 0) {
+            return {rowsAffected: rowsAffected, updatedValues: updatedValues};
+        } else {
+            return {rowsAffected: rowsAffected};
+        }
+    }
+
+    /**
+     * 
+     * @param {type} inputParams - can be a list of primary key values or an object instance
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns true or false
+     */
+    async exists(inputParams, options) {
+        let retval = false;
+        let pkfields = this.getMetaData().getPrimaryKeyFields();
+        let sql = 'select 1 from dual where exists (select ';
+        let and = '';
+        let params = new Array();
+        for (let i = 0; i < pkfields.length; ++i) {
+            if (i === 0) {
+                sql += (pkfields[i].columnName + ' from ' + this.getMetaData().getTableName() + ' where ');
+            }
+            
+            sql += (and + pkfields[i].columnName + ' = :' + pkfields[i].fieldName);
+            and = ' and ';
+            
+            if (inputParams instanceof Array) {
+                params.push(inputParams[i]);
+            } else {
+                params.push(inputParams.getFieldValue(pkfields[i].fieldName));
+            }
+        }
+        
+        sql += ')';
+        let res = await this.executeSqlQuery(sql, params, options);
+        retval = (util.isUndefined(res.error) 
+            && res.result 
+            && (res.result.rows.length === 1) 
+            && (res.result.rows[0][0] === 1));
+        
+        return retval;
+    }
+
+    /**
+     * 
+     * @param {type} operationName - name predefined object query such as 'select Account o from Account where o.finCoaCd = :finCoaCd and o.accountNbr = :accountNbr
+     * @param {type} parameters - bind parameter values for wuery 
+     * @param {type} options -
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns return json error or result: {error: <result> } or { result: <data> }
+     */
+    async executeNamedDbOperation(operationName, parameters, options) {
+        options = checkOptions(options);
+        let sql = this.getNamedDbOperationSql(operationName, options);
+        if (this.isSelect(sql)) {
+            return await this.executeQuery(sql, parameters, options);
+        } else {
+            return await this.executeSql(sql, parameters, options);
+        }
+    }
+
+    isSelect(sql) {
+        let retval = false;
+        
+        if (util.isDefined(sql)) {
+            retval = sql.trim().toLowerCase().startsWith("select");
+        }
+        
+        return retval;
+    }
+    
+    isDelete(sql) {
+        let retval = false;
+        
+        if (util.isDefined(sql)) {
+            retval = sql.trim().toLowerCase().startsWith("delete");
+        }
+        
+        return retval;
+    }
+
+    isDateType(field) {
+        let retval = false;
+        if (util.isDefined(field)) {
+            switch(dbConfig.getDbType(this.poolAlias)) {
+                case util.ORACLE:
+                    retval = (util.DATE_TYPE === field.type);
+                    break;
+                case util.MYSQL:
+                    retval = ((util.DATE_TYPE === field.type)
+                        || (util.DATETIME_TYPE === field.type)
+                        || (util.TIMESTAMP_TYPE === field.type));
+                    break;
+            }
+        }
+        
+        return retval;
+    }
+    
+    currentDateFunctionName() {
+        let retval;
+        switch(dbConfig.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                retval = 'sysdate';
+                break;
+            case util.MYSQL:
+                retval = 'NOW()';
+                break;
+        }
+    }
+    
+    getPrimaryKeyValuesFromModel(model) {
+        let retval = new Array();
+        let pkfields = orm.getMetaData(model.getObjectName()).getPrimaryKeyFields();
+        for (let i = 0; i < pkfields.length; ++i) {
+            retval.push(model.getFieldValue(pkfields[i].fieldName));
+        }
+        
+        return retval;
+    }
+    
+    /**
+     * 
+     * @param {type} oql - determine if this is a valid object query
+     * @returns true or false
+     */
+    isStandardOqlSelect(oql) {
+        let retval = false;
+        
+        if (util.isDefined(oql)) {
+            let pos1 = oql.indexOf('select');
+            let pos2 = oql.indexOf(' from ');
+
+            if ((pos1 > -1) && (pos2 > pos1)) {
+                let s = oql.substring(pos1 + 'select'.length, pos2).trim();
+
+                s = s.replace(this.metaData.getObjectName(), '').replace('o', '').trim();
+                retval = (s.length === 0);
+            }
+        }
+        
+        return retval;
+    }
+
+    /**
+     * 
+     * @param {type} sql - sql query string
+     * @param {type} parameters - bind parameter value list
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns json with standard oracledb result or error
+     */
+    async executeSqlQuery(sql, parameters, options) {
+        options = checkOptions(options);
+        
+        if (util.isNotValidObject(parameters)) {
+            parameters = {};
+        }
+
+        let conn;
+        try {
+            if (util.isValidObject(options.conn)) {
+                conn = options.conn;
+            } else {
+                conn = await orm.getConnection(this.getPoolAlias());
+            }
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug('input parameters: ' + util.toString(parameters));
+                logger.logDebug('sql: ' + sql);
+            }
+
+            let result = await conn.execute(sql, parameters, options);
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("result: " + util.toString(result));
+            }
+
+            return {result: result};
+        }
+
+        catch (err) {
+            if (!orm.appConfiguration.testMode) {
+                logger.logError(this.getMetaData().getObjectName() + 'Repository.executeSqlQuery()', err);
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug(sql);
+                }
+            }
+
+            return {error: err};
+        }
+
+        finally {
+            // only close if locally opened
+            if (util.isNotValidObject(options.conn) && conn) {
+                await conn.close();
+            }
+        }
+    }
+    
+    /**
+     * 
+     * @param {type} sql - sql query string
+     * @param {type} parameters - bind parameter value list - order is important
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns model graph json result or error
+     */
+    async executeQuery(sql, parameters, options) {
+        options = checkOptions(options);
+        if (util.isDefined(options.distinct) && options.distinct) {
+            sql = 'select distinct ' + sql.substring(7);
+        }
+        
+        let res = await this.executeSqlQuery(sql, parameters, options);   
+        if (util.isUndefined(res.error)) {
+            let retval = new Array();
+
+            // load column positions by alias if needed
+            if (this.columnPositions[options.joinDepth].size === 0) {
+                for (let i = 0; i < this.selectedColumnFieldInfo[options.joinDepth].length; ++i) {
+                    let a = this.selectedColumnFieldInfo[options.joinDepth][i].alias;
+                    
+                    let cpos = this.columnPositions[options.joinDepth].get(a);
+                    if (util.isUndefined(cpos)) {
+                        cpos = new Array();
+                        this.columnPositions[options.joinDepth].set(a, cpos);
+                    }
+                    cpos.push(i);
+
+                    if (util.isDefined(this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)
+                        && (this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)) {
+                        let pkpos = this.pkPositions[options.joinDepth].get(a);
+                        if (util.isUndefined(pkpos)) {
+                            pkpos = new Array();
+                            this.pkPositions[options.joinDepth].set(a, pkpos);
+                        }
+
+                        pkpos.push(i);
+                    }
+                }
+            }
+
+            populateModel(this, 
+                    't0', 
+                    0, 
+                    0, 
+                    this.pkPositions, 
+                    new Map(), 
+                    this.selectedColumnFieldInfo,
+                    res.result, 
+                    retval, 
+                    this.columnPositions, 
+                    options.joinDepth);
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("executed query: row count=" + res.result.rows.length + ", objects created=" + retval.length);
+                logger.logDebug("result: " + util.toString(retval));
+            }
+            return {result: retval};
+        } else {
+            return res;
+        }
+    }
+    
+    /**
+     * 
+     * @param {type} sql - insert/update sql string
+     * @param {type} parameters - bind parameter value list
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns error if failure occurs
+     */
+    async executeSql(sql, parameters, options) {
+        options = checkOptions(options);
+        
+        if (util.isNotValidObject(parameters)) {
+            parameters = {};
+        }
+
+        // declare these her for scope purposes to call inside promise
+        let conn;
+        try {
+            if (util.isDefined(options.conn)) {
+                conn = options.conn;
+            } else {
+                conn = await orm.getConnection(this.getPoolAlias());
+            }
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug('input parameters: ' + util.toString(parameters));
+                logger.logDebug('sql: ' + sql);
+            }
+
+            let res = await conn.execute(sql, parameters, options);
+            
+            return {rowsAffected: res.rowsAffected};
+        }
+
+        catch (err) {
+            if (!orm.appConfiguration.testMode) {
+                logger.logError(this.getMetaData().getObjectName() + 'Repository.executeSql()', err);
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug(sql);
+                }
+            }
+
+            return {error: err};
+        }
+
+        finally {
+            // only close if locally opened
+            if (util.isNotValidObject(options.conn) && conn) {
+                await conn.close();
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {type} sqlKey - name of predefined object query
+     * @param {type} options
+     * {
+     *     joinDepth: <desired join depth, default to maxDefaultJoinDepth if not set>
+     *     conn: <database connection to use - will create new connection if not set>
+     *     maxRows: <if set will limit rows returned>
+     *     autoCommit: <true/false - defaults to false if not set> 
+     * }
+     * @returns standard sql query string
+     */
+    getNamedDbOperationSql(sqlKey, options) {
+        options = checkOptions(options);
+        let sql;
+        if (util.isDefined(this.generatedSql[options.joinDepth])) {
+            sql = this.generatedSql[options.joinDepth].get(sqlKey);
+        }
+            
+        if (util.isNotValidObject(sql)) {
+            let oql = this.namedDbOperations.get(sqlKey).trim();
+            let op = '';
+            if (this.isStandardOqlSelect(oql)) {
+                op = this.getSelectClause(options.joinDepth);
+            } else if (this.isDelete(oql)) {
+                op = 'delete';
+            } else {
+                op = oql.substring(0, oql.indexOf(' from '));
+            }
+            
+            let replaceSet = new Set();
+            let pos;
+            pos = oql.indexOf('o.');
+            while (pos > 0) {
+                if (!util.isAlphaNumeric(oql.charAt(pos-1)) && (oql.charAt(pos-1) !== '.')) {
+                    let pos2 = pos+2;
+                    while (util.isAlphaNumeric(oql.charAt(pos2)) || (oql.charAt(pos2) === '.')) {
+                        pos2++;
+                    }
+
+                    if (pos2 > (pos+1)) {
+                        replaceSet.add(oql.substring(pos, pos2));
+                    }
+
+                    pos = oql.indexOf('o.', pos2);
+                }
+            }
+        
+            let where = '';
+            pos = oql.indexOf(' where ');
+            if (pos > 0) {
+                where = oql.substring(pos);
+            } else {
+                pos = oql.indexOf(' order by ');
+                if (pos > 0) {
+                    where = oql.substring(pos);
+                } 
+            }
+
+            let xref = new Map();
+            
+            if (replaceSet.size > 0) {
+                replaceSet.forEach(token => {
+                    xref.set(token, this.getColumnNameFromFieldName(token.trim().substring(2)));
+                });                
+            }
+            
+            if (this.isSelect(op)) {
+                sql = (op + ' from ' + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth) + ' ' + where);
+            } else {
+                sql = (op + ' from ' + this.metaData.getTableName() + ' t0  ' + where);
+            }
+
+            if (xref.size > 0) {
+                xref.forEach(function(item, key) {
+                    sql = sql.replace(key, item);
+                });
+            }
+            
+            if (this.isSelect(op)) {
+                this.generatedSql[options.joinDepth].set(sqlKey, sql);
+            }
+        }
+        
+        return sql;
+    }
+
+    /**
+     * 
+     * @param {type} fieldName object field name in dot notation for example in the Account object subAccounts.subAcctNm 
+     * @returns alias.columnName for example t10.SUB_ACCT_NM
+     */
+    getColumnNameFromFieldName(fieldName) {
+        let retval = null;
+        if (util.isDefined(fieldName)) {
+            if (fieldName.trim().startsWith('o.')) {
+                fieldName = fieldName.trim().substring(2);
+            }
+            
+            let nameParts = fieldName.split('.');
+            let curmd = this.metaData;
+            let curAlias = 't0';
+            for (let i = 0; i < nameParts.length; ++i) {
+                if (i === (nameParts.length - 1)) {
+                    let f = curmd.getFieldMap().get(nameParts[i]);
+
+                    if (util.isDefined(f)) {
+                        retval = (curAlias + '.' + f.columnName);
+                    }
+                } else {
+                    let foundit = false;
+
+                    let otodefs = curmd.getOneToOneDefinitions();
+                    if (util.isDefined(otodefs)) {
+                        for (let j = 0; j < otodefs.length; ++j) {
+                            if (otodefs[j].fieldName === nameParts[i]) {
+                                curmd = orm.getMetaData(otodefs[j].targetModelName);
+                                curAlias = otodefs[j].alias;
+                                foundit = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    let otmdefs = curmd.getOneToManyDefinitions();
+                    if (util.isDefined(otmdefs)) {
+                        for (let j = 0; j < otmdefs.length; j++) {
+                            if (otmdefs[j].fieldName === nameParts[i]) {
+                                curmd = orm.getMetaData(otmdefs[j].targetModelName);
+                                curAlias = otmdefs[j].alias;
+                                foundit = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!foundit) {
+                        util.throwError('failed to find relationship with name ' +  nameParts[i]);
+                    }
+                }
+            }
+        }
+        
+        return retval;
+    }
+
+    /**
+     * recursive call to build select clause for for join depth specified by input parameter
+     * @param {type} parentMetaData - meta data for parent model
+     * @param {type} tableAlias current table alias
+     * @param {type} currentDepth - current depth
+     * @param {type} joinDepth - max join depth
+     * @param {type} checkSet - set to prevent duplicate alias.columnname entries
+     * @returns sql select clause
+     */
+    buildSelectClause(parentMetaData, tableAlias, currentDepth, joinDepth, checkSet) {
+        // special case for depth 0 - just pull columns for table - no
+        // joins
+        if (joinDepth === 0) {
+            let pfields = parentMetaData.getFields();
+            let comma = "";
+            for (let i = 0; i < pfields.length; ++i) {
+                let f = (tableAlias + "." + pfields[i].columnName);
+                this.selectClauses[joinDepth] += comma;
+                this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
+                this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+                comma = ", ";
+            }
+        } else {
+            if (util.isNotValidObject(checkSet)) {
+                checkSet = new Set();
+            }
+            let comma = "";
+            if (currentDepth > 0) {
+                comma = ", ";
+            }
+
+            let pfields = parentMetaData.getFields();
+            for (let i = 0; i < pfields.length; ++i) {
+                let f = (tableAlias + "." + pfields[i].columnName);
+                if (!checkSet.has(f)) {
+                    this.selectClauses[joinDepth] += comma;
+                    this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
+                    this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+                    comma = ", ";
+                    checkSet.add(f);
+                }
+            }
+            
+            if (currentDepth < joinDepth) {
+                // only do this for top level table
+                if (isRootTable(tableAlias)) {
+                    let mtodefs = parentMetaData.getManyToOneDefinitions();
+                    if (util.isDefined(mtodefs)) {
+                       for (let i = 0; i < mtodefs.length; ++i) {
+                           if (canJoin(tableAlias, mtodefs[i], false)) {
+                                this.buildSelectClause(orm.getMetaData(mtodefs[i].targetModelName), 
+                                buildAlias(tableAlias, mtodefs[i].alias, currentDepth), 
+                                currentDepth+1, 
+                                joinDepth, 
+                                checkSet);
+
+                            }
+                        }
+                    }
+
+                    let otodefs = parentMetaData.getOneToOneDefinitions();
+                    if (util.isDefined(otodefs)) {
+                        for (let i = 0; i < otodefs.length; ++i) {
+                            if (canJoin(tableAlias, otodefs[i], true)) {
+                                this.buildSelectClause(orm.getMetaData(otodefs[i].targetModelName),
+                                    buildAlias(tableAlias, otodefs[i].alias, currentDepth), 
+                                    currentDepth+1, 
+                                    joinDepth, 
+                                    checkSet);
+                            }
+                        }
+                    }
+                }
+                
+                let otmdefs = parentMetaData.getOneToManyDefinitions();
+                if (util.isDefined(otmdefs)) {
+                    for (let i = 0; i < otmdefs.length; ++i) {
+                        if (canJoin(tableAlias, otmdefs[i], false)) {
+                            this.buildSelectClause(orm.getMetaData(otmdefs[i].targetModelName),
+                                buildAlias(tableAlias, otmdefs[i].alias, currentDepth),
+                                currentDepth+1, 
+                                joinDepth, 
+                                checkSet);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * recursive call to build join clause for for join depth specified by input parameter
+     * @param {type} parentMetaData - meta data for parent model
+     * @param {type} tableAlias current table alias
+     * @param {type} currentDepth - current depth
+     * @param {type} joinDepth - max join depth
+     * @param {type} checkSet - set to prevent duplicate join entries
+     * @returns sql join clause
+     */
+    buildJoinClause(parentMetaData, tableAlias, currentDepth, joinDepth, checkSet) {
+        if (joinDepth === 0) {
+            this.joinClauses[joinDepth] = '';
+        } else if (currentDepth < joinDepth) {
+            if (util.isNotValidObject(checkSet)) {
+                checkSet = new Set();
+            }
+
+            if (isRootTable(tableAlias)) {
+                let mtodefs = parentMetaData.getManyToOneDefinitions();
+                if (util.isDefined(mtodefs)) {
+                    for (let i = 0; i < mtodefs.length; ++i) {
+                        if (canJoin(tableAlias, mtodefs[i], true)) {
+                            let jc = '';
+
+                            let alias = buildAlias(tableAlias, mtodefs[i].alias, currentDepth);
+                            jc += (" join " + mtodefs[i].targetTableName + " " + alias + " on (");
+                            let targetColumns = mtodefs[i].joinColumns.targetColumns.split(",");
+                            let sourceColumns = mtodefs[i].joinColumns.sourceColumns.split(",");
+
+                            let and = "";
+                            for (let j = 0; j < targetColumns.length; ++j) {
+                                jc += (and + alias + "." + targetColumns[j] + " = " + tableAlias + "." + sourceColumns[j]);
+                                and = " and ";
+                            }
+
+                            jc +=  ") ";
+
+                            if (!checkSet.has(jc)) {
+                                this.joinClauses[joinDepth] += jc;
+                                checkSet.add(jc);
+                                this.buildJoinClause(orm.getMetaData(mtodefs[i].targetModelName), 
+                                    buildAlias(tableAlias, mtodefs[i].alias, currentDepth), 
+                                    currentDepth+1, 
+                                    joinDepth, 
+                                    checkSet);
+                            }
+                        }
+                    }
+                }
+            
+                let otodefs = parentMetaData.getOneToOneDefinitions();
+                if (util.isDefined(otodefs)) {
+                    for (let i = 0; i < otodefs.length; ++i) {
+                        if (canJoin(tableAlias, otodefs[i], true)) {
+                            let jc = '';
+                            if (!otodefs[i].required) {
+                                jc += " left outer";
+                            }
+
+                            let alias = buildAlias(tableAlias, otodefs[i].alias,  currentDepth);
+                            jc += (" join " + otodefs[i].targetTableName + " " + alias + " on (");
+                            let targetColumns = otodefs[i].joinColumns.targetColumns.split(",");
+                            let sourceColumns = otodefs[i].joinColumns.sourceColumns.split(",");
+
+                            let and = "";
+                            for (let j = 0; j < targetColumns.length; ++j) {
+                                jc += (and + alias + "." + targetColumns[j] + " = " + tableAlias + "." + sourceColumns[j]);
+                                and = " and ";
+                            }
+
+                            jc +=  ") ";
+
+                            if (!checkSet.has(jc)) {
+                                this.joinClauses[joinDepth] += jc;
+                                checkSet.add(jc);
+                                this.buildJoinClause(orm.getMetaData(otodefs[i].targetModelName), 
+                                    buildAlias(tableAlias, otodefs[i].alias, currentDepth), 
+                                    currentDepth+1, 
+                                    joinDepth, 
+                                    checkSet);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            let otmdefs = parentMetaData.getOneToManyDefinitions();
+            if (util.isValidObject(otmdefs)) {
+                for (let i = 0; i < otmdefs.length; ++i) {
+                    if (canJoin(tableAlias, otmdefs[i], false)) {
+                        if (util.isNotValidObject(otmdefs[i].joinTableName)) {
+                            let jc = '';
+                            if (!otmdefs[i].required) {
+                                jc += " left outer";
+                            }
+
+                            let alias = buildAlias(tableAlias, otmdefs[i].alias, currentDepth);
+
+                            jc += (" join " + otmdefs[i].targetTableName + " " + alias + " on (");
+
+                            let targetColumns = otmdefs[i].joinColumns.targetColumns.split(",");
+                            let sourceColumns = otmdefs[i].joinColumns.sourceColumns.split(",");
+
+
+                            let and = "";
+                            for (let j = 0; j < targetColumns.length; ++j) {
+                                jc += (and + alias + "." + targetColumns[j] + " = " + tableAlias + "." + sourceColumns[j]);
+                                and = " and ";
+                            }
+
+                            jc += ") ";
+
+                            if (!checkSet.has(jc)) {
+                                this.joinClauses[joinDepth] += jc;
+                            }
+                        } else {
+                            let alias = buildAlias(tableAlias, otmdefs[i].alias, currentDepth);
+                            for (let k = 0; k < 2; ++k) {
+                                let jc = '';
+                                if (!otmdefs[i].required) {
+                                    jc += " left outer";
+                                }
+
+                                if (k === 0) {
+                                    jc += (" join " + otmdefs[i].joinTableName + " " + alias + "jt on (");
+
+                                    let targetColumns = otmdefs[i].joinColumns.targetColumns.split(",");
+                                    let sourceColumns = otmdefs[i].joinColumns.sourceColumns.split(",");
+
+                                    let and = "";
+                                    for (let j = 0; j < targetColumns.length; ++j) {
+                                        jc += (and + alias + "." + targetColumns[j] + " = " + tableAlias + "." + sourceColumns[j]);
+                                        and = " and ";
+                                    }
+
+                                    jc += ") ";
+
+                                    if (!checkSet.has(jc)) {
+                                        this.joinClauses[joinDepth] += jc;
+                                    }
+                                } else {
+                                    jc += (" join " + otmdefs[i].targetTableName + " " + alias + " on (");
+
+                                    let targetColumns = otmdefs[i].joinColumns.inverseTargetColumns.split(",");
+                                    let sourceColumns = otmdefs[i].joinColumns.inverseSourceColumns.split(",");
+
+                                    let and = "";
+                                    for (let j = 0; j < targetColumns.length; ++j) {
+                                        jc += (and + alias + "jt." + targetColumns[j] + " = " + tableAlias + "." + sourceColumns[j]);
+                                        and = " and ";
+                                    }
+
+                                    jc += ") ";
+
+                                    if (!checkSet.has(jc)) {
+                                        this.joinClauses[joinDepth] += jc;
+                                    }
+                                }
+                            }
+                        }
+                        this.buildJoinClause(orm.getMetaData(otmdefs[i].targetModelName), 
+                            buildAlias(tableAlias, otmdefs[i].alias, currentDepth), 
+                            currentDepth+1, 
+                            joinDepth, 
+                            checkSet);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {type} whereComparisons - list of WhereComparison (WhereComparison.js) objects defining the where clause
+     * @returns {Repository.buildWhereClause.where|String}
+     */
+    buildWhereClause(whereComparisons) {
+        let where = '';
+        
+        for (let i = 0; i < whereComparisons.length; ++i) {
+            if (i > 0) {
+                where += (' ' + whereComparisons[i].getLogicalOperator() + ' ');
+            } else {
+                where = ' where ';
+            }
+            where += whereComparisons[i].getOpenParen();
+            let fieldName = whereComparisons[i].getFieldName().trim();
+            if (fieldName.startsWith('o.')) {
+                fieldName = fieldName.substring(2);
+            }
+            where += this.getColumnNameFromFieldName(fieldName);
+            where += (' ' + whereComparisons[i].getComparisonOperator() + ' ');
+            if (whereComparisons[i].getUseBindParams()) {
+                where += (':p' + (i+1));
+            } else {
+                where += whereComparisons[i].getComparisonValue();
+            }
+            where += whereComparisons[i].getCloseParen();
+        }
+        
+        return where;
+    }
+    
+    /**
+     * @param {type} md - model meta data
+     * @returns object query string for find by primary key
+     */
+    buildFindOneNamedOperation(md) {
+        let onm;
+        if (md) {
+            onm = md.getObjectName();
+        } else {
+            onm = this.metaData.getObjectName();
+        }
+        let sql = ("select " + onm + " o from " + onm + " where ");
+
+        let and = "";
+        let pkfields = this.metaData.getPrimaryKeyFields();
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (and + "o." +  pkfields[i].fieldName + " = :" + pkfields[i].fieldName);
+            and = " and ";
+        }
+
+        return sql;
+    }
+
+    /**
+     * 
+     * @returns object query string for getAll()
+     */
+    buildGetAllNamedOperation() {
+        let onm = this.metaData.getObjectName();
+        let sql = ("select " + onm + " o from " + onm + " order by  ");
+
+        let comma = "";
+        let pkfields = this.metaData.getPrimaryKeyFields();
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (comma + "o." +  pkfields[i].fieldName);
+            comma = ",";
+        }
+
+        return sql;
+    }
+
+    buildDeleteNamedOperation() {
+        let onm = this.metaData.getObjectName();
+        let sql = ('delete from ' + onm + ' o where  ');
+
+        let and = '';
+        let pkfields = this.metaData.getPrimaryKeyFields();
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (and + 'o.' +  pkfields[i].fieldName + ' = :' + pkfields[i].fieldName);
+            and = ' and ';
+        }
+
+        return sql;
+    }
+
+    getParametersFromWhereComp(whereComparisons) {
+        let retval = new Array();
+        for (let i = 0; i < whereComparisons.length; ++i) {
+            if (whereComparisons[i].getUseBindParams()) {
+                retval.push(whereComparisons[i].getComparisonValue());
+            }
+        }
+        return retval;
+    }
+    
+    getJoinClause(depth) {
+        return this.joinClauses[depth];
+    }
+    
+    getSelectClause(depth)  {
+        let retval = this.selectClauses[depth];
+    
+        if (util.isUndefined(retval)) {
+            this.selectClauses[depth] = 'select ';
+            this.joinClauses[depth] = '';
+            this.selectedColumnFieldInfo[depth] = new Array();
+            this.columnPositions[depth] = new Map();
+            this.pkPositions[depth] = new Map();
+            this.generatedSql[depth] = new Map();
+             this.buildSelectClause(this.metaData, 't0', 0, depth);
+            this.buildJoinClause(this.metaData, 't0', 0, depth);
+            retval = this.selectClauses[depth];
+        }
+        
+        return retval;
+    }
+};
+
+/**
+ * complex recursive method to populate model hierarchy from result set
+ * @param {type} repo - model repositor
+ * @param {type} curAlias - current table alias
+ * @param {type} curDepth - current object graph depth
+ * @param {type} curRow - current sql result set row
+ * @param {type} pkp - primary key position array for current table (in current row)
+ * @param {type} pkmap - object map by unique key
+ * @param {type} scInfo - selected column information array
+ * @param {type} result - sql result rows/columns
+ * @param {type} retval - object grapth array
+ * @param {type} columnPos - array of maps defining column positions by alias
+ * @param {type} joinDepth - max joinDepth
+ */
+function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, result, retval, columnPos, joinDepth) {
+    for (let i = curRow; i < result.rows.length; ++i) {
+        
+        let curpkp = pkp[joinDepth].get(curAlias);
+        if (util.isDefined(curpkp)) {
+            let curpk = getPkValue(result.rows[i], curpkp);
+            let md = repo.getMetaData();
+            let objname = md.getObjectName();
+            let objkey = (objname + "-" + curAlias + "-" + curpk);
+
+            let curobj = pkmap.get(objkey);
+
+            if (util.isUndefined(curobj)) {
+                curobj = require("../" + repo.getMetaData().getModule())(orm.getMetaData(objname));
+                pkmap.set(objkey, curobj);
+
+                if (isRootTable(curAlias)) {
+                    retval.push(curobj);
+                }
+            }
+
+
+            let cpos = columnPos[joinDepth].get(curAlias);
+            for (let j = 0; j < cpos.length; ++j) {
+                if (result.rows[i][cpos[j]] !== null) {
+                    curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                        doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
+                }
+            }
+
+            if (curDepth < joinDepth)  {
+                // populate many-to-one child models
+                if (isRootTable(curAlias)) {
+                    let mtodefs = md.getManyToOneDefinitions();
+                    if (util.isDefined(mtodefs)) {
+                        for (let j = 0; j < mtodefs.length; ++j) {
+                            if (canJoin(curAlias, mtodefs[j])) {
+                                let a = buildAlias(curAlias, mtodefs[j].alias, curDepth);
+
+                                let pk;
+                                let pkpos = pkp[joinDepth].get(a);
+                                if (pkpos) {
+                                    pk = getPkValue(result.rows[i], pkp[joinDepth].get(a));
+                                }
+
+                                if (pk) {
+                                    let r = orm.getRepository(mtodefs[j].targetModelName);
+                                    let nm = r.getMetaData().getObjectName();
+                                    let key = (nm + '-' + a + '-' + pk);
+
+                                    let obj = pkmap.get(key);
+                                    if (util.isUndefined(obj)) {
+                                        obj = require(mtodefs[j].targetModule)(orm.getMetaData(mtodefs[j].targetModelName));
+                                        curobj.setFieldValue(mtodefs[j].fieldName, obj);
+                                        pkmap.set(key, obj);
+                                        populateModel(
+                                            r, 
+                                            a, 
+                                            curDepth+1, 
+                                            i, 
+                                            pkp,
+                                            pkmap, 
+                                            scInfo, 
+                                            result, 
+                                            retval,
+                                            columnPos,
+                                            joinDepth);
+                                    } else {
+                                        curobj.setFieldValue(mtodefs[j].fieldName, obj);
+                                    }
+                                } else {
+                                    curobj.setFieldValue(mtodefs[j].fieldName, null);
+                                }
+                            }
+                        }
+                    }
+
+                    // populate one-to-one child models
+                    let otodefs = md.getOneToOneDefinitions();
+                    if (util.isDefined(otodefs)) {
+                        for (let j = 0; j < otodefs.length; ++j) {
+                            if (canJoin(curAlias, otodefs[j])) {
+                                let a = buildAlias(curAlias, otodefs[j].alias, curDepth);
+
+                                let pk;
+                                let pkpos = pkp[joinDepth].get(a);
+                                if (pkpos) {
+                                    pk = getPkValue(result.rows[i], pkp[joinDepth].get(a));
+                                }
+
+                                if (pk) {
+                                    let ta;
+                                    let r = orm.getRepository(otodefs[j].targetModelName);
+                                    let nm = r.getMetaData().getObjectName();
+                                    let key = (nm + '-' + a + '-' + pk);
+                                    let obj = pkmap.get(key);
+                                    if (util.isUndefined(obj)) {
+                                        obj = require(otodefs[j].targetModule)(orm.getMetaData(otodefs[j].targetModelName));
+                                        pkmap.set(key, obj);
+                                        curobj.setFieldValue(otodefs[j].fieldName, obj);
+                                        populateModel(
+                                            r, 
+                                            a, 
+                                            curDepth+1, 
+                                            i, 
+                                            pkp,
+                                            pkmap, 
+                                            scInfo, 
+                                            result, 
+                                            retval,
+                                            columnPos,
+                                            joinDepth);
+                                    } else {
+                                       curobj.setFieldValue(otodefs[j].fieldName, obj);
+                                    }
+                                } else {
+                                    curobj.setFieldValue(otodefs[j].fieldName, null);
+                                }
+                           }
+                        }
+                    }
+                }
+
+                // populate one-to-many child models
+                let otmdefs = md.getOneToManyDefinitions();
+                if (util.isDefined(otmdefs)) {
+                    for (let j = 0; j < otmdefs.length; ++j) {
+                        if (canJoin(curAlias, otmdefs[j])) {
+                            let a = buildAlias(curAlias, otmdefs[j].alias, curDepth);
+
+                            let pk;
+                            let pkpos = pkp[joinDepth].get(a);
+
+                            if (pkpos) {
+                                pk = getPkValue(result.rows[i], pkp[joinDepth].get(a));
+                            }
+
+                            if (pk) {
+                                let r = orm.getRepository(otmdefs[j].targetModelName);
+                                let nm = r.getMetaData().getObjectName();
+                                let key = (nm + '-' + a + '-' + pk);
+
+                                let obj = pkmap.get(key);
+                                if (util.isUndefined(obj)) {
+                                    obj = require(otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
+                                    pkmap.set(key, obj);
+                                    populateModel(
+                                        r, 
+                                        a, 
+                                        curDepth+1, 
+                                        i, 
+                                        pkp,
+                                        pkmap, 
+                                        scInfo, 
+                                        result, 
+                                        retval,
+                                        columnPos,
+                                        joinDepth);
+                                }
+
+                                let l = curobj.getFieldValue(otmdefs[j].fieldName, true);
+
+                                if (util.isUndefined(l)) {
+                                    l = new Array();
+                                    curobj.setFieldValue(otmdefs[j].fieldName, l);
+                                }
+                                
+                                l.push(obj);
+                            } else if (util.isUndefined(curobj.getFieldValue(otmdefs[j].fieldName, true))) {
+                               curobj.setFieldValue(otmdefs[j].fieldName, null);
+                            }
+                        }
+                    }
+                }
+
+                curobj.setModified(false);
+                curobj.setNew(false);
+            }
+        }
+    }
+}
+
+function doConversionIfRequired(field, value, fromDb) {
+    let retval = value;
+    
+    if (util.isDefined(field.converter) && util.isValidObject(value)) {
+        retval = require('../converters/' + field.converter + '.js')(field, value, fromDb);
+    }
+    
+    return retval;
+}
+/**
+ * 
+ * @param {type} row - current result set array of row data
+ * @param {type} pkpos - array of column positions for primary key
+ * @returns primary key value array
+ */
+function getPkValue(row, pkpos) {
+    let retval = '';
+    for (let i = 0; i < pkpos.length; ++i) {
+        // if pk field is null the exit 
+        let key = row[pkpos[i]];
+        if (util.isUndefined(key) || !key) {
+            retval = null;
+            break;
+        }
+        if (i > 0) {
+            retval += util.PK_VALUE_SEPARATOR;
+        }
+        retval += row[pkpos[i]];
+    }
+
+    return retval;
+}
+
+/**
+ * ensures that a valid options settings object is available
+ * @param {type} options - options settings
+ * @returns populated options settings if required
+ */
+function checkOptions(options) {
+    let retval;
+    if (util.isUndefined(options)) {
+        retval = {"joinDepth": orm.appConfiguration.defaultMaxJoinDepth};
+    } else {
+        if (util.isUndefined(options.joinDepth)) {
+            options.joinDepth = orm.appConfiguration.defaultMaxJoinDepth;
+        }
+        
+        retval = options;
+    }
+    
+    return retval;
+}
+
+function canJoin(alias, ref) {
+    return (ref.status === util.ENABLED);
+};
+
+function buildAlias(parentAlias, currentAlias, depth) {
+    return (parentAlias + '_' + currentAlias + '_' + depth);
+}
+
+function isRootTable(alias) {
+    return (alias === 't0');
+}
