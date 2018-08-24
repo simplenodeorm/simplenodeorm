@@ -15,8 +15,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const server = express();
 
-const APP_NAME = appConfiguration.applicationName || "KFS ORM";
-const REST_URL_BASE = appConfiguration.restUrlBase || '/kfsorm';
+const APP_NAME = appConfiguration.applicationName || "SIMPLE ORM";
+const REST_URL_BASE = appConfiguration.restUrlBase || '/orm';
 const REST_SERVER_PORT = appConfiguration.restPort || 8888;
  
  
