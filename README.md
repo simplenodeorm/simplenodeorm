@@ -7,6 +7,6 @@
 6. see code under examples directory for example model, 
    metadata and repository objects and database configuration json 
 7. add model, repository and metadata objects as described in included simplenodeorm.pdf
-8. for testing add model, repository and metadata test as described in included simplenodeorm.pdf
+8. for testing add model, repository and metadata tests as described in included simplenodeorm.pdf
 
 
