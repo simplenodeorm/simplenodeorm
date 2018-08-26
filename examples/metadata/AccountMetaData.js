@@ -6,7 +6,7 @@ class AccountMetaData extends MetaData {
     constructor() {
         super(
         'Account', // object name,
-        'model/ca/Account.js', // relative module path,
+        'model/Account.js', // relative module path,
         'CA_ACCOUNT_T', // table name
         [ // field definitions - order is important,
           //selected data will be in this order, primary key fields shoud be first
