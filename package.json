@@ -1,33 +1,37 @@
 {
-  "name" : "simplenodeorm",
-  "version" : "0.100",
-  "description" : "Simple ORM for oracle",
-  "main" : "./orm.js",
-  "repository" : {
-    "type" : "git",
-    "url" : "git+https://github.com/rbtucker/simplenodeorm.git"
+  "name": "simplenodeorm",
+  "version": "0.100",
+  "description": "Simple ORM for oracle",
+  "main": "./orm.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rbtucker/simplenodeorm.git"
   },
-  "author" : {
-    "name" : "Rob Tucker",
-    "email" : "tucker87@msu.edu"
+  "author": {
+    "name": "Rob Tucker",
+    "email": "tucker87@msu.edu"
   },
-  "license" : "ISC",
-  "dependencies" : {
-    "body-parser" : ">=1.15",
-    "express" : ">=4.14",
-    "oracledb" : ">=2.2",
-    "winston" : ">=2.4",
-    "chai" : ">=4.1",
-    "events" : ">=2.0.0",
-    "properties-reader" : ">=0.0.16",
-    "uuid" : ">=3.2.1"
-    "deasync" : ">=0.1.13"
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": ">=1.15",
+    "express": ">=4.14",
+    "oracledb": ">=2.2",
+    "winston": ">=2.4",
+    "chai": ">=4.1",
+    "events": ">=2.0.0",
+    "properties-reader": ">=0.0.16",
+    "uuid": ">=3.2.1",
+    "deasync": ">=0.1.13"
   }, 
-  "bugs" : {
-    "url" : "https://github.com/rbtucker/simplenodeorm/issues"
+  "bugs": {
+    "url": "https://github.com/rbtucker/simplenodeorm/issues"
   },
-  "engines" : {
-    "node" : ">=10.5"
+  "engines": {
+    "node": ">=10.5"
   },
-  "keywords" : ["oracle", "orm", "node oracle orm", "node-oracledb"]
+  "keywords": [
+      "oracle", 
+      "orm", 
+      "node-oracledb"
+    ]
 }
