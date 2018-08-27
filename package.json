@@ -29,5 +29,5 @@
   "engines" : {
     "node" : "=10.5.0"
   },
-  "keywords" : ["oracle", "orm"]
+  "keywords" : ["oracle", "orm", "node oracle orm", "node-oracledb"]
 }
