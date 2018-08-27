@@ -27,7 +27,7 @@
     "url" : "https://github.com/rbtucker/simplenodeorm/issues"
   },
   "engines" : {
-    "node" : ">=10.5.0"
+    "node" : ">=10.5"
   },
   "keywords" : ["oracle", "orm", "node oracle orm", "node-oracledb"]
 }
