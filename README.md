@@ -1,5 +1,4 @@
-Simple ORM framework for Node.js that has been tested on Oracle 
-but can support other databases with some minor changes. See included
+Simple Oracle ORM framework for Node.js See included
 simplenodeorm.pdf for implementation and design details.
 
 1. ensure node.js 10.5 or above installed
