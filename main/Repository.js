@@ -6,6 +6,7 @@ const insertSqlMap = new Map();
 const updateSqlMap = new Map();
 const logger = require('./Logger.js');
 const dbConfig = require('../db/dbConfiguration.js');
+var deasync = require('deasync');
 
 /**
  * this class is the heart of the orm - all the relations to object graph logic occurs here as well as the sql operations
@@ -90,6 +91,22 @@ module.exports = class Repository {
         } 
     }
     
+    findOneSync(primaryKey, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let func = this.findOne;
+        (async function(resultWrapper, func, primaryKey, options) {
+            let result = await findOne(primaryKey, options);
+            resultWrapper.result = result.result;
+            resultWrapper.error = result.error;
+        })(resultWrapper, func, primaryKey, options);
+        
+        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
+    }
+    
     /**
      * 
      * @param {type} whereComparisons - array of where definitions using WhereComparison.js - if empty then will count all rows
@@ -128,6 +145,24 @@ module.exports = class Repository {
         }
     }
 
+    countSync(whereComparisons, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let func = this.count;
+        
+        (async function() {
+            let result = await func(whereComparisons, options);
+            resultWrapper.result = result.result;
+            resultWrapper.error = result.error;
+        })(resultWrapper, func, whereComparisons, options);
+        
+        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
+    }
+
+    
     /**
      * 
      * @param {type} whereComparisons - array of where definitions using WhereComparison.js - will fail if empty
@@ -171,6 +206,22 @@ module.exports = class Repository {
         return await this.executeQuery(sql, params, options);
     }
 
+    find(whereComparisons, orderByEntries, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let func = find;
+        (async function() {
+            let result = await func(whereComparisons, orderByEntries, options);
+            resultWrapper.result = result.result;
+            resultWrapper.error = result.error;
+        })(resultWrapper, func, whereComparisons, orderByEntries, options);
+        
+        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
+    }
+
     /**
      * 
     * @param {type} options - query options as json of the form below
@@ -185,6 +236,22 @@ module.exports = class Repository {
     async getAll(options) {
         options = checkOptions(options);
         return await this.executeNamedDbOperation(util.GET_ALL, [], options);
+    }
+
+    getAll(options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let func = this.getAll;
+        (async function(resultWrapper, func, options) {
+            let result = await func(options);
+            resultWrapper.result = result.result;
+            resultWrapper.error = result.error;
+        }(resultWrapper, func, options));
+        
+        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
     }
 
     /**
@@ -260,6 +327,23 @@ module.exports = class Repository {
         
         return {rowsAffected: rowsAffected};
     }
+
+    deleteSync(modelInstances, options) {
+        let resultWrapper = {rowsAffected: undefined, error: undefined};
+        let func = this.delete;
+        (async function() {
+            let result = await func(modelInstances, options);
+            resultWrapper.rowsAffected = result.rowsAffected;
+            resultWrapper.error = result.error;
+        })(resultWrapper, func, modelInstances, options);
+        
+        while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
+    }
+    
 
     /**
      * @param {type} model - model instance to update/insert
@@ -679,6 +763,24 @@ module.exports = class Repository {
             return {rowsAffected: rowsAffected};
         }
     }
+    
+    saveSync(modelInstances, options) {
+        let resultWrapper = {rowsAffected: undefined, error: undefined};
+        let func = this.save;
+        (async function() {
+            let result = await func(modelInstances, options);
+            resultWrapper.rowsAffected = result.rowsAffected;
+            resultWrapper.error = result.error;
+            resultWrapper.updatedValues = result.updatedValues;
+        })(resultWrapper, func, modelInstances, options);
+        
+        while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper;
+    }
+
 
     /**
      * 

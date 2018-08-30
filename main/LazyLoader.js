@@ -6,7 +6,7 @@ module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
     loadData(model, fieldName, resultWrapper);
 
-    while (util.isUndefined(resultWrapper.result)) {
+    while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
         deasync.sleep(200);
     }
     
