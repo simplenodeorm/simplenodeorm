@@ -1,7 +1,7 @@
 {
     "stopTestsOnFailure" : false,
     "testDbConfiguration" : "path-to-test-dbconfig-json",
-    "maxRowsForGetAll" : 100,
+    "maxRowsForGetAll" : 10,
     "fieldsToIgnoreForUpdate" : [
         "field1", 
         "field2"

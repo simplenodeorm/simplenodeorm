@@ -40,5 +40,5 @@ async function initPool(securityPath, poolCreatedEmitter) {
 
 module.exports.getDbType = function(alias) {
     return dbType.get(alias);
-}
+};
 
