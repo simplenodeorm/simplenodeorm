@@ -93,12 +93,12 @@ module.exports = class Repository {
     
     findOneSync(primaryKey, options) {
         let resultWrapper = {result: undefined, error: undefined};
-        let func = this.findOne;
-        (async function(resultWrapper, func, primaryKey, options) {
-            let result = await findOne(primaryKey, options);
+        let repo = this;
+        (async function(resultWrapper, repo, primaryKey, options) {
+            let result = await repo.findOne(primaryKey, options);
             resultWrapper.result = result.result;
             resultWrapper.error = result.error;
-        })(resultWrapper, func, primaryKey, options);
+        })(resultWrapper, repo, primaryKey, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);
@@ -147,13 +147,13 @@ module.exports = class Repository {
 
     countSync(whereComparisons, options) {
         let resultWrapper = {result: undefined, error: undefined};
-        let func = this.count;
+        let repo = this;
         
         (async function() {
-            let result = await func(whereComparisons, options);
+            let result = await repo.count(whereComparisons, options);
             resultWrapper.result = result.result;
             resultWrapper.error = result.error;
-        })(resultWrapper, func, whereComparisons, options);
+        })(resultWrapper, repo, whereComparisons, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);
@@ -208,12 +208,12 @@ module.exports = class Repository {
 
     find(whereComparisons, orderByEntries, options) {
         let resultWrapper = {result: undefined, error: undefined};
-        let func = find;
+        let repo = this;
         (async function() {
-            let result = await func(whereComparisons, orderByEntries, options);
+            let result = await repo.find(whereComparisons, orderByEntries, options);
             resultWrapper.result = result.result;
             resultWrapper.error = result.error;
-        })(resultWrapper, func, whereComparisons, orderByEntries, options);
+        })(resultWrapper, repo, whereComparisons, orderByEntries, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);
@@ -240,12 +240,12 @@ module.exports = class Repository {
 
     getAll(options) {
         let resultWrapper = {result: undefined, error: undefined};
-        let func = this.getAll;
+        let repo = this;
         (async function(resultWrapper, func, options) {
-            let result = await func(options);
+            let result = await repo.getAll(options);
             resultWrapper.result = result.result;
             resultWrapper.error = result.error;
-        }(resultWrapper, func, options));
+        }(resultWrapper, repo, options));
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);
@@ -330,12 +330,12 @@ module.exports = class Repository {
 
     deleteSync(modelInstances, options) {
         let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let func = this.delete;
+        let repo = this;
         (async function() {
-            let result = await func(modelInstances, options);
+            let result = await repo.delete(modelInstances, options);
             resultWrapper.rowsAffected = result.rowsAffected;
             resultWrapper.error = result.error;
-        })(resultWrapper, func, modelInstances, options);
+        })(resultWrapper, repo, modelInstances, options);
         
         while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);
@@ -766,13 +766,13 @@ module.exports = class Repository {
     
     saveSync(modelInstances, options) {
         let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let func = this.save;
+        let repo = thise;
         (async function() {
-            let result = await func(modelInstances, options);
+            let result = await repo.save(modelInstances, options);
             resultWrapper.rowsAffected = result.rowsAffected;
             resultWrapper.error = result.error;
             resultWrapper.updatedValues = result.updatedValues;
-        })(resultWrapper, func, modelInstances, options);
+        })(resultWrapper, repo, modelInstances, options);
         
         while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
             deasync.sleep(200);

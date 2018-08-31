@@ -173,6 +173,34 @@ function startRestServer() {
                     }
                     result = await repo.exists(params);
                     break;
+                case util.FIND_ONE_SYNC.toLowerCase():
+                    for (let i = 0; i < pk.length; ++i) {
+                        params.push(req.query[pk[i].fieldName]);
+                    }
+                    result = await repo.findOneSync(params);
+                    break;
+                case util.FIND_SYNC.toLowerCase():
+                    for (let i = 0; i < fields.length; ++i) {
+                        if (util.isDefined(req.query[fields[i].fieldName])) {
+                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                        }
+                    }
+                    result = await repo.findSync(params);
+                    break;
+                case util.COUNT_SYNC.toLowerCase():
+                    for (let i = 0; i < fields.length; ++i) {
+                        if (util.isDefined(req.query[fields[i].fieldName])) {
+                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                        }
+                    }
+                    result = await repo.countSync(params);
+                    break;
+                case util.EXISTS_SYNC.toLowerCase():
+                    for (let i = 0; i < pk.length; ++i) {
+                        params.push(req.query[pk[i].fieldName]);
+                    }
+                    result = await repo.existsSYnc(params);
+                    break;
                 default:
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
@@ -219,6 +247,16 @@ function startRestServer() {
                 case util.SAVE.toLowerCase():
                     result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
                     break;
+                case util.FIND_ONE_SYNC.toLowerCase():
+                    result = await repo.findOneSYnc(req.body.primaryKeyValues);
+                    break;
+                case util.FIND_SYNC.toLowerCase():
+                    result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons), 
+                        populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
+                    break;
+                case util.SAVE_SYNC.toLowerCase():
+                    result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
+                    break;
                 default:
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
@@ -261,6 +299,9 @@ function startRestServer() {
                 case util.SAVE.toLowerCase():
                     result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
                     break;
+                case util.SAVE_SYNC.toLowerCase():
+                    result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                    break;
                 default:
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
@@ -299,6 +340,9 @@ function startRestServer() {
             switch(req.params.method.toLowerCase()) {
                 case util.DELETE.toLowerCase():
                     result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                    break;
+                case util.DELETE_SYNC.toLowerCase():
+                    result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
                     break;
                 default:
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
