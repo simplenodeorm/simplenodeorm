@@ -199,7 +199,7 @@ function startRestServer() {
                     for (let i = 0; i < pk.length; ++i) {
                         params.push(req.query[pk[i].fieldName]);
                     }
-                    result = await repo.existsSYnc(params);
+                    result = await repo.existsSync(params);
                     break;
                 default:
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');

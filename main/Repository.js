@@ -94,7 +94,7 @@ module.exports = class Repository {
     findOneSync(primaryKey, options) {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
-        (async function(resultWrapper, repo, primaryKey, options) {
+        (async function() {
             let result = await repo.findOne(primaryKey, options);
             resultWrapper.result = result.result;
             resultWrapper.error = result.error;
@@ -206,7 +206,7 @@ module.exports = class Repository {
         return await this.executeQuery(sql, params, options);
     }
 
-    find(whereComparisons, orderByEntries, options) {
+    findSync(whereComparisons, orderByEntries, options) {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
@@ -238,7 +238,7 @@ module.exports = class Repository {
         return await this.executeNamedDbOperation(util.GET_ALL, [], options);
     }
 
-    getAll(options) {
+    getAllSync(options) {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function(resultWrapper, func, options) {
@@ -825,6 +825,22 @@ module.exports = class Repository {
         return retval;
     }
 
+    existsSync(inputParams, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let repo = this;
+        (async function() {
+            let result = await repo.findOne(inputParams, options);
+            resultWrapper.result = result;
+        })(resultWrapper, repo, inputParams, options);
+        
+        while (util.isUndefined(resultWrapper.result)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper.result;
+    }
+
+
     /**
      * 
      * @param {type} operationName - name predefined object query such as 'select Account o from Account where o.finCoaCd = :finCoaCd and o.accountNbr = :accountNbr
@@ -992,6 +1008,21 @@ module.exports = class Repository {
         }
     }
     
+    executeSqlQuerySync(sql, parameters, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let repo = this;
+        (async function() {
+            let result = await repo.executeSqlQuery(sql, parameters, options);
+            resultWrapper.result = result;
+        })(resultWrapper, repo, sql, parameters);
+        
+        while (util.isUndefined(resultWrapper.result)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper.result;
+    }
+    
     /**
      * 
      * @param {type} sql - sql query string
@@ -1118,6 +1149,21 @@ module.exports = class Repository {
                 await conn.close();
             }
         }
+    }
+
+    executeSqlSync(sql, parameters, options) {
+        let resultWrapper = {result: undefined, error: undefined};
+        let repo = this;
+        (async function() {
+            let result = await repo.executeSql(sql, parameters, options);
+            resultWrapper.result = result;
+        })(resultWrapper, repo, sql, parameters);
+        
+        while (util.isUndefined(resultWrapper.result)) {
+            deasync.sleep(200);
+        }
+
+        return resultWrapper.result;
     }
 
     /**
