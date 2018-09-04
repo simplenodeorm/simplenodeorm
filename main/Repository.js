@@ -6,6 +6,8 @@ const insertSqlMap = new Map();
 const updateSqlMap = new Map();
 const logger = require('./Logger.js');
 const dbConfig = require('../db/dbConfiguration.js');
+const sleepTime = orm.appConiguration.deasyncSleepTimeMillis || 200;
+
 var deasync = require('deasync');
 
 /**
@@ -101,7 +103,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, primaryKey, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -156,7 +158,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, whereComparisons, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -216,7 +218,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, whereComparisons, orderByEntries, options);
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -248,7 +250,7 @@ module.exports = class Repository {
         }(resultWrapper, repo, options));
         
         while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -338,7 +340,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, modelInstances, options);
         
         while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -775,7 +777,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, modelInstances, options);
         
         while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper;
@@ -834,7 +836,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, inputParams, options);
         
         while (util.isUndefined(resultWrapper.result)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper.result;
@@ -1017,7 +1019,7 @@ module.exports = class Repository {
         })(resultWrapper, repo, sql, parameters);
         
         while (util.isUndefined(resultWrapper.result)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper.result;

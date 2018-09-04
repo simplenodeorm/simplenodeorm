@@ -8,6 +8,7 @@
   "applicationName" : "Simple ORM",
   "logFile" : "orm.log",
   "logLevel" : "info",
+  "deasyncSleepTimeMillis": 200,
   "maxRowsForGetAll" : 100000,
   "aliases" : {
         "simplename1" : "somelongobjectnamingconvention1",

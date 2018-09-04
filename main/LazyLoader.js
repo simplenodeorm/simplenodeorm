@@ -1,13 +1,15 @@
 const orm = require('../orm.js');
 const util = require('./util.js');
 const logger = require('./Logger.js');
+const sleepTime = orm.appConiguration.deasyncSleepTimeMillis || 200;
 var deasync = require('deasync');
+
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
     loadData(model, fieldName, resultWrapper);
 
     while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
-        deasync.sleep(200);
+        deasync.sleep(sleepTime);
     }
     
     if (util.isDefined(resultWrapper.error)) {
@@ -90,7 +92,7 @@ async function loadData(model, fieldName, resultWrapper) {
                     }
                 }
             } else {
-                resultWrapper.error = (ref.targetModelName + ' repositort not found');
+                resultWrapper.error = (ref.targetModelName + ' repository not found');
             }
         }
     }
