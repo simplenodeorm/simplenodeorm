@@ -1,5 +1,5 @@
 {
-  "name": "simplenodeorm",
+  "name": "@simplenodeorm/simplenodeorm",
   "version": "0.0.3",
   "description": "Simple ORM for oracle",
   "main": "./orm.js",
@@ -7,10 +7,7 @@
     "type": "git",
     "url": "git+https://github.com/rbtucker/simplenodeorm.git"
   },
-  "author": {
-    "name": "Rob Tucker",
-    "email": "rbtucker16@gmail.com"
-  },
+  "author": "Rob Tucker <rbtucker16@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "body-parser": ">=1.15",
@@ -22,7 +19,7 @@
     "properties-reader": ">=0.0.16",
     "uuid": ">=3.2.1",
     "deasync": ">=0.1.13"
-  }, 
+  },
   "bugs": {
     "url": "https://github.com/rbtucker/simplenodeorm/issues"
   },
@@ -30,8 +27,16 @@
     "node": ">=10.5"
   },
   "keywords": [
-      "oracle", 
-      "orm", 
-      "node-oracledb"
-    ]
+    "oracle",
+    "orm",
+    "node-oracledb"
+  ],
+  "homepage": "https://github.com/rbtucker/simplenodeorm#readme",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
 }
