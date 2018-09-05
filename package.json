@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Simple ORM for oracle",
   "main": "./orm.js",
   "repository": {
@@ -28,7 +28,10 @@
   },
   "keywords": [
     "oracle",
+    "oracle orm",
     "orm",
+    "object relational mapping",
+    "node orm",
     "node-oracledb"
   ],
   "homepage": "https://github.com/rbtucker/simplenodeorm#readme",
@@ -37,6 +40,5 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
