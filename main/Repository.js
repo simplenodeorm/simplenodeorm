@@ -6,7 +6,7 @@ const insertSqlMap = new Map();
 const updateSqlMap = new Map();
 const logger = require('./Logger.js');
 const dbConfig = require('../db/dbConfiguration.js');
-const sleepTime = orm.appConiguration.deasyncSleepTimeMillis || 200;
+const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 
 var deasync = require('deasync');
 
