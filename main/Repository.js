@@ -768,7 +768,7 @@ module.exports = class Repository {
     
     saveSync(modelInstances, options) {
         let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let repo = thise;
+        let repo = this;
         (async function() {
             let result = await repo.save(modelInstances, options);
             resultWrapper.rowsAffected = result.rowsAffected;
@@ -1330,7 +1330,6 @@ module.exports = class Repository {
             let pfields = parentMetaData.getFields();
             let comma = "";
             for (let i = 0; i < pfields.length; ++i) {
-                let f = (tableAlias + "." + pfields[i].columnName);
                 this.selectClauses[joinDepth] += comma;
                 this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
                 this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
