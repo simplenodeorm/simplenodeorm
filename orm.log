@@ -1,1 +1,6 @@
 {"message":"creating connection pools...","level":"info","timestamp":"2018-08-30 13:21:14"}
+{"message":"creating connection pools...","level":"info","timestamp":"2018-09-06 15:04:53"}
+{"message":"    kfsdb connection pool created","level":"info","timestamp":"2018-09-06 15:04:53"}
+{"message":"    ricedb connection pool created","level":"info","timestamp":"2018-09-06 15:04:53"}
+{"message":"loading Simple ORM...","level":"info","timestamp":"2018-09-06 15:04:53"}
+{"message":"loading orm definitions...","level":"info","timestamp":"2018-09-06 15:04:53"}

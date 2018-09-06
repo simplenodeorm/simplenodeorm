@@ -9,10 +9,10 @@ module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
     loadData(model, fieldName, resultWrapper);
 
-    let startTime = new Date().now();
+    let startTime = Date.now();
     while (util.isUndefined(resultWrapper.result) 
         && util.isUndefined(resultWrapper.error)
-        && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+        && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
         deasync.sleep(sleepTime);
     }
     

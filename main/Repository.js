@@ -103,10 +103,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, primaryKey, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -161,10 +161,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, whereComparisons, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -224,10 +224,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, whereComparisons, orderByEntries, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -259,10 +259,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         }(resultWrapper, repo, options));
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -352,10 +352,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, modelInstances, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.rowsAffected) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -792,10 +792,10 @@ module.exports = class Repository {
             resultWrapper.updatedValues = result.updatedValues;
         })(resultWrapper, repo, modelInstances, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.rowsAffected) 
             && util.isUndefined(resultWrapper.error)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -850,13 +850,13 @@ module.exports = class Repository {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.findOne(inputParams, options);
+            let result = await repo.exists(inputParams, options);
             resultWrapper.result = result;
         })(resultWrapper, repo, inputParams, options);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
 
             deasync.sleep(sleepTime);
         }
@@ -1040,9 +1040,9 @@ module.exports = class Repository {
             resultWrapper.result = result;
         })(resultWrapper, repo, sql, parameters);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -1185,9 +1185,9 @@ module.exports = class Repository {
             resultWrapper.result = result;
         })(resultWrapper, repo, sql, parameters);
         
-        let startTime = new Date().now();
+        let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result)
-            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(200);
         }
 
