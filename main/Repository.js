@@ -7,6 +7,7 @@ const updateSqlMap = new Map();
 const logger = require('./Logger.js');
 const dbConfig = require('../db/dbConfiguration.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
+const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
 
 var deasync = require('deasync');
 
@@ -102,7 +103,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, primaryKey, options);
         
-        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -157,7 +161,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, whereComparisons, options);
         
-        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -217,7 +224,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, whereComparisons, orderByEntries, options);
         
-        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -249,7 +259,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         }(resultWrapper, repo, options));
         
-        while (util.isUndefined(resultWrapper.result) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -339,7 +352,10 @@ module.exports = class Repository {
             resultWrapper.error = result.error;
         })(resultWrapper, repo, modelInstances, options);
         
-        while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.rowsAffected) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -776,7 +792,10 @@ module.exports = class Repository {
             resultWrapper.updatedValues = result.updatedValues;
         })(resultWrapper, repo, modelInstances, options);
         
-        while (util.isUndefined(resultWrapper.rowsAffected) && util.isUndefined(resultWrapper.error)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.rowsAffected) 
+            && util.isUndefined(resultWrapper.error)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -835,7 +854,10 @@ module.exports = class Repository {
             resultWrapper.result = result;
         })(resultWrapper, repo, inputParams, options);
         
-        while (util.isUndefined(resultWrapper.result)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result) 
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
+
             deasync.sleep(sleepTime);
         }
 
@@ -1018,7 +1040,9 @@ module.exports = class Repository {
             resultWrapper.result = result;
         })(resultWrapper, repo, sql, parameters);
         
-        while (util.isUndefined(resultWrapper.result)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(sleepTime);
         }
 
@@ -1161,7 +1185,9 @@ module.exports = class Repository {
             resultWrapper.result = result;
         })(resultWrapper, repo, sql, parameters);
         
-        while (util.isUndefined(resultWrapper.result)) {
+        let startTime = new Date().now();
+        while (util.isUndefined(resultWrapper.result)
+            && ((new Date().now() - startTime) < maxDeasyncWaitTime)) {
             deasync.sleep(200);
         }
 

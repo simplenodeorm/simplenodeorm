@@ -1,6 +1,6 @@
 {
   "testMode" : true,
-  "dbConfiguration" : "path-to-dbconfig-json",
+  "dbConfiguration" : "c:\\work\\kfsormsec.json",
   "defaultMaxJoinDepth" : 4,
   "startRestServer" : false,
   "restUrlBase" : "/orm",
@@ -9,6 +9,7 @@
   "logFile" : "orm.log",
   "logLevel" : "info",
   "deasyncSleepTimeMillis": 200,
+  "maxDeasyncWaitTime" : 30000,
   "maxRowsForGetAll" : 100000,
   "aliases" : {
         "simplename1" : "somelongobjectnamingconvention1",

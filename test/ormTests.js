@@ -8,9 +8,16 @@ module.exports.run = async function(orm) {
     testUtil.logInfo("running orm tests...");
     let models = orm.getModelList();
     assert(util.isDefined(models) || (models.length > 0), 'failed to load orm model list');
-    let repo = orm.getRepository(models[0]);
-    assert(util.isDefined(repo), 'failed to load repositoryMap');
-    assert(util.isDefined(repo.getMetaData()), 'failed to load metaDataMap');
+    let repo;
+    
+    if (models.length > 0) {
+        repo = orm.getRepository(models[0]);
+        assert(util.isDefined(repo), 'failed to load repositoryMap');
+        assert(util.isDefined(repo.getMetaData()), 'failed to load metaDataMap');
+    } else {
+        testUtil.logWarning("no model objects found")
+    }
+    
     let poolSet = new Set();
     for (let i = 0; i < models.length; ++i) {
         repo = orm.getRepository(models[i]);
