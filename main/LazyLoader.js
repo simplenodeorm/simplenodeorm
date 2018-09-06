@@ -1,7 +1,7 @@
 const orm = require('../orm.js');
 const util = require('./util.js');
 const logger = require('./Logger.js');
-const sleepTime = orm.appConiguration.deasyncSleepTimeMillis || 200;
+const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 var deasync = require('deasync');
 
 module.exports.lazyLoadData = function (model, fieldName) {
