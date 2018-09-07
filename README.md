@@ -2,7 +2,7 @@ Simple Oracle ORM framework for Node.js See included
 simplenodeorm.pdf for implementation and design details.
 
 1. ensure node.js 10.5 or above installed
-2. install - npm install simplenodeorm
+2. install - npm i @simplenodeorm/simplenodeorm
 3. ensure node-oracledb 2.2 installed
 4. ensure oracle client is installed and setup correctly 
    - https://github.com/oracle/node-oracledb/blob/master/INSTALL.md
