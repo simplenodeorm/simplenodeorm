@@ -480,7 +480,9 @@ function createTablesIfRequired() {
     });
     
     for (let i = 0; i < newTableRepos.length; ++i) {
-        logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName());
+        logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         newTableRepos[i].createForeignKeys();
+        logger.logInfo('creating sequences for ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
+        newTableRepos[i].createAutoIncrementGeneratorIfRequired();
     }
 }

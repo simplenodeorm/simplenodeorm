@@ -58,6 +58,20 @@ module.exports = class Repository {
         }
     }
 
+    createAutoIncrementGeneratorIfRequired() {
+        let fields = this.getMeataData().fields;
+        
+        for (let i = 0; i < fields.length; ++i) {
+            if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                logger.logInfo('creating sequence ' + fields[i].autoIncrementGenerator);
+                let result = this.executeSqlSync('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
+                if (util.isDefined(result.error)) {
+                    util.throwError("SQLError", result.error);
+                }
+            }
+        }
+    }
+
     buildCreateTableSql() {
         let retval = 'create table ' + this.getMetaData().tableName + '(';
         let primaryKey = ' primary key(';
