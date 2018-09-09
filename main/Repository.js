@@ -96,7 +96,7 @@ module.exports = class Repository {
             }
             
             if (util.isDefined(f.defaultValue)) {
-                retval += (' DEFALT VALUE ' + f.defaultValue);
+                retval += (' DEFAULT ' + f.defaultValue);
             } else if (f.required) {
                 retval += ' NOT NULL ';
             }
