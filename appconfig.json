@@ -1,7 +1,8 @@
 {
-  "testMode" : true,
+  "testMode" : false,
   "dbConfiguration" : "c:\\work\\kfsormsec.json",
   "defaultMaxJoinDepth" : 4,
+  "createTablesIfRequired" : true,
   "startRestServer" : false,
   "restUrlBase" : "/orm",
   "restPort" : 8888, 

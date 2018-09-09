@@ -25,6 +25,12 @@ const REST_SERVER_PORT = appConfiguration.restPort || 8888;
 var poolCreatedEmitter = new events.EventEmitter();
 poolCreatedEmitter.on('poolscreated', async function() { 
     loadOrm();
+    
+    // check for associated table existence and create if configured to do so
+    if (appConfiguration.createTablesIfRequired) {
+        createTablesIfRequired();
+    }
+
     if (appConfiguration.testMode) {
         let suite = require("./test/testSuite.js");
         await suite.run();
@@ -75,40 +81,47 @@ module.exports.getConnection = async function(poolAlias) {
     return await oracledb.getConnection(poolAlias);
 };
 
+function getModelNameFromPath(path) {
+    let retval = path;
+    let pos = path.lastIndexOf('/');
+    let pos2 = path.lastIndexOf('.');
+    
+    if ((pos > -1) && (pos2 > pos)) {
+        retval = path.substring(pos+1, pos2);
+    }
+    
+    return retval;
+}
+
 function loadOrmDefinitions() {
     logger.logInfo("loading orm definitions...");
-    let dirlist = fs.readdirSync("./model");
+    let modelFiles = new Array();
+    loadModelFiles("./model", modelFiles);
     let indx = 1;
 
-    for (let i = 0; i < dirlist.length; ++i) {
-        if ((dirlist[i] !== '.') && (dirlist[i] !== "..") && fs.lstatSync('model/' + dirlist[i]).isDirectory()) {
-            let flist = fs.readdirSync('model/' + dirlist[i]);
-            for (let j = 0; j < flist.length; ++j) {
-                if (flist[j].endsWith(".js")) {
-                    let modelName = flist[j].split('\\').pop().split('/').pop().replace('.js', '');
-                    let md = new (require('./metadata/' + dirlist[i] + '/' + modelName + 'MetaData.js'));
-                    if (util.isDefined(md)) {
-                        modelList.push(modelName);
-                        let repo = require('./repository/' + dirlist[i] + '/' + modelName + 'Repository.js')(md);
-                        repositoryMap.set(modelName.toLowerCase(), repo);
-                        if (md.getOneToOneDefinitions()) {
-                            for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
-                                md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
-                            }
-                        }
+    for (let i = 0; i < modelFiles.length; ++i) {
+        let modelName = getModelNameFromPath(modelFiles[i]);
+        
+        let md = new (require(modelFiles[i].replace('./model', './metadata').replace('.js', 'MetaData.js')));
+        if (util.isDefined(md)) {
+            modelList.push(modelName);
+            let repo = require(modelFiles[i].replace('./model', './repository').replace('.js', 'Repository.js'))(md);
+            repositoryMap.set(modelName.toLowerCase(), repo);
+            if (md.getOneToOneDefinitions()) {
+                for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
+                    md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
+                }
+            }
 
-                        if (md.getOneToManyDefinitions()) {
-                            for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
-                                md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
-                            }
-                        }
-                        
-                        if (md.getOneToManyDefinitions()) {
-                            for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
-                                md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
-                            }
-                        }
-                    }
+            if (md.getOneToManyDefinitions()) {
+                for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
+                    md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
+                }
+            }
+
+            if (md.getOneToManyDefinitions()) {
+                for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
+                    md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
                 }
             }
         }
@@ -116,6 +129,21 @@ function loadOrmDefinitions() {
 
     logger.logInfo("orm definitions loaded");
 };
+
+
+
+function loadModelFiles(dir, modelFiles) {
+    let files = fs.readdirSync(dir);
+    
+    for (let i = 0; i < files.length; ++i) {
+        let curFile = (dir + '/' + files[i]);
+        if ((files[i] !== '.') && (files[i] !== "..") && fs.lstatSync(curFile).isDirectory()) {
+            loadModelFiles(dir + '/' + files[i], modelFiles);           
+        } else if (curFile.endsWith('.js')) {
+            modelFiles.push(curFile)
+        }
+    }
+}
 
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
@@ -438,4 +466,21 @@ function populateOptionsFromRequestInput(input) {
     }
     
     return retval;
+}
+
+function createTablesIfRequired() {
+    let newTableRepos = new Array();
+    logger.logInfo('in createTablesIfRequired()=' + repositoryMap.size);
+    repositoryMap.forEach(function(repo, key) {
+        if (!repo.tableExists()) {
+            logger.logInfo('creating table ' + repo.getMetaData().getTableName());
+            repo.createTable();
+            newTableRepos.push(repo);
+        }
+    });
+    
+    for (let i = 0; i < newTableRepos.length; ++i) {
+        logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName());
+        newTableRepos[i].createForeignKeys();
+    }
 }

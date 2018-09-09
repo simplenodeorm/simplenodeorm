@@ -39,6 +39,94 @@ module.exports = class Repository {
         this.loadNamedDbOperations();
     }
     
+    tableExists() {
+        let params = new Array();
+        params.push(this.getMetaData().tableName);
+        let result = this.executeSqlQuerySync('SELECT table_name FROM user_tables where table_name = :tableName', params);
+        if (util.isDefined(result.error)) {
+            util.throwError("SQLError", result.error);
+        }
+        
+        return (util.isDefined(result.result.rows) && (result.result.rows.length> 0) && (result.result.rows[0][0] === this.getMetaData().tableName));
+    }
+    
+    
+    createTable() {
+        let result = this.executeSqlSync(this.buildCreateTableSql());
+        if (util.isDefined(result.error)) {
+            util.throwError("SQLError", result.error);
+        }
+    }
+
+    buildCreateTableSql() {
+        let retval = 'create table ' + this.getMetaData().tableName + '(';
+        let primaryKey = ' primary key(';
+        let comma = '';
+        let fields = this.getMetaData().fields;
+        
+        for (let i = 0; i < fields.length; ++i) {
+            let f = fields[i];
+            if (f.primaryKey) {
+                primaryKey += (comma + f.columnName);
+                comma = ',';
+            }
+            
+            retval += (' ' + f.columnName + ' ' + f.type);
+            
+            if (util.isDefined(f.length) && util.isDefined(f.decimalDigits)) {
+                retval += '(' + f.length + ', ' + f.decimalDigits + ') ';
+            } else if (util.isUndefined(f.length) && util.isDefined(f.decimalDigits)) {
+                retval += '(' + util.DEFAULT_NUMBER_LENGTH + ', ' + f.decimalDigits + ') ';
+            } else if (util.isDefined(f.length)) {
+                retval += '(' + f.length + ') ';
+            }
+            
+            if (util.isDefined(f.defaultValue)) {
+                retval += (' DEFALT VALUE ' + f.defaultValue);
+            } else if (f.required) {
+                retval += ' NOT NULL ';
+            }
+            
+            retval += ',\n';
+        }
+        
+        retval += (primaryKey + '))');
+        
+        return retval;
+    }
+
+    createForeignKeys() {
+        let md = this.getMetaData();
+        for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
+            this.createForeignKey(md.oneToOneDefinitions[i]);
+        }
+    
+        for (let i = 0; i < md.oneToManyDefinitions.length; ++i) {
+            this.createForeignKey(md.oneToManyDefinitions[i]);
+        }
+
+    
+        for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+            this.createForeignKey(md.manyToOneDefinitions[i]);
+        }
+    }
+    
+    createForeignKey(fkdef) {
+        let sql = ('alter table ' 
+            + this.getMetaData().tableName 
+            + ' add foreign key (' 
+            + fkdef.joinColumns.sourceColumns
+            + ') references  ' 
+            + fkdef.targetTableName
+            + '(' + fkdef.joinColumns.targetColumns + ')');
+    
+        let result = this.executeSqlSync(sql);
+        if (util.isDefined(result.error)) {
+            util.throwError("SQLError", result.error);
+        }
+    }
+
+    
     loadNamedDbOperations() {
     }
     
@@ -58,7 +146,7 @@ module.exports = class Repository {
         return this.metaData;
     }
 
-    canJoin(alias, ref) {
+    canJoin(ref) {
         return (ref.status === util.ENABLED);
     }
 
@@ -1178,7 +1266,7 @@ module.exports = class Repository {
     }
 
     executeSqlSync(sql, parameters, options) {
-        let resultWrapper = {result: undefined, error: undefined};
+        let resultWrapper = {rowsAffected: undefined, error: undefined};
         let repo = this;
         (async function() {
             let result = await repo.executeSql(sql, parameters, options);
@@ -1186,9 +1274,10 @@ module.exports = class Repository {
         })(resultWrapper, repo, sql, parameters);
         
         let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result)
+        while (util.isUndefined(resultWrapper.rowsAffected) 
+            && util.isUndefined(resultWrapper.error)
             && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(200);
+            deasync.sleep(sleepTime);
         }
 
         return resultWrapper.result;
@@ -1388,7 +1477,7 @@ module.exports = class Repository {
                     let mtodefs = parentMetaData.getManyToOneDefinitions();
                     if (util.isDefined(mtodefs)) {
                        for (let i = 0; i < mtodefs.length; ++i) {
-                           if (canJoin(tableAlias, mtodefs[i], false)) {
+                           if (canJoin(mtodefs[i])) {
                                 this.buildSelectClause(orm.getMetaData(mtodefs[i].targetModelName), 
                                 buildAlias(tableAlias, mtodefs[i].alias, currentDepth), 
                                 currentDepth+1, 
@@ -1402,7 +1491,7 @@ module.exports = class Repository {
                     let otodefs = parentMetaData.getOneToOneDefinitions();
                     if (util.isDefined(otodefs)) {
                         for (let i = 0; i < otodefs.length; ++i) {
-                            if (canJoin(tableAlias, otodefs[i], true)) {
+                            if (canJoin(otodefs[i])) {
                                 this.buildSelectClause(orm.getMetaData(otodefs[i].targetModelName),
                                     buildAlias(tableAlias, otodefs[i].alias, currentDepth), 
                                     currentDepth+1, 
@@ -1416,7 +1505,7 @@ module.exports = class Repository {
                 let otmdefs = parentMetaData.getOneToManyDefinitions();
                 if (util.isDefined(otmdefs)) {
                     for (let i = 0; i < otmdefs.length; ++i) {
-                        if (canJoin(tableAlias, otmdefs[i], false)) {
+                        if (canJoin(otmdefs[i])) {
                             this.buildSelectClause(orm.getMetaData(otmdefs[i].targetModelName),
                                 buildAlias(tableAlias, otmdefs[i].alias, currentDepth),
                                 currentDepth+1, 
@@ -1450,7 +1539,7 @@ module.exports = class Repository {
                 let mtodefs = parentMetaData.getManyToOneDefinitions();
                 if (util.isDefined(mtodefs)) {
                     for (let i = 0; i < mtodefs.length; ++i) {
-                        if (canJoin(tableAlias, mtodefs[i], true)) {
+                        if (canJoin(mtodefs[i])) {
                             let jc = '';
 
                             let alias = buildAlias(tableAlias, mtodefs[i].alias, currentDepth);
@@ -1482,7 +1571,7 @@ module.exports = class Repository {
                 let otodefs = parentMetaData.getOneToOneDefinitions();
                 if (util.isDefined(otodefs)) {
                     for (let i = 0; i < otodefs.length; ++i) {
-                        if (canJoin(tableAlias, otodefs[i], true)) {
+                        if (canJoin(otodefs[i])) {
                             let jc = '';
                             if (!otodefs[i].required) {
                                 jc += " left outer";
@@ -1518,7 +1607,7 @@ module.exports = class Repository {
             let otmdefs = parentMetaData.getOneToManyDefinitions();
             if (util.isValidObject(otmdefs)) {
                 for (let i = 0; i < otmdefs.length; ++i) {
-                    if (canJoin(tableAlias, otmdefs[i], false)) {
+                    if (canJoin(otmdefs[i])) {
                         if (util.isNotValidObject(otmdefs[i].joinTableName)) {
                             let jc = '';
                             if (!otmdefs[i].required) {
@@ -1770,7 +1859,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                     let mtodefs = md.getManyToOneDefinitions();
                     if (util.isDefined(mtodefs)) {
                         for (let j = 0; j < mtodefs.length; ++j) {
-                            if (canJoin(curAlias, mtodefs[j])) {
+                            if (canJoin(mtodefs[j])) {
                                 let a = buildAlias(curAlias, mtodefs[j].alias, curDepth);
 
                                 let pk;
@@ -1815,7 +1904,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                     let otodefs = md.getOneToOneDefinitions();
                     if (util.isDefined(otodefs)) {
                         for (let j = 0; j < otodefs.length; ++j) {
-                            if (canJoin(curAlias, otodefs[j])) {
+                            if (canJoin(otodefs[j])) {
                                 let a = buildAlias(curAlias, otodefs[j].alias, curDepth);
 
                                 let pk;
@@ -1861,7 +1950,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                 let otmdefs = md.getOneToManyDefinitions();
                 if (util.isDefined(otmdefs)) {
                     for (let j = 0; j < otmdefs.length; ++j) {
-                        if (canJoin(curAlias, otmdefs[j])) {
+                        if (canJoin(otmdefs[j])) {
                             let a = buildAlias(curAlias, otmdefs[j].alias, curDepth);
 
                             let pk;
@@ -1969,7 +2058,7 @@ function checkOptions(options) {
     return retval;
 }
 
-function canJoin(alias, ref) {
+function canJoin(ref) {
     return (ref.status === util.ENABLED);
 };
 
