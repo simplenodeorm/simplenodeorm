@@ -39,10 +39,10 @@ module.exports = class Repository {
         this.loadNamedDbOperations();
     }
     
-    tableExists() {
+    async tableExists() {
         let params = new Array();
         params.push(this.getMetaData().tableName);
-        let result = this.executeSqlQuerySync('SELECT table_name FROM user_tables where table_name = :tableName', params);
+        let result = await this.executeSqlQuerySync('SELECT table_name FROM user_tables where table_name = :tableName', params);
         if (util.isDefined(result.error)) {
             util.throwError("SQLError", result.error);
         }
@@ -51,29 +51,24 @@ module.exports = class Repository {
     }
     
     
-    createTable() {
-        let repo = this;
-        (async function() {
-            let result = await repo.executeSql(repo.buildCreateTableSql());
-            if (util.isDefined(result.error)) {
-                util.throwError("SQLError", result.error);
-            }
-        })(repo);
+    async createTable() {
+        let result = await repo.executeSql(repo.buildCreateTableSql());
+        if (util.isDefined(result.error)) {
+            util.throwError("SQLError", result.error);
+        }
     }
 
-    createAutoIncrementGeneratorIfRequired() {
+    async createAutoIncrementGeneratorIfRequired() {
         let repo = this;
-        (async function() {
-            let fields = repo.getMetaData().fields;
-            for (let i = 0; i < fields.length; ++i) {
-                if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                    let result = repo.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
-                    if (util.isDefined(result.error)) {
-                        util.throwError("SQLError", result.error);
-                    }
+        let fields = this.getMetaData().fields;
+        for (let i = 0; i < fields.length; ++i) {
+            if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
+                if (util.isDefined(result.error)) {
+                    util.throwError("SQLError", result.error);
                 }
             }
-        })(repo);
+        }
     }
 
     buildCreateTableSql() {
@@ -113,18 +108,16 @@ module.exports = class Repository {
         return retval;
     }
 
-    createForeignKeys() {
+    async createForeignKeys() {
         let repo = this;
-        (async function() {
-            let md = repo.getMetaData();
-            for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
-                await repo.createForeignKey(md.oneToOneDefinitions[i]);
-            }
+        let md = repo.getMetaData();
+        for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
+            await this.createForeignKey(md.oneToOneDefinitions[i]);
+        }
 
-            for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
-                await repo.createForeignKey(md.manyToOneDefinitions[i]);
-            }
-        })(repo);
+        for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+            await this.createForeignKey(md.manyToOneDefinitions[i]);
+        }
     }
     
     async createForeignKey(fkdef) {
