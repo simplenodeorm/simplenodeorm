@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "description": "Simple ORM for oracle",
   "main": "./orm.js",
   "repository": {

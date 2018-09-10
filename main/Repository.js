@@ -52,24 +52,28 @@ module.exports = class Repository {
     
     
     createTable() {
-        let result = this.executeSqlSync(this.buildCreateTableSql());
-        if (util.isDefined(result.error)) {
-            util.throwError("SQLError", result.error);
-        }
+        let repo = this;
+        (async function() {
+            let result = await repo.executeSql(repo.buildCreateTableSql());
+            if (util.isDefined(result.error)) {
+                util.throwError("SQLError", result.error);
+            }
+        })(repo);
     }
 
     createAutoIncrementGeneratorIfRequired() {
-        let fields = this.getMeataData().fields;
-        
-        for (let i = 0; i < fields.length; ++i) {
-            if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                logger.logInfo('creating sequence ' + fields[i].autoIncrementGenerator);
-                let result = this.executeSqlSync('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
-                if (util.isDefined(result.error)) {
-                    util.throwError("SQLError", result.error);
+        let repo = this;
+        (async function() {
+            let fields = repo.getMetaData().fields;
+            for (let i = 0; i < fields.length; ++i) {
+                if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                    let result = repo.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
+                    if (util.isDefined(result.error)) {
+                        util.throwError("SQLError", result.error);
+                    }
                 }
             }
-        }
+        })(repo);
     }
 
     buildCreateTableSql() {
@@ -110,22 +114,20 @@ module.exports = class Repository {
     }
 
     createForeignKeys() {
-        let md = this.getMetaData();
-        for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
-            this.createForeignKey(md.oneToOneDefinitions[i]);
-        }
-    
-        for (let i = 0; i < md.oneToManyDefinitions.length; ++i) {
-            this.createForeignKey(md.oneToManyDefinitions[i]);
-        }
+        let repo = this;
+        (async function() {
+            let md = repo.getMetaData();
+            for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
+                await repo.createForeignKey(md.oneToOneDefinitions[i]);
+            }
 
-    
-        for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
-            this.createForeignKey(md.manyToOneDefinitions[i]);
-        }
+            for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+                await repo.createForeignKey(md.manyToOneDefinitions[i]);
+            }
+        })(repo);
     }
     
-    createForeignKey(fkdef) {
+    async createForeignKey(fkdef) {
         let sql = ('alter table ' 
             + this.getMetaData().tableName 
             + ' add foreign key (' 
@@ -133,8 +135,7 @@ module.exports = class Repository {
             + ') references  ' 
             + fkdef.targetTableName
             + '(' + fkdef.joinColumns.targetColumns + ')');
-    
-        let result = this.executeSqlSync(sql);
+        let result = await this.executeSql(sql);
         if (util.isDefined(result.error)) {
             util.throwError("SQLError", result.error);
         }
