@@ -61,8 +61,14 @@ module.exports = class Repository {
     async createAutoIncrementGeneratorIfRequired() {
         let repo = this;
         let fields = this.getMetaData().fields;
+        let showMessage = true;
         for (let i = 0; i < fields.length; ++i) {
             if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                if (showMessage) {
+                    logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
+                    showMessage = false;
+                }
+                
                 let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
                 if (util.isDefined(result.error)) {
                     util.throwError("SQLError", result.error);
@@ -111,11 +117,20 @@ module.exports = class Repository {
     async createForeignKeys() {
         let repo = this;
         let md = repo.getMetaData();
+        let showMessage = true;
         for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
+            if (showMessage) {
+                logger.logInfo('        adding foreign keys for table ' + md.getTableName());
+                showMessage = false;
+            }
             await this.createForeignKey(md.oneToOneDefinitions[i]);
         }
 
         for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+            if (showMessage) {
+                logger.logInfo('        adding foreign keys for table ' + md.getTableName());
+                showMessage = false;
+            }
             await this.createForeignKey(md.manyToOneDefinitions[i]);
         }
     }

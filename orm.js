@@ -470,7 +470,7 @@ function populateOptionsFromRequestInput(input) {
 
 async function createTablesIfRequired() {
     let newTableRepos = new Array();
-    logger.logInfo('in createTablesIfRequired()');
+    logger.logInfo('creating tables if required...');
     
     let keys = Array.from(repositoryMap.keys());
     
@@ -478,16 +478,14 @@ async function createTablesIfRequired() {
         let repo = repositoryMap.get(keys[i]);
         let exists = await repo.tableExists();
         if (!exists) {
-            logger.logInfo('creating table ' + repo.getMetaData().getTableName());
+            logger.logInfo('    creating table ' + repo.getMetaData().getTableName());
             await repo.createTable();
             newTableRepos.push(repo);
         }
     }
     
     for (let i = 0; i < newTableRepos.length; ++i) {
-        logger.logInfo('adding foreign keys for table ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         await newTableRepos[i].createForeignKeys();
-        logger.logInfo('creating sequences for ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         await newTableRepos[i].createAutoIncrementGeneratorIfRequired();
     }
 }
