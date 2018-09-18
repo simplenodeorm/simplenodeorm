@@ -165,6 +165,10 @@ function startRestServer() {
         logger.logInfo(APP_NAME + ' is live on port ' + REST_SERVER_PORT);
     });
     
+    server.get(REST_URL_BASE + '/design/login', async function(req, res) {
+        res.status(200).send("success");
+    });
+    
     server.get(REST_URL_BASE + '/design/modelnames', async function(req, res) {
         res.status(200).send(modelList);
     });
@@ -261,10 +265,6 @@ function startRestServer() {
             }
         }
 
-        res.end();
-    });
-
-    server.post(REST_URL_BASE + '/design/authenticate', async function(req, res) {
         res.end();
     });
 
