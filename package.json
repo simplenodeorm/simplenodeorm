@@ -12,6 +12,8 @@
   "dependencies": {
     "body-parser": ">=1.15",
     "express": ">=4.14",
+    "express-session": ">=1.15.6",
+    "express-basic-auth": ">=1.1.5",
     "oracledb": ">=2.2",
     "winston": ">=2.4",
     "chai": ">=4.1",

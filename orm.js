@@ -49,7 +49,9 @@ require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testCon
 function loadOrm() {
     logger.logInfo("loading " + APP_NAME + "...");
     loadOrmDefinitions();
-    
+
+    modelList.sort();
+
     // ensure no changes after load
     Object.freeze(modelList);
     Object.freeze(repositoryMap);
