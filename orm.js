@@ -9,6 +9,7 @@ const events = require('events');
 const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const logger = require('./main/Logger.js');
+const basicAuth = require('express-basic-auth');
 
 // REST API stuff
 const express = require('express');
@@ -148,9 +149,22 @@ function loadModelFiles(dir, modelFiles) {
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
     server.use(bodyParser.urlencoded({ extended: false }));
+    // plug authentication in here
+    if (util.isDefined(appConfiguration.authorizer)) {
+        const authorizer = new (require(appConfiguration.authorizer));
+        const authfunc = function(user, pass) {
+            return authorizer.isAuthorized(user, pass);
+        };
+    
+        server.use(basicAuth({ authorizer: authfunc}));
+    }
 
     server.listen(REST_SERVER_PORT, () => {
         logger.logInfo(APP_NAME + ' is live on port ' + REST_SERVER_PORT);
+    });
+    
+    server.get(REST_URL_BASE + '/design/modelnames', async function(req, res) {
+        res.status(200).send(modelList);
     });
     
     server.get(REST_URL_BASE + '/:module/:method', async function(req, res) {
@@ -245,6 +259,10 @@ function startRestServer() {
             }
         }
 
+        res.end();
+    });
+
+    server.post(REST_URL_BASE + '/design/authenticate', async function(req, res) {
         res.end();
     });
 

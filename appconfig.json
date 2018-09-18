@@ -12,6 +12,7 @@
   "deasyncSleepTimeMillis": 200,
   "maxDeasyncWaitTime" : 30000,
   "maxRowsForGetAll" : 100000,
+  "authorizer": "./auth/DefaultAuthorizer",
   "aliases" : {
         "simplename1" : "somelongobjectnamingconvention1",
         "simplename2" : "somelongobjectnamingconvention2"
