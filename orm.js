@@ -10,6 +10,7 @@ const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
+const cors = require('cors');
 
 // REST API stuff
 const express = require('express');
@@ -151,6 +152,8 @@ function loadModelFiles(dir, modelFiles) {
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
     server.use(bodyParser.urlencoded({ extended: false }));
+    server.use(cors());
+
     // plug authentication in here
     if (util.isDefined(appConfiguration.authorizer)) {
         const authorizer = new (require(appConfiguration.authorizer));
