@@ -9,7 +9,9 @@ class DefaultAuthorizer extends Authorizer {
     }
     
     isAuthorized(username, password) {
-        logger.logInfo('username: ' + username);
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("username: " + username);
+        }
         return true;
     }
 };

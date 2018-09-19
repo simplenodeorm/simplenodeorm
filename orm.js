@@ -169,6 +169,9 @@ function startRestServer() {
     });
     
     server.get(REST_URL_BASE + '/design/login', async function(req, res) {
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("in /design/login");
+        }
         res.status(200).send("success");
     });
     
