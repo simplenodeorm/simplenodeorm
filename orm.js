@@ -180,11 +180,12 @@ function startRestServer() {
     });
     
     server.get(REST_URL_BASE + '/design/modelinfo/:modelname', async function(req, res) {
-        let modelname = req.params.modelnam;
+        let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
         let md = repo.getMetaData(req.params.module);
         if (md) {
-            let data = loadModelData(md);
+            let pathset = new Set();
+            let data = JSON.stringify(loadModelData(repo.metaData, 0, pathset, ''));
             if (data) {
                 res.set({'Content-Type': 'application/json', 'Content-Length': data.length});
                 res.status(200).send(data);
@@ -533,7 +534,97 @@ async function createTablesIfRequired() {
     }
 }
 
-function loadModelData(md) {
-    return {test: 'this is a test'};
+function loadModelData(md, level, pathset, path, child) {
+    let retval;
+
+    if (md && (level < appConfiguration.defaultDesignTableDepth)) {
+        retval = new Object();
+        retval.objectName = md.objectName;
+        retval.tableName = md.tableName;
+        if (md.displayName) {
+            retval.displayName = md.displayName;
+        }
+        
+        retval.fields = new Array();
+        
+        for (let i = 0; i < md.fields.length; ++i) {
+            retval.fields.push(md.fields[i]);
+        }
+        
+        // add only top level many-to one defs
+        if (!child && md.manyToOneDefintions) {
+            retval.manyToOneDefinitions = new Array();
+            
+            for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+                md
+                if (md.manyToOneDefinitions[i].targetModelName) {
+                    let repo = repositoryMap.get(md.manyToOneDefinitions[i].targetModelName.toLowerCase());
+                    let newpath = path + '.' + md.manyToOneDefinitions[i].fieldName;
+                    if (repo && !pathset.has(newpath)) {
+                        pathset.add(newpath)
+                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true);
+                        
+                        if (def) {
+                            def.fieldName = md.manyToOneDefinitions[i].fieldName;
+                            def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
+                            def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
+                            def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
+                            retval.manyToOneDefinitions.push();
+                        }
+                        pathset.delete(newpath)
+                    }
+                }
+            }
+        }
+
+        if (md.oneToOneDefinitions) {
+            retval.oneToOneDefinitions = new Array();
+            for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
+                if (md.oneToOneDefinitions[i].targetModelName) {
+                    let repo = repositoryMap.get(md.oneToOneDefinitions[i].targetModelName.toLowerCase());
+                    let newpath = path + '.' + md.oneToOneDefinitions[i].fieldName;
+                    if (repo && !pathset.has(newpath)) {
+                        pathset.add(newpath);
+                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true);
+                        if (def) {
+                            def.fieldName = md.oneToOneDefinitions[i].fieldName;
+                            def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
+                            def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
+                            def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
+
+                            retval.oneToOneDefinitions.push(def);
+                        }
+                        pathset.delete(newpath);
+                    }
+                }
+            }
+        }
+
+        if (md.oneToManyDefinitions) {
+            retval.oneToManyDefinitions = new Array();
+            for (let i = 0; i < md.oneToManyDefinitions.length; ++i) {
+                
+                if (md.oneToManyDefinitions[i].targetModelName) {
+                    let repo = repositoryMap.get(md.oneToManyDefinitions[i].targetModelName.toLowerCase());
+                    let newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
+                    if (repo && !pathset.has(newpath)) {
+                        pathset.add(newpath);
+                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true);
+                        if (def) {
+                            def.fieldName =  md.oneToManyDefinitions[i].fieldName;
+                            def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
+                            def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
+                            def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
+                         retval.oneToManyDefinitions.push(def);
+                        }
+                        pathset.delete(newpath);
+                    }
+                }
+            }
+        }
+
+    }
+    
+    return retval;
 }
 
