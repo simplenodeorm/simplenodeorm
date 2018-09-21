@@ -179,6 +179,23 @@ function startRestServer() {
         res.status(200).send(modelList);
     });
     
+    server.get(REST_URL_BASE + '/design/modelinfo/:modelname', async function(req, res) {
+        let modelname = req.params.modelnam;
+        let repo = repositoryMap.get(modelname.toLowerCase());
+        let md = repo.getMetaData(req.params.module);
+        if (md) {
+            let data = loadModelData(md);
+            if (data) {
+                res.set({'Content-Type': 'application/json', 'Content-Length': data.length});
+                res.status(200).send(data);
+            } else {
+                res.statu(404).send('not found');
+            }
+        } else {
+            res.statu(500).send('no metadata found for' + modelname);
+        }
+    });
+
     server.get(REST_URL_BASE + '/:module/:method', async function(req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
@@ -515,3 +532,8 @@ async function createTablesIfRequired() {
         await newTableRepos[i].createAutoIncrementGeneratorIfRequired();
     }
 }
+
+function loadModelData(md) {
+    return {test: 'this is a test'};
+}
+
