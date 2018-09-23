@@ -215,9 +215,7 @@ module.exports.isNumber = function(n) {
 
 module.exports.designJSONReplacer = function(key, value) {
     switch(key) {
-        case 'oneToOneDefinitions':
-        case 'oneToManyDefinitions':
-        case 'manyToOneDefinitions':
+        case 'relationships':
             if (util.isDefined(value) && (value.length > 0)) {
                 return value;
             } else {
@@ -229,6 +227,9 @@ module.exports.designJSONReplacer = function(key, value) {
         case 'converter':
         case 'defaultValue':
         case 'autoIncrementGenerator':
+        case 'oneToManyDefinitions':
+        case 'oneToOneDefinitions':
+        case 'manyToOneDefinitions':
             return undefined;
         default:
             return value;
