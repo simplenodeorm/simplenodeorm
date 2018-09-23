@@ -212,3 +212,25 @@ module.exports.isNotValidObject = function(obj) {
 module.exports.isNumber = function(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 };
+
+module.exports.designJSONReplacer = function(key, value) {
+    switch(key) {
+        case 'oneToOneDefinitions':
+        case 'oneToManyDefinitions':
+        case 'manyToOneDefinitions':
+            if (util.isDefined(value) && (value.length > 0)) {
+                return value;
+            } else {
+                return undefined;
+            }
+        case 'module':
+        case 'fieldConstraints':
+        case 'lazyLoadFields':
+        case 'converter':
+        case 'defaultValue':
+        case 'autoIncrementGenerator':
+            return undefined;
+        default:
+            return value;
+    }
+};

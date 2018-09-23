@@ -185,7 +185,7 @@ function startRestServer() {
         let md = repo.getMetaData(req.params.module);
         if (md) {
             let pathset = new Set();
-            let data = JSON.stringify(loadModelData(repo.metaData, 0, pathset, ''));
+            let data = JSON.stringify(loadModelData(repo.metaData, 0, pathset, ''), util.designJSONReplacer);
             if (data) {
                 res.set({'Content-Type': 'application/json', 'Content-Length': data.length});
                 res.status(200).send(data);
