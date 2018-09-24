@@ -179,21 +179,22 @@ function startRestServer() {
         res.status(200).send(modelList);
     });
     
-    server.get(REST_URL_BASE + '/design/modelinfo/:modelname', async function(req, res) {
+    server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function(req, res) {
         let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
-        let md = repo.getMetaData(req.params.module);
-        if (md) {
+        if (repo && repo.metaData) {
             let pathset = new Set();
-            let data = JSON.stringify(loadModelData(repo.metaData, 0, pathset, '', false, 't0'), util.designJSONReplacer);
-            if (data) {
-                res.set({'Content-Type': 'application/json', 'Content-Length': data.length});
-                res.status(200).send(data);
+            let data = new Object();
+            data.key = 't0;'
+            data.title = modelname;
+            loadModelData(data, repo.metaData, 0, pathset, '', false);
+            if (data.title) {
+                res.status(200).json(data);
             } else {
-                res.statu(404).send('not found');
+                res.status(404).send('not found');
             }
         } else {
-            res.statu(500).send('no metadata found for' + modelname);
+            res.status(500).send('no metadata found for' + modelname);
         }
     });
 
@@ -534,29 +535,13 @@ async function createTablesIfRequired() {
     }
 }
 
-function loadModelData(md, level, pathset, path, child, pkey) {
-    let retval;
-
+function loadModelData(data, md, level, pathset, path, child) {
     if (md && (level < appConfiguration.defaultDesignTableDepth)) {
-        retval = new Object();
-        retval.objectName = md.objectName;
-        retval.tableName = md.tableName;
-        
+        data.objectName = md.objectName;
+        data.tableName = md.tableName;
+        data.children = new Array();
         let key = 1;
-        if (md.displayName) {
-            retval.displayName = md.displayName;
-        }
         
-        retval.fields = new Array();
-        
-        for (let i = 0; i < md.fields.length; ++i) {
-            let f = Object.assign({}, md.fields[i]);
-            f.__key__ = (pkey + '-c' + i);
-            retval.fields.push(f);
-        }
-        
-        retval.relationships = new Array();
-           
         // add only top level many-to one defs
         if (!child && md.manyToOneDefintions) {
             for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
@@ -566,17 +551,15 @@ function loadModelData(md, level, pathset, path, child, pkey) {
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath)
                         let tkey = (level + '-t' + (key++));
-                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true, tkey);
-                        
-                        if (def) {
-                            def.__key__ = tkey;
-                            def.__type__ = 'mto';
-                            def.fieldName = md.manyToOneDefinitions[i].fieldName;
-                            def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
-                            def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
-                            def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
-                            retval.relationships.push();
-                        }
+                        let def = new Object();
+                        def.key = tkey;
+                        def.__type__ = 'mto';
+                        def.title = md.manyToOneDefinitions[i].fieldName;
+                        def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
+                        def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
+                        def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        data.children.push(def);
                         pathset.delete(newpath)
                     }
                 }
@@ -584,7 +567,6 @@ function loadModelData(md, level, pathset, path, child, pkey) {
         }
 
         if (md.oneToOneDefinitions) {
-            retval.oneToOneDefinitions = new Array();
             for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
                 if (md.oneToOneDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.oneToOneDefinitions[i].targetModelName.toLowerCase());
@@ -592,17 +574,15 @@ function loadModelData(md, level, pathset, path, child, pkey) {
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let tkey = (level + '-t' + (key++));
-                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true, tkey);
-                        if (def) {
-                            def.__key__ = tkey;
-                            def.__type__ = 'oto';
-                            def.fieldName = md.oneToOneDefinitions[i].fieldName;
-                            def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
-                            def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
-                            def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
-
-                            retval.relationships.push(def);
-                        }
+                        let def = new Object();
+                        def.key = tkey;
+                        def.__type__ = 'oto';
+                        def.title = md.oneToOneDefinitions[i].fieldName;
+                        def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
+                        def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
+                        def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        data.children.push(def);
                         pathset.delete(newpath);
                     }
                 }
@@ -610,33 +590,33 @@ function loadModelData(md, level, pathset, path, child, pkey) {
         }
 
         if (md.oneToManyDefinitions) {
-            retval.oneToManyDefinitions = new Array();
             for (let i = 0; i < md.oneToManyDefinitions.length; ++i) {
-                
                 if (md.oneToManyDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.oneToManyDefinitions[i].targetModelName.toLowerCase());
                     let newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let tkey = (level + '-t' + (key++));
-                        let def = loadModelData(repo.metaData, level+1, pathset, newpath, true, tkey);
-                        if (def) {
-                            def.__key__ = tkey;
-                            def.__type__ = 'otm';
-                            def.fieldName =  md.oneToManyDefinitions[i].fieldName;
-                            def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
-                            def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
-                            def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
-                            retval.relationships.push(def);
-                        }
+                        let def = new Object();
+                        def.key = tkey;
+                        def.__type__ = 'otm';
+                        def.title = md.oneToManyDefinitions[i].fieldName;
+                        def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
+                        def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
+                        def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        data.children.push(def);
                         pathset.delete(newpath);
                     }
                 }
             }
         }
-
+        for (let i = 0; i < md.fields.length; ++i) {
+            let f = Object.assign({}, md.fields[i]);
+            f.key = (data.key + '-c' + i);
+            f.title = f.fieldName;
+            data.children.push(f);
+        }
+        
     }
-    
-    return retval;
 }
-
