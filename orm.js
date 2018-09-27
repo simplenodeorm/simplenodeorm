@@ -540,6 +540,7 @@ function loadModelData(data, md, level, pathset, path, child) {
         data.objectName = md.objectName;
         data.tableName = md.tableName;
         data.children = new Array();
+        
         let key = 1;
         
         // add only top level many-to one defs
@@ -550,7 +551,8 @@ function loadModelData(data, md, level, pathset, path, child) {
                     let newpath = path + '.' + md.manyToOneDefinitions[i].fieldName;
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath)
-                        let tkey = (level + '-t' + (key++));
+                        let tkey = (level + '-t' + key);
+                        key = key+1;
                         let def = new Object();
                         def.key = tkey;
                         def.__type__ = 'mto';
@@ -573,7 +575,8 @@ function loadModelData(data, md, level, pathset, path, child) {
                     let newpath = path + '.' + md.oneToOneDefinitions[i].fieldName;
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
-                        let tkey = (level + '-t' + (key++));
+                        let tkey = (level + '-t' + key);
+                        key = key+1;
                         let def = new Object();
                         def.key = tkey;
                         def.__type__ = 'oto';
@@ -596,7 +599,8 @@ function loadModelData(data, md, level, pathset, path, child) {
                     let newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
-                        let tkey = (level + '-t' + (key++));
+                        let tkey = (level + '-t' + key);
+                        key = key+1;
                         let def = new Object();
                         def.key = tkey;
                         def.__type__ = 'otm';
@@ -615,8 +619,10 @@ function loadModelData(data, md, level, pathset, path, child) {
             let f = Object.assign({}, md.fields[i]);
             f.key = (data.key + '-c' + i);
             f.title = f.fieldName;
+            f.isLeaf=true;
             data.children.push(f);
         }
         
     }
 }
+
