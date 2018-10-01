@@ -536,21 +536,21 @@ async function createTablesIfRequired() {
 }
 
 function loadModelData(data, md, level, pathset, path, child) {
-    if (md && (level < appConfiguration.defaultDesignTableDepth)) {
-        data.objectName = md.objectName;
-        data.tableName = md.tableName;
-        data.children = new Array();
-        
-        let key = 1;
-        
-        for (let i = 0; i < md.fields.length; ++i) {
-            let f = Object.assign({}, md.fields[i]);
-            f.key = (data.key + '-c' + i);
-            f.title = f.fieldName;
-            f.isLeaf=true;
-            data.children.push(f);
-        }
+    data.objectName = md.objectName;
+    data.tableName = md.tableName;
+    data.children = new Array();
 
+    let key = 1;
+
+    for (let i = 0; i < md.fields.length; ++i) {
+        let f = Object.assign({}, md.fields[i]);
+        f.key = (data.key + '-c' + i);
+        f.title = f.fieldName;
+        f.isLeaf=true;
+        data.children.push(f);
+    }
+
+    if (md && (level < appConfiguration.defaultDesignTableDepth)) {
         // add only top level many-to one defs
         if (!child && md.manyToOneDefintions) {
             for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
