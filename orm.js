@@ -144,7 +144,7 @@ function loadModelFiles(dir, modelFiles) {
         if ((files[i] !== '.') && (files[i] !== "..") && fs.lstatSync(curFile).isDirectory()) {
             loadModelFiles(dir + '/' + files[i], modelFiles);           
         } else if (curFile.endsWith('.js')) {
-            modelFiles.push(curFile)
+            modelFiles.push(curFile);
         }
     }
 }
@@ -185,7 +185,7 @@ function startRestServer() {
         if (repo && repo.metaData) {
             let pathset = new Set();
             let data = new Object();
-            data.key = 't0;'
+            data.key = 't0';
             data.title = modelname;
             loadModelData(data, repo.metaData, 0, pathset, '', false);
             if (data.title) {
@@ -558,7 +558,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                     let repo = repositoryMap.get(md.manyToOneDefinitions[i].targetModelName.toLowerCase());
                     let newpath = path + '.' + md.manyToOneDefinitions[i].fieldName;
                     if (repo && !pathset.has(newpath)) {
-                        pathset.add(newpath)
+                        pathset.add(newpath);
                         let tkey = (level + '-t' + key);
                         key = key+1;
                         let def = new Object();
@@ -570,7 +570,6 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
                         loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
                         data.children.push(def);
-                        pathset.delete(newpath)
                     }
                 }
             }
@@ -594,7 +593,6 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
                         loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
                         data.children.push(def);
-                        pathset.delete(newpath);
                     }
                 }
             }
@@ -618,7 +616,6 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
                         loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
                         data.children.push(def);
-                        pathset.delete(newpath);
                     }
                 }
             }
