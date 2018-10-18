@@ -11,6 +11,7 @@ const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
 const cors = require('cors');
+const uuidv1 = require('uuid/v1');
 
 // REST API stuff
 const express = require('express');
@@ -547,10 +548,11 @@ function loadModelData(data, md, level, pathset, path, child) {
         f.key = (data.key + '-c' + i);
         f.title = f.fieldName;
         f.isLeaf=true;
+        f.key = getUniqueKey();
         if (path) {
-            f.path = path + '.' + f.fieldName;
+            f.__path__ = path + '.' + f.fieldName;
         } else {
-            f.path = f.fieldName;
+            f.__path__ = f.fieldName;
         }
         data.children.push(f);
     }
@@ -569,17 +571,15 @@ function loadModelData(data, md, level, pathset, path, child) {
                     }
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
-                        let tkey = (level + '-t' + key);
-                        key = key+1;
                         let def = new Object();
-                        def.key = tkey;
-                        def.path = newpath;
+                        def.key = getUniqueKey();
+                        def.__path__ = newpath;
                         def.__type__ = 'mto';
                         def.title = md.manyToOneDefinitions[i].fieldName;
                         def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -598,17 +598,15 @@ function loadModelData(data, md, level, pathset, path, child) {
                     }
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
-                        let tkey = (level + '-t' + key);
-                        key = key+1;
                         let def = new Object();
-                        def.path = newpath;
-                        def.key = tkey;
+                        def.key = getUniqueKey();
+                        def.__path__ = newpath;
                         def.__type__ = 'oto';
                         def.title = md.oneToOneDefinitions[i].fieldName;
                         def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -629,17 +627,15 @@ function loadModelData(data, md, level, pathset, path, child) {
                     
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
-                        let tkey = (level + '-t' + key);
-                        key = key+1;
                         let def = new Object();
-                        def.path = newpath;
-                        def.key = tkey;
+                        def.__path__ = newpath;
                         def.__type__ = 'otm';
+                        def.key = getUniqueKey();
                         def.title = md.oneToManyDefinitions[i].fieldName;
                         def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true, tkey);
+                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -647,3 +643,9 @@ function loadModelData(data, md, level, pathset, path, child) {
         }
     }
 }
+
+    
+function getUniqueKey() {
+    return uuidv1();
+}
+
