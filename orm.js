@@ -547,6 +547,11 @@ function loadModelData(data, md, level, pathset, path, child) {
         f.key = (data.key + '-c' + i);
         f.title = f.fieldName;
         f.isLeaf=true;
+        if (path) {
+            f.path = path + '.' + f.fieldName;
+        } else {
+            f.path = f.fieldName;
+        }
         data.children.push(f);
     }
 
@@ -556,13 +561,19 @@ function loadModelData(data, md, level, pathset, path, child) {
             for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
                 if (md.manyToOneDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.manyToOneDefinitions[i].targetModelName.toLowerCase());
-                    let newpath = path + '.' + md.manyToOneDefinitions[i].fieldName;
+                    let newpath;
+                    if (path) {
+                        newpath = path + '.' + md.manyToOneDefinitions[i].fieldName;
+                    } else {
+                        newpath = md.manyToOneDefinitions[i].fieldName;
+                    }
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let tkey = (level + '-t' + key);
                         key = key+1;
                         let def = new Object();
                         def.key = tkey;
+                        def.path = newpath;
                         def.__type__ = 'mto';
                         def.title = md.manyToOneDefinitions[i].fieldName;
                         def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
@@ -579,12 +590,18 @@ function loadModelData(data, md, level, pathset, path, child) {
             for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
                 if (md.oneToOneDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.oneToOneDefinitions[i].targetModelName.toLowerCase());
-                    let newpath = path + '.' + md.oneToOneDefinitions[i].fieldName;
+                    let newpath;
+                    if (path) {
+                        newpath = path + '.' + md.oneToOneDefinitions[i].fieldName;
+                    } else {
+                        newpath = md.oneToOneDefinitions[i].fieldName;
+                    }
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let tkey = (level + '-t' + key);
                         key = key+1;
                         let def = new Object();
+                        def.path = newpath;
                         def.key = tkey;
                         def.__type__ = 'oto';
                         def.title = md.oneToOneDefinitions[i].fieldName;
@@ -602,12 +619,20 @@ function loadModelData(data, md, level, pathset, path, child) {
             for (let i = 0; i < md.oneToManyDefinitions.length; ++i) {
                 if (md.oneToManyDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.oneToManyDefinitions[i].targetModelName.toLowerCase());
-                    let newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
+                    let newpath;
+                            
+                    if (path) {
+                        newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
+                    } else {
+                        newpath = md.oneToManyDefinitions[i].fieldName;
+                    }
+                    
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let tkey = (level + '-t' + key);
                         key = key+1;
                         let def = new Object();
+                        def.path = newpath;
                         def.key = tkey;
                         def.__type__ = 'otm';
                         def.title = md.oneToManyDefinitions[i].fieldName;
@@ -622,4 +647,3 @@ function loadModelData(data, md, level, pathset, path, child) {
         }
     }
 }
-
