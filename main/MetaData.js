@@ -211,7 +211,46 @@ class MetaData {
     }
     
     loadConstraints() {};
+
+    findRelationshipByName(nm) {
+        let retval;
+        let def = getOneToOneDefinitions();
     
+        if (util.isValidObject(def)) {
+            for (let i = 0; i < def.length; ++i) {
+                if (nm === def[i].fieldName) {
+                    retval = def[i];
+                    break;
+                }
+            }
+        }
+
+        if (util.isUndefined(retval)) {
+            def = getOneToManyDefinitions();
+            if (util.isValidObject(def)) {
+                for (let i = 0; i < def.length; ++i) {
+                    if (nm === def[i].fieldName) {
+                        retval = def[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (util.isUndefined(retval)) {
+            def = getManyToOneDefinitions();
+            if (util.isValidObject(def)) {
+                for (let i = 0; i < def.length; ++i) {
+                    if (nm === def[i].fieldName) {
+                        retval = def[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        return retval;
+    }
 }
 
 module.exports.MetaData = MetaData;

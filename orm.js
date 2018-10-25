@@ -153,6 +153,7 @@ function loadModelFiles(dir, modelFiles) {
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
     server.use(bodyParser.urlencoded({ extended: false }));
+    server.use(bodyParser.json());
     server.use(cors());
 
     // plug authentication in here
@@ -178,6 +179,10 @@ function startRestServer() {
     
     server.get(REST_URL_BASE + '/design/modelnames', async function(req, res) {
         res.status(200).send(modelList);
+    });
+    
+    server.post(REST_URL_BASE + '/design/generatesql', async function(req, res) {
+        res.status(200).send(buildSql(req.body));
     });
     
     server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function(req, res) {
