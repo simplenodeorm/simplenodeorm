@@ -787,7 +787,9 @@ function buildQueryDocumentSql(queryDocument) {
         comma = '';
         for (let i = 0; i < queryDocument.selectedColumns.length; ++i) {
             if (!queryDocument.selectedColumns[i].function) {
-                pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
+                let alias;
+                let colName;
+                let pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
 
                 if (pos < 0) {
                    alias = 't0';
@@ -806,7 +808,7 @@ function buildQueryDocumentSql(queryDocument) {
         }
     }
         
-   let orderByColumns = getOrderByColumns(queryDocument.selectedColumns);
+    let orderByColumns = getOrderByColumns(queryDocument.selectedColumns);
 
     if (orderByColumns.length > 0) {
         comma = '';
