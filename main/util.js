@@ -213,6 +213,11 @@ module.exports.isNumber = function(n) {
   return !isNaN(parseFloat(n)) && isFinite(n);
 };
 
+module.exports.isUnaryOperator = function(op) {
+    return (op && ((op === 'is null') || (op === 'is not null'))); 
+};
+
+
 module.exports.designJSONReplacer = function(key, value) {
     switch(key) {
         case 'relationships':
@@ -234,4 +239,8 @@ module.exports.designJSONReplacer = function(key, value) {
         default:
             return value;
     }
+};
+
+module.exports.isQuoteRequired = function(field) {
+    return !field.type.includes('NUMBER');
 };

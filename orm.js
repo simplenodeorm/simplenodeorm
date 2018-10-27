@@ -155,7 +155,7 @@ function startRestServer() {
     server.use(bodyParser.urlencoded({ extended: false }));
     server.use(bodyParser.json());
     server.use(cors());
-
+    
     // plug authentication in here
     if (util.isDefined(appConfiguration.authorizer)) {
         const authorizer = new (require(appConfiguration.authorizer));
@@ -165,7 +165,7 @@ function startRestServer() {
     
         server.use(basicAuth({ authorizer: authfunc}));
     }
-
+    
     server.listen(REST_SERVER_PORT, () => {
         logger.logInfo(APP_NAME + ' is live on port ' + REST_SERVER_PORT);
     });
@@ -176,15 +176,21 @@ function startRestServer() {
         }
         res.status(200).send("success");
     });
-    
+
     server.get(REST_URL_BASE + '/design/modelnames', async function(req, res) {
         res.status(200).send(modelList);
     });
     
     server.post(REST_URL_BASE + '/design/generatesql', async function(req, res) {
-        res.status(200).send(buildSql(req.body));
+        try {
+            res.status(200).send(buildQueryDocumentSql(req.body));
+        }
+        
+        catch (e) {
+            res.status(500).send('error occured while building sql from query document');
+        }
     });
-    
+
     server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function(req, res) {
         let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
@@ -203,6 +209,7 @@ function startRestServer() {
             res.status(500).send('no metadata found for' + modelname);
         }
     });
+
 
     server.get(REST_URL_BASE + '/:module/:method', async function(req, res) {
         let repo = repositoryMap.get(req.params.module);
@@ -521,7 +528,7 @@ function populateOptionsFromRequestInput(input) {
 
 async function createTablesIfRequired() {
     let newTableRepos = new Array();
-    logger.logInfo('creating tables if required...');
+    logger.logInfo('in createTablesIfRequired()');
     
     let keys = Array.from(repositoryMap.keys());
     
@@ -529,14 +536,16 @@ async function createTablesIfRequired() {
         let repo = repositoryMap.get(keys[i]);
         let exists = await repo.tableExists();
         if (!exists) {
-            logger.logInfo('    creating table ' + repo.getMetaData().getTableName());
+            logger.logInfo('creating table ' + repo.getMetaData().getTableName());
             await repo.createTable();
             newTableRepos.push(repo);
         }
     }
     
     for (let i = 0; i < newTableRepos.length; ++i) {
+        logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         await newTableRepos[i].createForeignKeys();
+        logger.logInfo('creating sequences for ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         await newTableRepos[i].createAutoIncrementGeneratorIfRequired();
     }
 }
@@ -545,8 +554,6 @@ function loadModelData(data, md, level, pathset, path, child) {
     data.objectName = md.objectName;
     data.tableName = md.tableName;
     data.children = new Array();
-
-    let key = 1;
 
     for (let i = 0; i < md.fields.length; ++i) {
         let f = Object.assign({}, md.fields[i]);
@@ -654,3 +661,305 @@ function getUniqueKey() {
     return uuidv1();
 }
 
+function buildQueryDocumentSql(queryDocument) {
+    let relationshipTree = loadRelationshipTree(queryDocument);
+    let joins = new Array();
+    let joinset = new Set();
+    let aliasMap = new Map();
+    for (let i = 0; i < relationshipTree.length; ++i) {
+        buildQueryDocumentJoins('t0', relationshipTree[i], joins, joinset, aliasMap);
+    }
+    
+    let sql = 'select ';
+    let comma = '';
+    for (let i = 0; i < queryDocument.selectedColumns.length; ++i) {
+        let pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
+        let alias;
+        let colName;
+        if (pos < 0) {
+            alias = 't0';
+            let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+            colName = md.getField(queryDocument.selectedColumns[i].path).columnName;
+        } else {
+            let info = aliasMap.get(queryDocument.selectedColumns[i].path.substring(0, pos));
+            let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+            colName = md.getField(queryDocument.selectedColumns[i].path.substring(pos+1)).columnName;
+            alias = info.alias;
+        }
+
+        if (queryDocument.selectedColumns[i].customInput) {
+            sql += (comma + queryDocument.selectedColumns[i].customInput.replace('?', alias + '.' + colName));
+        } else {
+            if (queryDocument.selectedColumns[i].function) {
+                sql += (comma + queryDocument.selectedColumns[i].function + '(' + alias + '.' + colName + ')');
+            } else {
+                sql += (comma + alias + '.' + colName);
+            }
+        }
+
+        if (queryDocument.selectedColumns[i].label) {
+            sql += (' as "' + queryDocument.selectedColumns[i].label + '" ');
+        }
+        comma = ', ';
+    }
+
+    let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+    sql += (' from ' + md.tableName + ' t0 ');
+
+    for (let i = 0; i < joins.length; ++i) {
+        sql += (' ' + joins[i]);
+    }
+
+    sql += ' where ';
+   
+    for (let i = 0; i < queryDocument.whereComparisons.length; ++i) {
+        if (i > 0) {
+            sql += (' ' + queryDocument.whereComparisons[i].logicalOperator + ' ');
+        }
+      
+        if (queryDocument.whereComparisons[i].openParen) {
+            sql += queryDocument.whereComparisons[i].openParen;
+        }
+    
+        if (queryDocument.whereComparisons[i].customFilterInput) {
+            sql += queryDocument.whereComparisons[i].customFilterInput;
+        } else {
+            let alias;
+            let colName;
+            let field;
+            let pos = queryDocument.whereComparisons[i].fieldName.lastIndexOf('.');
+            if (pos < 0) {
+                alias = 't0';
+                let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+                field = md.getField(queryDocument.whereComparisons[i].fieldName);
+            } else {
+               let info = aliasMap.get(queryDocument.whereComparisons[i].fieldName.substring(0, pos));
+                let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+                field = md.getField(queryDocument.whereComparisons[i].fieldName.substring(pos+1));
+                alias = info.alias;
+            }
+
+            sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.whereComparisons[i].comparisonOperator);
+
+            if (!util.isUnaryOperator(queryDocument.whereComparisons[i].comparisonOperator)) {
+                if (queryDocument.whereComparisons[i].comparisonValue) {
+                    if (util.isQuoteRequired(field)) {
+                        if (queryDocument.whereComparisons[i].comparisonOperator === 'in') {
+                            let vals = queryDocument.whereComparisons[i].comparisonValue.split(',');
+                            comma = '';
+                            sql += '(';
+                            for (let j = 0; j < vals.length; ++j) {
+                                sql += (comma + '\'' + vals[j] + '\'');
+                                comma = ',';
+                            }
+                            sql += ')';
+                        } else {
+                            sql += (' \'' + queryDocument.whereComparisons[i].comparisonValue + '\'');
+                        }
+                    } else {
+                        if (queryDocument.whereComparisons[i].comparisonOperator === 'in') {
+                            let vals = queryDocument.whereComparisons[i].comparisonValue.split(',');
+                            comma = '';
+                            sql += '(';
+                            for (let j = 0; j < vals.length; ++j) {
+                                sql += (comma +  vals[j]);
+                                comma = ',';
+                            }
+                            sql += ')';
+                        } else {
+                            sql += (' ' + queryDocument.whereComparisons[i].comparisonValue);
+                        }
+
+                    }
+                } else {
+                    sql += ' ? ';
+                }
+            }
+       }
+        
+        if (queryDocument.whereComparisons[i].closeParen) {
+            sql += queryDocument.whereComparisons[i].closeParen;
+        }
+    }
+  
+    if (requiresGroupBy(queryDocument.selectedColumns)) {
+        sql += ' group by ';
+        comma = '';
+        for (let i = 0; i < queryDocument.selectedColumns.length; ++i) {
+            if (!queryDocument.selectedColumns[i].function) {
+                pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
+
+                if (pos < 0) {
+                   alias = 't0';
+                   let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+                   colName = md.getField(queryDocument.selectedColumns[i].path).columnName;
+                } else {
+                    let info = aliasMap.get(queryDocument.selectedColumns[i].path.substring(0, pos));
+                    let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+                    colName = md.getField(queryDocument.selectedColumns[i].path.substring(pos+1)).columnName;
+                    alias = info.alias;
+                }
+
+                sql += (comma + ' ' + alias + '.' + colName);
+                comma = ',';
+            }
+        }
+    }
+        
+   let orderByColumns = getOrderByColumns(queryDocument.selectedColumns);
+
+    if (orderByColumns.length > 0) {
+        comma = '';
+        sql += ' order by ';
+
+        for (let i = 0; i < orderByColumns.length; ++i) {
+            let pos = orderByColumns[i].path.lastIndexOf('.');
+            let alias;
+            let colName;
+
+            if (pos < 0) {
+              alias = 't0';
+               let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+               colName = md.getField(orderByColumns[i].path).columnName;
+            } else {
+                let info = aliasMap.get(orderByColumns[i].path.substring(0, pos));
+                let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+                colName = md.getField(orderByColumns[i].path.substring(pos+1)).columnName;
+                alias = info.alias;
+            }
+
+            sql += (comma + ' ' + alias + '.' + colName);
+
+            if (orderByColumns[i].sortDescending) {
+                sql += ' desc';
+            }
+
+            comma = ',';
+        }
+    }
+
+    return sql;
+}
+
+function getOrderByColumns(selectedColumns) {
+    let retval = new Array();
+    
+    for (let i = 0; i < selectedColumns.length; ++i) {
+        if (selectedColumns[i].sortPosition) {
+            retval.push(selectedColumns[i]);
+        }
+    }
+    
+    retval.sort(function(a, b) {
+        return (a.sortPosition-b.sortPosition);
+    });
+    
+    return retval;
+}
+
+function requiresGroupBy(selectedColumns) {
+    let retval = false;
+    
+    for (let i = 0; i < selectedColumns.length; ++i) {
+        if (selectedColumns[i].function) {
+            retval = true;
+            break;
+        }
+    }
+    
+    return retval;
+}
+
+function loadRelationshipTree(queryDocument) {
+    let retval = new Array();
+    let paths = getDistinctJoinPaths(queryDocument.selectedColumns);
+    for (let i = 0; i < paths.length; ++i) {
+        let l = new Array();
+        retval.push(l);
+        loadRelationships(queryDocument.rootModel, paths[i], l);
+    }
+    
+    return retval;
+}
+
+function loadRelationships(model, path, rlist) {
+    let pos = path.indexOf('.');
+    let fieldName;
+    if (pos < 0) {
+        fieldName = path;
+    } else {
+        fieldName = path.substring(0, pos);
+    }
+    let md = repositoryMap.get(model.toLowerCase()).getMetaData();
+    if (util.isDefined(md)) {
+        let def = md.findRelationshipByName(fieldName);
+        if (util.isDefined(def)) {
+            rlist.push(def);
+            if (fieldName !== path) {
+                loadRelationships(def.targetModelName, path.substring(pos+1), rlist);
+            }
+        }
+    }
+}
+
+function getDistinctJoinPaths(selectedColumns) {
+    let retval = new Array();
+    let pset = new Set();
+
+    for (let i = 0; i < selectedColumns.length; ++i) {
+        let pos = selectedColumns[i].path.lastIndexOf('.');
+        let rootPath;
+        if (pos > -1) {
+           rootPath = selectedColumns[i].path.substring(0, pos);
+            if (!pset.has(rootPath)) {
+                retval.push(rootPath);
+                pset.add(rootPath);
+            }
+        }
+    }
+
+    retval.sort(function(a, b) {
+        return (b.length-a.length);
+    });
+    
+    return retval;
+}
+
+function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, aliasMap) {
+    let pathPart = '';
+    let dot = '';
+    for (let i = 0; i < relationships.length; ++i) {
+        let alias = (parentAlias + relationships[i].alias);
+        
+        let join;
+        
+        if ( relationships[i].required) {
+            join = ' join ';
+        } else {
+            join  = ' left outer join ';
+        }
+        
+        join += (relationships[i].targetTableName + ' ' + alias + ' on (');
+        
+        pathPart += (dot + relationships[i].fieldName);
+        dot = '.';
+        
+        aliasMap.set(pathPart, {alias: alias, model: relationships[i].targetModelName});
+        let srccols = relationships[i].joinColumns.sourceColumns.split(',');
+        let tgtcols = relationships[i].joinColumns.targetColumns.split(',');
+        let and = '';
+        for (let j = 0; j < srccols.length; ++j) {
+            join += (and + alias + '.' + tgtcols[j] + ' = ' + parentAlias + '.' + srccols[j]);
+            and = ' and ';
+        }
+        
+        join += ') ';
+        
+        if (!joinset.has(join)) {
+            joins.push(join);
+            joinset.add(join);
+        }
+        
+        parentAlias = alias;
+    }
+}
