@@ -21,7 +21,8 @@
     "events": ">=2.0.0",
     "properties-reader": ">=0.0.16",
     "uuid": ">=3.2.1",
-    "deasync": ">=0.1.13"
+    "deasync": ">=0.1.13",
+    "fs-path": ">=0.0.24"
   },
   "bugs": {
     "url": "https://github.com/rbtucker/simplenodeorm/issues"

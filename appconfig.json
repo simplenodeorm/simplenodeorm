@@ -1,6 +1,7 @@
 {
   "testMode" : false,
   "dbConfiguration" : "c:\\work\\kfsormsec.json",
+  "queryDocumentRoot" : "c:\\work\\querydocs",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
   "createTablesIfRequired" : true,

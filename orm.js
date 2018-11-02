@@ -12,6 +12,8 @@ const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
 const cors = require('cors');
 const uuidv1 = require('uuid/v1');
+const path = require('path')
+const fspath = require('fs-path')
 
 // REST API stuff
 const express = require('express');
@@ -152,46 +154,91 @@ function loadModelFiles(dir, modelFiles) {
 
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
-    server.use(bodyParser.urlencoded({ extended: false }));
+    server.use(bodyParser.urlencoded({extended: false}));
     server.use(bodyParser.json());
     server.use(cors());
-    
+
     // plug authentication in here
     if (util.isDefined(appConfiguration.authorizer)) {
         const authorizer = new (require(appConfiguration.authorizer));
-        const authfunc = function(user, pass) {
+        const authfunc = function (user, pass) {
             return authorizer.isAuthorized(user, pass);
         };
-    
-        server.use(basicAuth({ authorizer: authfunc}));
+
+        server.use(basicAuth({authorizer: authfunc}));
     }
-    
+
     server.listen(REST_SERVER_PORT, () => {
         logger.logInfo(APP_NAME + ' is live on port ' + REST_SERVER_PORT);
     });
-    
-    server.get(REST_URL_BASE + '/design/login', async function(req, res) {
+
+    server.get(REST_URL_BASE + '/design/login', async function (req, res) {
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("in /design/login");
         }
         res.status(200).send("success");
     });
 
-    server.get(REST_URL_BASE + '/design/modelnames', async function(req, res) {
+    server.get(REST_URL_BASE + '/design/modelnames', async function (req, res) {
         res.status(200).send(modelList);
     });
-    
-    server.post(REST_URL_BASE + '/design/generatesql', async function(req, res) {
+
+    server.post(REST_URL_BASE + '/design/generatesql', async function (req, res) {
         try {
             res.status(200).send(buildQueryDocumentSql(req.body));
-        }
-        
-        catch (e) {
+        } catch (e) {
+            logger.logError('error occured while building sql from query document', e);
             res.status(500).send('error occured while building sql from query document');
         }
     });
 
-    server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function(req, res) {
+    server.post(REST_URL_BASE + '/design/runquery', async function (req, res) {
+        try {
+            (async function () {
+                let doc = req.body;
+                if (doc.documentName) {
+                    doc = loadQueryDocument(doc);
+                }
+                let sql = buildQueryDocumentSql(req.body);
+
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug(util.toString(req.body));
+                    logger.logDebug(sql);
+                }
+
+                let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
+                let result = await repo.executeSqlQuery(sql, doc.parameters);
+                if (result.error) {
+                    if (doc.validityCheckOnly) {
+                        res.status(200).send('generated sql is invalid');
+                    } else {
+                        res.status(500).send(result.error);
+                    }
+                } else if (doc.validityCheckOnly) {
+                    res.status(200).send('generated sql is valid');
+                } else if (doc.resultType === 'result set') {
+                    res.status(200).send(result);
+                } else {
+                    res.status(200).send(result);
+                }
+            })(req, res);
+        } catch (e) {
+            logger.logError('error occured while running query document', e);
+            res.status(500).send('error occured while running query document - ' + e);
+        }
+    });
+
+    server.post(REST_URL_BASE + '/design/savequery', async function (req, res) {
+        try {
+            saveQueryDocument(req.body);
+            res.status(200).send('success');
+        } catch (e) {
+            logger.logError('error occured while saving query document' + req.body.documentName, e);
+            res.status(500).send('error occured while saving query document' + req.body.documentName + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function (req, res) {
         let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
         if (repo && repo.metaData) {
@@ -206,12 +253,13 @@ function startRestServer() {
                 res.status(404).send('not found');
             }
         } else {
+            logger.logError('no metadata found for' + modelname);
             res.status(500).send('no metadata found for' + modelname);
         }
     });
 
 
-    server.get(REST_URL_BASE + '/:module/:method', async function(req, res) {
+    server.get(REST_URL_BASE + '/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -225,12 +273,12 @@ function startRestServer() {
         let params = new Array();
         let pk = md.getPrimaryKeyFields();
         let fields = md.getFields();
-     
+
         if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             var result;
-            switch(req.params.method.toLowerCase()) {
+            switch (req.params.method.toLowerCase()) {
                 case util.FIND_ONE.toLowerCase():
                     for (let i = 0; i < pk.length; ++i) {
                         params.push(req.query[pk[i].fieldName]);
@@ -291,7 +339,7 @@ function startRestServer() {
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
             }
-            
+
             if (util.isUndefined(result)) {
                 res.status(404).send('not found');
             } else if (util.isDefined(result.error)) {
@@ -306,7 +354,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.post(REST_URL_BASE + '/:module/:method', async function(req, res) {
+    server.post(REST_URL_BASE + '/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -321,14 +369,14 @@ function startRestServer() {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let result;
-            
-            switch(req.params.method.toLowerCase()) {
+
+            switch (req.params.method.toLowerCase()) {
                 case util.FIND_ONE.toLowerCase():
                     result = await repo.findOne(req.body.primaryKeyValues);
                     break;
                 case util.FIND.toLowerCase():
-                    result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons), 
-                        populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
+                    result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
+                            populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
                     break;
                 case util.SAVE.toLowerCase():
                     result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
@@ -337,8 +385,8 @@ function startRestServer() {
                     result = await repo.findOneSYnc(req.body.primaryKeyValues);
                     break;
                 case util.FIND_SYNC.toLowerCase():
-                    result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons), 
-                        populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
+                    result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
+                            populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
                     break;
                 case util.SAVE_SYNC.toLowerCase():
                     result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
@@ -347,7 +395,7 @@ function startRestServer() {
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
             }
-            
+
             if (util.isUndefined(result)) {
                 res.status(404).send('not found');
             } else if (util.isDefined(result.error)) {
@@ -366,7 +414,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.put(REST_URL_BASE + '/:module/:method', function(req, res) {
+    server.put(REST_URL_BASE + '/:module/:method', function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -376,12 +424,12 @@ function startRestServer() {
                 md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
             }
         }
-        
+
         if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let f;
-            switch(req.params.method.toLowerCase()) {
+            switch (req.params.method.toLowerCase()) {
                 case util.SAVE.toLowerCase():
                     result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
                     break;
@@ -392,7 +440,7 @@ function startRestServer() {
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
             }
-            
+
             if (util.isUndefined(result)) {
                 res.status(404).send('not found');
             } else if (util.isDefined(result.error)) {
@@ -409,7 +457,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.delete(REST_URL_BASE + '/:module/:method', function(req, res) {
+    server.delete(REST_URL_BASE + '/:module/:method', function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -419,11 +467,11 @@ function startRestServer() {
                 md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
             }
         }
-        
+
         if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
-            switch(req.params.method.toLowerCase()) {
+            switch (req.params.method.toLowerCase()) {
                 case util.DELETE.toLowerCase():
                     result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
                     break;
@@ -434,7 +482,7 @@ function startRestServer() {
                     res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                     break;
             }
-            
+
             if (util.isDefined(result.error)) {
                 res.status(500).send(util.toString(result.error));
             } else if (util.isDefined(result.rowsAffected)) {
@@ -446,7 +494,7 @@ function startRestServer() {
 
         res.end();
     });
-    
+
 }
 
 function populateWhereFromRequestInput(input) {
@@ -458,13 +506,13 @@ function populateWhereFromRequestInput(input) {
         }
 
         let retval = new Array();
-        
+
         for (let i = 0; i < input.length; ++i) {
-            let wc =  require('./main/WhereComparison.js')();
+            let wc = require('./main/WhereComparison.js')();
             Object.assign(wc, input[i]);
             retval.push(wc);
         }
-        
+
         return retval;
     }
 }
@@ -478,13 +526,13 @@ function populateOrderByFromRequestInput(input) {
         }
 
         let retval = new Array();
-        
+
         for (let i = 0; i < input.length; ++i) {
-            let obe =  require('./main/OrderByEntry.js')();
+            let obe = require('./main/OrderByEntry.js')();
             Object.assign(obe, input[i]);
             retval.push(obe);
         }
-        
+
         return retval;
     }
 }
@@ -496,7 +544,7 @@ function populateModelObjectsFromRequestInput(input) {
         if (util.isString(input)) {
             input = JSON.parse(input);
         }
-        
+
         let retval = new Array();
 
         if (input.length > 0) {
@@ -504,34 +552,34 @@ function populateModelObjectsFromRequestInput(input) {
             let md = this.getMetaData(input[0].__model__.toLowerCase());
 
             for (let i = 0; i < input.length; ++i) {
-                let model =  require('./' + md.getModule())(md);
+                let model = require('./' + md.getModule())(md);
                 Object.assign(model, input[i]);
                 retval.push(model);
             }
         }
-        
+
         return retval;
     }
 }
 
 function populateOptionsFromRequestInput(input) {
     let retval = input;
-    
+
     if (util.isDefined(input)) {
         if (util.isString(input)) {
             retval = JSON.parse(input);
         }
     }
-    
+
     return retval;
 }
 
 async function createTablesIfRequired() {
     let newTableRepos = new Array();
     logger.logInfo('in createTablesIfRequired()');
-    
+
     let keys = Array.from(repositoryMap.keys());
-    
+
     for (let i = 0; i < keys.length; ++i) {
         let repo = repositoryMap.get(keys[i]);
         let exists = await repo.tableExists();
@@ -541,7 +589,7 @@ async function createTablesIfRequired() {
             newTableRepos.push(repo);
         }
     }
-    
+
     for (let i = 0; i < newTableRepos.length; ++i) {
         logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
         await newTableRepos[i].createForeignKeys();
@@ -559,7 +607,7 @@ function loadModelData(data, md, level, pathset, path, child) {
         let f = Object.assign({}, md.fields[i]);
         f.key = (data.key + '-c' + i);
         f.title = f.fieldName;
-        f.isLeaf=true;
+        f.isLeaf = true;
         f.key = getUniqueKey();
         if (path) {
             f.__path__ = path + '.' + f.fieldName;
@@ -591,7 +639,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
+                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -618,7 +666,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
+                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -630,13 +678,13 @@ function loadModelData(data, md, level, pathset, path, child) {
                 if (md.oneToManyDefinitions[i].targetModelName) {
                     let repo = repositoryMap.get(md.oneToManyDefinitions[i].targetModelName.toLowerCase());
                     let newpath;
-                            
+
                     if (path) {
                         newpath = path + '.' + md.oneToManyDefinitions[i].fieldName;
                     } else {
                         newpath = md.oneToManyDefinitions[i].fieldName;
                     }
-                    
+
                     if (repo && !pathset.has(newpath)) {
                         pathset.add(newpath);
                         let def = new Object();
@@ -647,7 +695,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level+1, pathset, newpath, true);
+                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
                         data.children.push(def);
                     }
                 }
@@ -656,54 +704,57 @@ function loadModelData(data, md, level, pathset, path, child) {
     }
 }
 
-    
+
 function getUniqueKey() {
     return uuidv1();
 }
 
 function buildQueryDocumentSql(queryDocument) {
-    let relationshipTree = loadRelationshipTree(queryDocument);
+    let relationshipTree = loadRelationshipTree(queryDocument.document);
     let joins = new Array();
     let joinset = new Set();
     let aliasMap = new Map();
     for (let i = 0; i < relationshipTree.length; ++i) {
         buildQueryDocumentJoins('t0', relationshipTree[i], joins, joinset, aliasMap);
     }
-    
+
     let sql = 'select ';
+    if (queryDocument.distinct) {
+        sql += ' distinct ';
+    }
     let comma = '';
-    for (let i = 0; i < queryDocument.selectedColumns.length; ++i) {
-        let pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
+    for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
+        let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
         let alias;
         let colName;
         if (pos < 0) {
             alias = 't0';
-            let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
-            colName = md.getField(queryDocument.selectedColumns[i].path).columnName;
+            let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+            colName = md.getField(queryDocument.document.selectedColumns[i].path).columnName;
         } else {
-            let info = aliasMap.get(queryDocument.selectedColumns[i].path.substring(0, pos));
+            let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
             let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
-            colName = md.getField(queryDocument.selectedColumns[i].path.substring(pos+1)).columnName;
+            colName = md.getField(queryDocument.document.selectedColumns[i].path.substring(pos + 1)).columnName;
             alias = info.alias;
         }
 
-        if (queryDocument.selectedColumns[i].customInput) {
-            sql += (comma + queryDocument.selectedColumns[i].customInput.replace('?', alias + '.' + colName));
+        if (queryDocument.document.selectedColumns[i].customInput) {
+            sql += (comma + queryDocument.document.selectedColumns[i].customInput.replace('?', alias + '.' + colName));
         } else {
-            if (queryDocument.selectedColumns[i].function) {
-                sql += (comma + queryDocument.selectedColumns[i].function + '(' + alias + '.' + colName + ')');
+            if (queryDocument.document.selectedColumns[i].function) {
+                sql += (comma + queryDocument.document.selectedColumns[i].function + '(' + alias + '.' + colName + ')');
             } else {
                 sql += (comma + alias + '.' + colName);
             }
         }
 
-        if (queryDocument.selectedColumns[i].label) {
-            sql += (' as "' + queryDocument.selectedColumns[i].label + '" ');
+        if (queryDocument.document.selectedColumns[i].label) {
+            sql += (' as "' + queryDocument.document.selectedColumns[i].label + '" ');
         }
         comma = ', ';
     }
 
-    let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
+    let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
     sql += (' from ' + md.tableName + ' t0 ');
 
     for (let i = 0; i < joins.length; ++i) {
@@ -711,41 +762,42 @@ function buildQueryDocumentSql(queryDocument) {
     }
 
     sql += ' where ';
-   
-    for (let i = 0; i < queryDocument.whereComparisons.length; ++i) {
+
+    for (let i = 0; i < queryDocument.document.whereComparisons.length; ++i) {
         if (i > 0) {
-            sql += (' ' + queryDocument.whereComparisons[i].logicalOperator + ' ');
+            sql += (' ' + queryDocument.document.whereComparisons[i].logicalOperator + ' ');
         }
-      
-        if (queryDocument.whereComparisons[i].openParen) {
-            sql += queryDocument.whereComparisons[i].openParen;
+
+        if (queryDocument.document.whereComparisons[i].openParen) {
+            sql += queryDocument.document.whereComparisons[i].openParen;
         }
-    
-        if (queryDocument.whereComparisons[i].customFilterInput) {
-            sql += queryDocument.whereComparisons[i].customFilterInput;
+
+        if (queryDocument.document.whereComparisons[i].customFilterInput) {
+            sql += queryDocument.document.whereComparisons[i].customFilterInput;
         } else {
             let alias;
             let colName;
             let field;
-            let pos = queryDocument.whereComparisons[i].fieldName.lastIndexOf('.');
+            let pos = queryDocument.document.whereComparisons[i].fieldName.lastIndexOf('.');
             if (pos < 0) {
                 alias = 't0';
-                let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
-                field = md.getField(queryDocument.whereComparisons[i].fieldName);
+                let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+                field = md.getField(queryDocument.document.whereComparisons[i].fieldName);
             } else {
-               let info = aliasMap.get(queryDocument.whereComparisons[i].fieldName.substring(0, pos));
+                let info = aliasMap.get(queryDocument.document.whereComparisons[i].fieldName.substring(0, pos));
                 let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
-                field = md.getField(queryDocument.whereComparisons[i].fieldName.substring(pos+1));
+                field = md.getField(queryDocument.document.whereComparisons[i].fieldName.substring(pos + 1));
                 alias = info.alias;
             }
 
-            sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.whereComparisons[i].comparisonOperator);
+            sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.document.whereComparisons[i].comparisonOperator);
 
-            if (!util.isUnaryOperator(queryDocument.whereComparisons[i].comparisonOperator)) {
-                if (queryDocument.whereComparisons[i].comparisonValue) {
+            let replaceIndex = 0;
+            if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
+                if (queryDocument.document.whereComparisons[i].comparisonValue) {
                     if (util.isQuoteRequired(field)) {
-                        if (queryDocument.whereComparisons[i].comparisonOperator === 'in') {
-                            let vals = queryDocument.whereComparisons[i].comparisonValue.split(',');
+                        if (queryDocument.document.whereComparisons[i].comparisonOperator === 'in') {
+                            let vals = queryDocument.document.whereComparisons[i].comparisonValue.split(',');
                             comma = '';
                             sql += '(';
                             for (let j = 0; j < vals.length; ++j) {
@@ -754,51 +806,51 @@ function buildQueryDocumentSql(queryDocument) {
                             }
                             sql += ')';
                         } else {
-                            sql += (' \'' + queryDocument.whereComparisons[i].comparisonValue + '\'');
+                            sql += (' \'' + queryDocument.document.whereComparisons[i].comparisonValue + '\'');
                         }
                     } else {
-                        if (queryDocument.whereComparisons[i].comparisonOperator === 'in') {
-                            let vals = queryDocument.whereComparisons[i].comparisonValue.split(',');
+                        if (queryDocument.document.whereComparisons[i].comparisonOperator === 'in') {
+                            let vals = queryDocument.document.whereComparisons[i].comparisonValue.split(',');
                             comma = '';
                             sql += '(';
                             for (let j = 0; j < vals.length; ++j) {
-                                sql += (comma +  vals[j]);
+                                sql += (comma + vals[j]);
                                 comma = ',';
                             }
                             sql += ')';
                         } else {
-                            sql += (' ' + queryDocument.whereComparisons[i].comparisonValue);
+                            sql += (' ' + queryDocument.document.whereComparisons[i].comparisonValue);
                         }
 
                     }
                 } else {
-                    sql += ' ? ';
+                    sql += (' :' + (replaceIndex++) + ' ');
                 }
             }
-       }
-        
-        if (queryDocument.whereComparisons[i].closeParen) {
-            sql += queryDocument.whereComparisons[i].closeParen;
+        }
+
+        if (queryDocument.document.whereComparisons[i].closeParen) {
+            sql += queryDocument.document.whereComparisons[i].closeParen;
         }
     }
-  
-    if (requiresGroupBy(queryDocument.selectedColumns)) {
+
+    if (requiresGroupBy(queryDocument.document.selectedColumns)) {
         sql += ' group by ';
         comma = '';
-        for (let i = 0; i < queryDocument.selectedColumns.length; ++i) {
-            if (!queryDocument.selectedColumns[i].function) {
+        for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
+            if (!queryDocument.document.selectedColumns[i].function) {
                 let alias;
                 let colName;
-                let pos = queryDocument.selectedColumns[i].path.lastIndexOf('.');
+                let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
 
                 if (pos < 0) {
-                   alias = 't0';
-                   let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
-                   colName = md.getField(queryDocument.selectedColumns[i].path).columnName;
+                    alias = 't0';
+                    let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+                    colName = md.getField(queryDocument.document.selectedColumns[i].path).columnName;
                 } else {
-                    let info = aliasMap.get(queryDocument.selectedColumns[i].path.substring(0, pos));
+                    let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
                     let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
-                    colName = md.getField(queryDocument.selectedColumns[i].path.substring(pos+1)).columnName;
+                    colName = md.getField(queryDocument.document.selectedColumns[i].path.substring(pos + 1)).columnName;
                     alias = info.alias;
                 }
 
@@ -807,8 +859,8 @@ function buildQueryDocumentSql(queryDocument) {
             }
         }
     }
-        
-    let orderByColumns = getOrderByColumns(queryDocument.selectedColumns);
+
+    let orderByColumns = getOrderByColumns(queryDocument.document.selectedColumns);
 
     if (orderByColumns.length > 0) {
         comma = '';
@@ -820,13 +872,13 @@ function buildQueryDocumentSql(queryDocument) {
             let colName;
 
             if (pos < 0) {
-              alias = 't0';
-               let md = repositoryMap.get(queryDocument.rootModel.toLowerCase()).getMetaData();
-               colName = md.getField(orderByColumns[i].path).columnName;
+                alias = 't0';
+                let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+                colName = md.getField(orderByColumns[i].path).columnName;
             } else {
                 let info = aliasMap.get(orderByColumns[i].path.substring(0, pos));
                 let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
-                colName = md.getField(orderByColumns[i].path.substring(pos+1)).columnName;
+                colName = md.getField(orderByColumns[i].path.substring(pos + 1)).columnName;
                 alias = info.alias;
             }
 
@@ -845,30 +897,30 @@ function buildQueryDocumentSql(queryDocument) {
 
 function getOrderByColumns(selectedColumns) {
     let retval = new Array();
-    
+
     for (let i = 0; i < selectedColumns.length; ++i) {
         if (selectedColumns[i].sortPosition) {
             retval.push(selectedColumns[i]);
         }
     }
-    
-    retval.sort(function(a, b) {
-        return (a.sortPosition-b.sortPosition);
+
+    retval.sort(function (a, b) {
+        return (a.sortPosition - b.sortPosition);
     });
-    
+
     return retval;
 }
 
 function requiresGroupBy(selectedColumns) {
     let retval = false;
-    
+
     for (let i = 0; i < selectedColumns.length; ++i) {
         if (selectedColumns[i].function) {
             retval = true;
             break;
         }
     }
-    
+
     return retval;
 }
 
@@ -880,7 +932,7 @@ function loadRelationshipTree(queryDocument) {
         retval.push(l);
         loadRelationships(queryDocument.rootModel, paths[i], l);
     }
-    
+
     return retval;
 }
 
@@ -898,7 +950,7 @@ function loadRelationships(model, path, rlist) {
         if (util.isDefined(def)) {
             rlist.push(def);
             if (fieldName !== path) {
-                loadRelationships(def.targetModelName, path.substring(pos+1), rlist);
+                loadRelationships(def.targetModelName, path.substring(pos + 1), rlist);
             }
         }
     }
@@ -912,7 +964,7 @@ function getDistinctJoinPaths(selectedColumns) {
         let pos = selectedColumns[i].path.lastIndexOf('.');
         let rootPath;
         if (pos > -1) {
-           rootPath = selectedColumns[i].path.substring(0, pos);
+            rootPath = selectedColumns[i].path.substring(0, pos);
             if (!pset.has(rootPath)) {
                 retval.push(rootPath);
                 pset.add(rootPath);
@@ -920,10 +972,10 @@ function getDistinctJoinPaths(selectedColumns) {
         }
     }
 
-    retval.sort(function(a, b) {
-        return (b.length-a.length);
+    retval.sort(function (a, b) {
+        return (b.length - a.length);
     });
-    
+
     return retval;
 }
 
@@ -932,20 +984,20 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     let dot = '';
     for (let i = 0; i < relationships.length; ++i) {
         let alias = (parentAlias + relationships[i].alias);
-        
+
         let join;
-        
-        if ( relationships[i].required) {
+
+        if (relationships[i].required) {
             join = ' join ';
         } else {
-            join  = ' left outer join ';
+            join = ' left outer join ';
         }
-        
+
         join += (relationships[i].targetTableName + ' ' + alias + ' on (');
-        
+
         pathPart += (dot + relationships[i].fieldName);
         dot = '.';
-        
+
         aliasMap.set(pathPart, {alias: alias, model: relationships[i].targetModelName});
         let srccols = relationships[i].joinColumns.sourceColumns.split(',');
         let tgtcols = relationships[i].joinColumns.targetColumns.split(',');
@@ -954,14 +1006,30 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
             join += (and + alias + '.' + tgtcols[j] + ' = ' + parentAlias + '.' + srccols[j]);
             and = ' and ';
         }
-        
+
         join += ') ';
-        
+
         if (!joinset.has(join)) {
             joins.push(join);
             joinset.add(join);
         }
-        
+
         parentAlias = alias;
     }
+}
+
+function loadQueryDocument(doc) {
+    return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentRoot + '/' + doc.groupId + '/' + doc.documentName + '.json'));
+}
+
+function saveQueryDocument(doc) {
+    let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
+    fspath.writeFile(fname, JSON.stringify(doc), function(err){
+        if(err) {
+            logger
+            throw err;
+        } else {
+            logger.logInfo('file created: ' + fname);
+        }
+    });
 }
