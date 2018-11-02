@@ -183,6 +183,17 @@ function startRestServer() {
         res.status(200).send(modelList);
     });
 
+    server.get(REST_URL_BASE + '/design/documents', async function (req, res) {
+        try {
+            res.status(200).send(loadQueryDocuments());
+        }
+
+        catch (e) {
+            logger.logError('error occured while loading query documents', e);
+            res.status(500).send('error occured while loading query documents');
+        }
+    });
+
     server.post(REST_URL_BASE + '/design/generatesql', async function (req, res) {
         try {
             res.status(200).send(buildQueryDocumentSql(req.body));
@@ -605,7 +616,6 @@ function loadModelData(data, md, level, pathset, path, child) {
 
     for (let i = 0; i < md.fields.length; ++i) {
         let f = Object.assign({}, md.fields[i]);
-        f.key = (data.key + '-c' + i);
         f.title = f.fieldName;
         f.isLeaf = true;
         f.key = getUniqueKey();
@@ -1020,6 +1030,29 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 
 function loadQueryDocument(doc) {
     return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentRoot + '/' + doc.groupId + '/' + doc.documentName + '.json'));
+}
+
+function loadQueryDocuments() {
+    let retval = new Object();
+    let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
+
+    for (let i = 0; i < groups.length; ++i) {
+        let files = fs.readdirSync(appConfiguration.queryDocumentRoot + path.sep + groups[i])
+        retval[groups[i]] = new Array();
+        for (let j = 0; j < files.length; ++j) {
+            if (files[j].endsWith('.json')) {
+                retval[groups[i]].push(files[j]);
+            }
+        }
+        
+        if (retval[groups[i]].length > 0) {
+            retval[groups[i]].sort();
+        }
+    }
+    
+    logger.logInfo('query documents: ' + JSON.stringify(retval));
+    
+    return JSON.stringify(retval);
 }
 
 function saveQueryDocument(doc) {
