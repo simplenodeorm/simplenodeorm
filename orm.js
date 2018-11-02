@@ -1026,7 +1026,6 @@ function saveQueryDocument(doc) {
     let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
     fspath.writeFile(fname, JSON.stringify(doc), function(err){
         if(err) {
-            logger
             throw err;
         } else {
             logger.logInfo('file created: ' + fname);
