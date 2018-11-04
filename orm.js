@@ -208,12 +208,12 @@ function startRestServer() {
             (async function () {
                 let doc = req.body;
                 if (doc.documentName) {
-                    doc = loadQueryDocument(doc);
+                    doc = loadQueryDocument(doc.groupId + '.' + doc.documentNnme + '.json');
                 }
-                let sql = buildQueryDocumentSql(req.body);
+                let sql = buildQueryDocumentSql(doc);
 
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug(util.toString(req.body));
+                    logger.logDebug(util.toString(doc));
                     logger.logDebug(sql);
                 }
 
@@ -246,6 +246,25 @@ function startRestServer() {
         } catch (e) {
             logger.logError('error occured while saving query document' + req.body.documentName, e);
             res.status(500).send('error occured while saving query document' + req.body.documentName + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/design/deletedocument/:docid', async function (req, res) {
+        try {
+            deleteQueryDocument(req.params.docid);
+            res.status(200).send('success');
+        } catch (e) {
+            logger.logError('error occured while delete document' + req.params.docid, e);
+            res.status(500).send('error occured while deleting document' + req.params.docid + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/design/loaddocument/:docid', async function (req, res) {
+        try {
+            res.status(200).send(loadQueryDocument(req.params.docid));
+        } catch (e) {
+            logger.logError('error occured while loading document' + req.params.docid, e);
+            res.status(500).send('error occured while loading document' + req.params.docid + ' - ' + e);
         }
     });
 
@@ -1028,10 +1047,6 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     }
 }
 
-function loadQueryDocument(doc) {
-    return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentRoot + '/' + doc.groupId + '/' + doc.documentName + '.json'));
-}
-
 function loadQueryDocuments() {
     let retval = new Object();
     let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
@@ -1064,4 +1079,23 @@ function saveQueryDocument(doc) {
             logger.logInfo('file created: ' + fname);
         }
     });
+}
+
+function deleteQueryDocument(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName= docid.substring(pos+1);
+    
+    let fname = appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName;
+    fs.unlinkSync(fname);
+}
+
+function loadQueryDocument(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName= docid.substring(pos+1);
+    
+    let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+    
+    return JSON.parse(fs.readFileSync(fname));
 }
