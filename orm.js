@@ -207,30 +207,37 @@ function startRestServer() {
         try {
             (async function () {
                 let doc = req.body;
-                if (doc.documentName) {
-                    doc = loadQueryDocument(doc.groupId + '.' + doc.documentNnme + '.json');
-                }
-                let sql = buildQueryDocumentSql(doc);
-
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug(util.toString(doc));
-                    logger.logDebug(sql);
-                }
-
-                let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
-                let result = await repo.executeSqlQuery(sql, doc.parameters);
-                if (result.error) {
-                    if (doc.validityCheckOnly) {
-                        res.status(200).send('generated sql is invalid');
-                    } else {
-                        res.status(500).send(result.error);
+                try {
+                    if (doc.documentName) {
+                        doc = loadQueryDocument(doc.groupId + '.' + doc.documentNnme + '.json');
                     }
-                } else if (doc.validityCheckOnly) {
-                    res.status(200).send('generated sql is valid');
-                } else if (doc.resultType === 'result set') {
-                    res.status(200).send(result);
-                } else {
-                    res.status(200).send(result);
+
+                    let sql = buildQueryDocumentSql(doc);
+
+                    if (logger.isLogDebugEnabled()) {
+                        logger.logDebug(util.toString(doc));
+                        logger.logDebug(sql);
+                    }
+
+                    let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
+                    let result = await repo.executeSqlQuery(sql, doc.parameters);
+                    if (result.error) {
+                        if (doc.validityCheckOnly) {
+                            res.status(200).send('generated sql is invalid');
+                        } else {
+                            res.status(500).send(result.error);
+                        }
+                    } else if (doc.validityCheckOnly) {
+                        res.status(200).send('generated sql is valid');
+                    } else if (doc.resultType === 'result set') {
+                        res.status(200).send(result);
+                    } else {
+                        res.status(200).send(result);
+                    }
+                }
+                
+                catch(e) {
+                    res.status(500).send('error occured during sql - ' + e);
                 }
             })(req, res);
         } catch (e) {
@@ -792,6 +799,7 @@ function buildQueryDocumentSql(queryDocument) {
 
     sql += ' where ';
 
+    let replaceIndex = 1;
     for (let i = 0; i < queryDocument.document.whereComparisons.length; ++i) {
         if (i > 0) {
             sql += (' ' + queryDocument.document.whereComparisons[i].logicalOperator + ' ');
@@ -805,7 +813,6 @@ function buildQueryDocumentSql(queryDocument) {
             sql += queryDocument.document.whereComparisons[i].customFilterInput;
         } else {
             let alias;
-            let colName;
             let field;
             let pos = queryDocument.document.whereComparisons[i].fieldName.lastIndexOf('.');
             if (pos < 0) {
@@ -821,7 +828,6 @@ function buildQueryDocumentSql(queryDocument) {
 
             sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.document.whereComparisons[i].comparisonOperator);
 
-            let replaceIndex = 0;
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
                 if (queryDocument.document.whereComparisons[i].comparisonValue) {
                     if (util.isQuoteRequired(field)) {
@@ -853,7 +859,8 @@ function buildQueryDocumentSql(queryDocument) {
 
                     }
                 } else {
-                    sql += (' :' + (replaceIndex++) + ' ');
+                    sql += (' :' + replaceIndex + ' ');
+                    replaceIndex++;
                 }
             }
         }
