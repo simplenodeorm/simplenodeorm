@@ -232,12 +232,21 @@ function startRestServer() {
                     } else if (doc.resultType === 'result set') {
                         res.status(200).send(result);
                     } else {
-                        res.status(200).send(result);
+                        try {
+                            let retval = buildResultObjectGraph(doc, result.result.rows);
+                            res.status(200).send(retval);
+                        }
+                        
+                        catch (e) {
+                            logger.logError('error occured while building result object graph', e);
+                            res.status(500).send('error occured while building result object graph - ' + e);
+                        }
                     }
                 }
                 
                 catch(e) {
-                    res.status(500).send('error occured during sql - ' + e);
+                    logger.logError('error occured while running query document', e);
+                    res.status(500).send('error occured while running query document - ' + e);
                 }
             })(req, res);
         } catch (e) {
@@ -767,12 +776,16 @@ function buildQueryDocumentSql(queryDocument) {
             alias = 't0';
             let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
             colName = md.getField(queryDocument.document.selectedColumns[i].path).columnName;
+            queryDocument.document.selectedColumns[i].model = queryDocument.document.rootModel;
         } else {
             let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
             let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+            queryDocument.document.selectedColumns[i].model = info.model;
             colName = md.getField(queryDocument.document.selectedColumns[i].path.substring(pos + 1)).columnName;
             alias = info.alias;
         }
+        
+        queryDocument.document.selectedColumns[i].alias = alias;
 
         if (queryDocument.document.selectedColumns[i].customInput) {
             sql += (comma + queryDocument.document.selectedColumns[i].customInput.replace('?', alias + '.' + colName));
@@ -1072,7 +1085,9 @@ function loadQueryDocuments() {
         }
     }
     
-    logger.logInfo('query documents: ' + JSON.stringify(retval));
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug('query documents: ' + JSON.stringify(retval));
+    }
     
     return JSON.stringify(retval);
 }
@@ -1106,3 +1121,141 @@ function loadQueryDocument(docid) {
     
     return JSON.parse(fs.readFileSync(fname));
 }
+
+function buildResultObjectGraph(doc, resultRows) {
+    let retval = [];
+    let positionMap = new Map();
+    let keyColumnMap = new Map();
+    let aliasList = [];
+
+    // determine the various table column positions in the select
+    for (let i = 0; i < doc.document.selectedColumns.length; ++i) {
+        let pos = positionMap.get(doc.document.selectedColumns[i].alias);
+        if (util.isUndefined(pos)) {
+            pos = new Array();
+            positionMap.set(doc.document.selectedColumns[i].alias, pos);
+            aliasList.push(doc.document.selectedColumns[i].alias);
+        }
+        
+        pos.push(i);
+    }
+    
+    aliasList.sort();
+    for (var [key, value] of positionMap) {
+        let keypos = keyColumnMap.get(key);
+        // see if we have all primary key columns in select
+        if (util.isUndefined(keypos)) {
+            let md = repositoryMap.get(doc.document.selectedColumns[value[0]].model.toLowerCase()).getMetaData();
+            let keySet = new Set();
+            let pkfields = md.getPrimaryKeyFields();
+            for (let i = 0; i < pkfields.length; ++i) {
+                keySet.add(pkfields.fieldName);
+            }
+
+            let keyPositions = new Array();
+            for (let i = 0; i < value.length; ++i) {
+                let fieldName = doc.document.selectedColumns[value[i]].path.substring(doc.document.selectedColumns[value[i]].path.lastIndexOf('.'));
+
+                if (keySet.has(fieldName)) {
+                    keyPositions.push(value[i]);
+                }
+            }
+            
+            if (keyPositions.length === keySet.size) {
+                keyColumnMap.set(doc.document.selectedColumns[value[0]].alias, keyPositions);
+            } else {
+                keyColumnMap.set(doc.document.selectedColumns[value[0]].alias, value);
+            }
+        }
+    }
+    
+    let lastKeyMap = new Map();
+    for (let i = 0; i < resultRows.length; ++i) {
+        let key = '';
+        let keypos = keyColumnMap.get('t0');
+        let lastKey = lastKeyMap.get('t0');
+
+        for (let j = 0; j < keypos.length; ++j) {
+            key += (resultRows[i][keypos[j]] + '.');
+        }
+
+        if (!lastKey || (lastKey !== key)) {
+            lastKeyMap.set('t0', key);
+            let model = new Object();
+            model.__model__ = doc.document.rootModel;
+            retval.push(model);
+            
+            let colpos = positionMap.get('t0');
+            for (let k = 0; k < colpos.length; ++k) {
+                let pos = doc.document.selectedColumns[colpos[k]].path.lastIndexOf('.');
+                let fieldName = doc.document.selectedColumns[colpos[k]].path.substring(pos+1);
+                model[fieldName] = resultRows[i][colpos[k]];
+            }
+        }   
+    
+        for (let j = 0; j< aliasList.length; ++j) {
+            if (aliasList[j] !== 't0') {
+                key = '';
+                keypos = keyColumnMap.get(aliasList[j]);
+                lastKey = lastKeyMap.get(aliasList[j]);
+                
+                for (let k = 0; k < keypos.length; ++k) {
+                    key += (resultRows[i][keypos[k]] + '.');
+                }
+                
+                if (!lastKey || (lastKey !== key)) {
+                    lastKeyMap.set(aliasList[j], key);
+                    let curmodel = retval[retval.length-1];
+                    
+                    let pos = doc.document.selectedColumns[keypos[0]].path.lastIndexOf('.');
+                    let rootpath =  doc.document.selectedColumns[keypos[0]].path.substring(0, pos);
+                    let pathParts = rootpath.split('.');
+                    // walk down relationship path
+                    for (let k = 0; k < pathParts.length; ++k) {
+                        let modelName = curmodel.__model__
+                        let ref = repositoryMap.get(modelName.toLowerCase()).getMetaData().findRelationshipByName(pathParts[k]);
+                        if (util.isUndefined(curmodel[ref.fieldName]) || (curmodel[ref.fieldName].length === 0)) {
+                            let obj = new Object();
+                            obj.__model__ = ref.targetModelName;
+                            switch(ref.type) {
+                                case 1:
+                                    curmodel[ref.fieldName] = obj;
+                                    break;
+                                case 2:
+                                case 3:
+                                    curmodel[ref.fieldName] = new Array();
+                                    curmodel[ref.fieldName].push(obj);
+                                    break;
+                            }
+                            curmodel = obj;
+                        } else {
+                            switch(ref.type) {
+                                case 1:
+                                    curmodel = curmodel[ref.fieldName];
+                                    break;
+                                case 2:
+                                case 3:
+                                    curmodel = curmodel[ref.fieldName][curmodel[ref.fieldName].length - 1];
+                                    break;
+                            }
+                        }
+                        
+                        modelName = curmodel.__model__;
+                    }
+
+                    let colpos = positionMap.get(aliasList[j]);
+                    for (let l = 0; l < colpos.length; ++l) {
+                        let pos = doc.document.selectedColumns[colpos[l]].path.lastIndexOf('.');
+                        let fieldName = doc.document.selectedColumns[colpos[l]].path.substring(pos+1);
+                        curmodel[fieldName] = resultRows[i][colpos[l]];
+                    }
+                }
+            }
+        }
+    }
+    
+    if (retval && (retval.length === 1)) {
+        retval = retval[0];
+    }
+    
+    return JSON.stringify(retval);
