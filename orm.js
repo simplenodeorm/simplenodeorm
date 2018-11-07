@@ -208,8 +208,8 @@ function startRestServer() {
             (async function () {
                 let doc = req.body;
                 try {
-                    if (doc.documentName) {
-                        doc = loadQueryDocument(doc.groupId + '.' + doc.documentNnme + '.json');
+                    if (doc.documentName && !doc.interactive) {
+                        doc = loadQueryDocument(doc.groupId + '.' + doc.documentName + '.json');
                     }
 
                     let sql = buildQueryDocumentSql(doc);
@@ -229,7 +229,7 @@ function startRestServer() {
                         }
                     } else if (doc.validityCheckOnly) {
                         res.status(200).send('generated sql is valid');
-                    } else if (doc.resultType === 'result set') {
+                    } else if (doc.resultFormat === 'result set') {
                         res.status(200).send(result);
                     } else {
                         try {
@@ -1259,3 +1259,4 @@ function buildResultObjectGraph(doc, resultRows) {
     }
     
     return JSON.stringify(retval);
+}
