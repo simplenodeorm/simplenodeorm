@@ -961,16 +961,19 @@ function getOrderByColumns(selectedColumns) {
 }
 
 function requiresGroupBy(selectedColumns) {
-    let retval = false;
-
+    let haveFunctions = false;
+    let haveNonFunctions = false;
     for (let i = 0; i < selectedColumns.length; ++i) {
         if (selectedColumns[i].function) {
-            retval = true;
+            haveFunctions = true;
             break;
+        } else {
+            haveNonFunctions = true;
         }
     }
 
-    return retval;
+
+    return (haveFunctions && haveNonFunctions);
 }
 
 function loadRelationshipTree(queryDocument) {
