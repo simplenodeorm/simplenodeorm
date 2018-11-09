@@ -829,31 +829,32 @@ function buildQueryDocumentSql(queryDocument) {
 
     let replaceIndex = 1;
     for (let i = 0; i < queryDocument.document.whereComparisons.length; ++i) {
+
         if (i > 0) {
             sql += (' ' + queryDocument.document.whereComparisons[i].logicalOperator + ' ');
         }
 
-        if (queryDocument.document.whereComparisons[i].openParen) {
-            sql += queryDocument.document.whereComparisons[i].openParen;
-        }
-
-        if (queryDocument.document.whereComparisons[i].customFilterInput) {
-            sql += queryDocument.document.whereComparisons[i].customFilterInput;
+        let alias;
+        let field;
+        let pos = queryDocument.document.whereComparisons[i].fieldName.lastIndexOf('.');
+        if (pos < 0) {
+            alias = 't0';
+            let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+            field = md.getField(queryDocument.document.whereComparisons[i].fieldName);
         } else {
-            let alias;
-            let field;
-            let pos = queryDocument.document.whereComparisons[i].fieldName.lastIndexOf('.');
-            if (pos < 0) {
-                alias = 't0';
-                let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
-                field = md.getField(queryDocument.document.whereComparisons[i].fieldName);
-            } else {
-                let info = aliasMap.get(queryDocument.document.whereComparisons[i].fieldName.substring(0, pos));
-                let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
-                field = md.getField(queryDocument.document.whereComparisons[i].fieldName.substring(pos + 1));
-                alias = info.alias;
+            let info = aliasMap.get(queryDocument.document.whereComparisons[i].fieldName.substring(0, pos));
+            let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+            field = md.getField(queryDocument.document.whereComparisons[i].fieldName.substring(pos + 1));
+            alias = info.alias;
+        }
+        if (queryDocument.document.whereComparisons[i].customFilterInput) {
+            let fname = (alias + '.' + field.columnName);
+            sql += (' ' + queryDocument.document.whereComparisons[i].customFilterInput.replace('?', fname) + ' ');
+        } else {
+            if (queryDocument.document.whereComparisons[i].openParen) {
+                sql += queryDocument.document.whereComparisons[i].openParen;
             }
-
+            
             sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.document.whereComparisons[i].comparisonOperator);
 
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
@@ -891,10 +892,10 @@ function buildQueryDocumentSql(queryDocument) {
                     replaceIndex++;
                 }
             }
-        }
 
-        if (queryDocument.document.whereComparisons[i].closeParen) {
-            sql += queryDocument.document.whereComparisons[i].closeParen;
+            if (queryDocument.document.whereComparisons[i].closeParen) {
+                sql += queryDocument.document.whereComparisons[i].closeParen;
+            }
         }
     }
 
