@@ -1218,8 +1218,17 @@ function buildResultObjectGraph(doc, resultRows) {
                 keypos = keyColumnMap.get(aliasList[j]);
                 lastKey = lastKeyMap.get(aliasList[j]);
                 
+                let allNull = true;
                 for (let k = 0; k < keypos.length; ++k) {
                     key += (resultRows[i][keypos[k]] + '.');
+                    
+                    if (resultRows[i][keypos[k]]) {
+                        allNull = false;
+                    }
+                }
+                
+                if (allNull) {
+                    break;
                 }
                 
                 if (!lastKey || (lastKey !== key)) {
