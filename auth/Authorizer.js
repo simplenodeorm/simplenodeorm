@@ -1,10 +1,14 @@
 "use strict";
 
 class Authorizer {
-    
-    isAuthorized(req) {
+    isAuthorized(user, pass) {
         return false;
     }
+    
+    checkAuthorization(req) {
+        return false;
+    }
+
 }
 
 module.exports = Authorizer;

@@ -214,7 +214,7 @@ class MetaData {
 
     findRelationshipByName(nm) {
         let retval;
-        let def = getOneToOneDefinitions();
+        let def = this.getOneToOneDefinitions();
     
         if (util.isValidObject(def)) {
             for (let i = 0; i < def.length; ++i) {
@@ -226,7 +226,7 @@ class MetaData {
         }
 
         if (util.isUndefined(retval)) {
-            def = getOneToManyDefinitions();
+            def = this.getOneToManyDefinitions();
             if (util.isValidObject(def)) {
                 for (let i = 0; i < def.length; ++i) {
                     if (nm === def[i].fieldName) {
@@ -238,7 +238,7 @@ class MetaData {
         }
 
         if (util.isUndefined(retval)) {
-            def = getManyToOneDefinitions();
+            def = this.getManyToOneDefinitions();
             if (util.isValidObject(def)) {
                 for (let i = 0; i < def.length; ++i) {
                     if (nm === def[i].fieldName) {
