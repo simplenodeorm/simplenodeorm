@@ -173,7 +173,7 @@ module.exports.modelJSONReplacer = function(key, value) {
 
 module.exports.jsonToModel = function (json, orm) {
     return JSON.parse(json, function (key, value) {
-        if (isDefined(value.__model__) && isUndefined(value.getFieldValue)) {
+        if (value && isDefined(value.__model__) && isUndefined(value.getFieldValue)) {
             let md = orm.getMetaData(value.__model__);
             let m = require('../' + md.getModule())(md);
             return Object.assign(m, value);

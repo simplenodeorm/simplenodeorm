@@ -12,8 +12,11 @@ const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
 const cors = require('cors');
 const uuidv1 = require('uuid/v1');
-const path = require('path')
-const fspath = require('fs-path')
+const path = require('path');
+const fspath = require('fs-path');
+const saveAuthorizer = new (require(appConfiguration.saveAuthorizer))();
+const deleteAuthorizer = new (require(appConfiguration.deleteAuthorizer))();
+
 
 // REST API stuff
 const express = require('express');
@@ -21,7 +24,7 @@ const bodyParser = require('body-parser');
 const server = express();
 
 const APP_NAME = appConfiguration.applicationName || "SIMPLE ORM";
-const REST_URL_BASE = appConfiguration.restUrlBase || '/orm';
+const REST_URL_BASE = appConfiguration.restUrlBase || '/hrorm';
 const REST_SERVER_PORT = appConfiguration.restPort || 8888;
  
  
@@ -191,6 +194,17 @@ function startRestServer() {
         catch (e) {
             logger.logError('error occured while loading query documents', e);
             res.status(500).send('error occured while loading query documents');
+        }
+    });
+
+    server.get(REST_URL_BASE + '/design/authorizers', async function (req, res) {
+        try {
+            res.status(200).send(loadAuthorizers());
+        }
+
+        catch (e) {
+            logger.logError('error occured while loading available authorizers', e);
+            res.status(500).send('error occured while loading available authorizers');
         }
     });
 
@@ -425,8 +439,12 @@ function startRestServer() {
                 md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
             }
         }
-
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
+        
+        if ((req.params.method.toLowerCase() === util.SAVE.toLowerCase())
+            && !saveAuthorizer.checkAuthorization(req)) {
+            logger.logInfo('unauthorized access attempted');
+            res.status(401).send('unauthorized');
+        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let result;
@@ -486,7 +504,10 @@ function startRestServer() {
             }
         }
 
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
+        if (!saveAuthorizer.checkAuthorization(req)) {
+            logger.logInfo('unauthorized access attempted');
+            res.status(401).send('unauthorized');
+        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let f;
@@ -528,8 +549,10 @@ function startRestServer() {
                 md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
             }
         }
-
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
+        if (!deleteAuthorizer.checkAuthorization(req)) {
+            logger.logInfo('unauthorized access attempted');
+            res.status(401).send('unauthorized');
+        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             switch (req.params.method.toLowerCase()) {
@@ -1110,6 +1133,25 @@ function loadQueryDocuments() {
     
     return JSON.stringify(retval);
 }
+
+function loadAuthorizers() {
+    let retval = [];
+    let files = fs.readdirSync('./auth');
+
+    for (let i = 0; i < files.length; ++i) {
+        if ((files[i] !== 'Authorizer.js') && files[i].endsWith('Authorizer.js')) {
+            retval.push(files[i].replace('.js', ''));
+        }
+    }
+    
+    retval.sort();
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug('autorizers: ' + JSON.stringify(retval));
+    }
+    
+    return JSON.stringify(retval);
+}
+
 
 function saveQueryDocument(doc) {
     let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';

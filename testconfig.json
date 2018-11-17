@@ -1,9 +1,6 @@
 {
     "stopTestsOnFailure" : false,
-    "testDbConfiguration" : "c:\\work\\kfsormsec.json",
-    "maxRowsForGetAll" : 10,
-    "fieldsToIgnoreForUpdate" : [
-        "field1", 
-        "field2"
-    ]
+    "testDbConfiguration" : "c:\\work\\hrdb.json",
+    "maxRowsForGetAll" : 50,
+    "fieldsToIgnoreForUpdate" : ["startDate"]
 }

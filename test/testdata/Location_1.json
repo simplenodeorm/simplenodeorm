@@ -1,0 +1,14 @@
+{
+   "__model__":"Location",
+   "modified":false,
+   "newModel":true,
+   "constraintsEnabled":false,
+   "data":{
+      "locationId":null,
+      "streetAddress":"100 west main",
+      "postalCode":"85631",
+      "city":"San Manuel",
+      "stateProvince":"AZ",
+      "countryId":"US"
+   }
+}

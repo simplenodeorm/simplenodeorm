@@ -10,7 +10,7 @@ module.exports.test = async function( repository) {
     testUtil.logInfo('    - testing ' + metaData.objectName + 'Repository...');
     let testResults = new  Array();
 
-    // test function array
+    // test function array - both sync and async versions will be tested
     let functions = [
         testFindOne,
         testFind,
@@ -39,6 +39,11 @@ module.exports.test = async function( repository) {
         if (await functions[0](repository, testResults)) {
             for (let i = 1; i < functions.length; ++i) {
                 await functions[i](repository, testResults);
+                
+                // if save try to test insert
+                if (i === 5) {
+                    await functions[i](repository, testResults, true);
+                }
             }
          } else {
              await testSave(repository, testResults, true);
@@ -161,8 +166,8 @@ async function testCount(repository,  testResults) {
     await testUtil.testCount(repository, testResults);
 };
 
-async function testSave(repository, testResults) {
-    await testUtil.testSave(repository, testResults);
+async function testSave(repository, testResults, insertOnly) {
+    await testUtil.testSave(repository, testResults, insertOnly);
 };
 
 async function testDelete(repository, testResults) {

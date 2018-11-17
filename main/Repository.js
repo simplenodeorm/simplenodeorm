@@ -664,14 +664,18 @@ module.exports = class Repository {
         
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName), false);
-            
+
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
-               if (util.isValidObject(fields[i].sequence)) {
-                   let val = await this.getNextSequenceValue(fields[i].sequence, options);
+               if (util.isValidObject(fields[i].autoIncrementGenerator)) {
+                   val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                    model.setFieldValue(fields[i].fieldName, val);
                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
-                   val = fields[i].defaultValue;
-                   model.setFieldValue(fields[i].fieldName, val);
+                    val = fields[i].defaultValue;
+                    if (this.isDateType(fields[i])) {
+                        val = new Date(val);
+                    } 
+                    
+                    model.setFieldValue(fields[i].fieldName, val);
                } else if (fields[i].versionColumn) {
                    if (this.isDateType(fields[i])) {
                        val = new Date();
@@ -679,11 +683,14 @@ module.exports = class Repository {
                        val = 1;
                    }
                    model.setFieldValue(fields[i].fieldName, val);
-               } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+               } if (this.isDateType(fields[i]) && util.isDefined(val)) {
                    val = new Date(val);
                    model.setFieldValue(fields[i].fieldName, val);
                }
-           }
+           } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                val = new Date(val);
+                model.setFieldValue(fields[i].fieldName, val);
+            }
            
            if (util.isNotValidObject(val)) {
                val = null;
@@ -751,16 +758,7 @@ module.exports = class Repository {
         let mr = options.maxRows;
         options.maxRows = 1;
         
-        let res;
-        switch(dbConfig.getDbType(this.poolAlias)) {
-            case util.ORACLE:
-                res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);  
-                break;
-            case util.MYSQL:
-                // TODO: something here for myssql
-                break;
-        }
-        
+        let res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);  
         if (util.isDefined(res)) {
             if (util.isDefined(mr)) {
                 options.maxRows = mr;
@@ -795,7 +793,7 @@ module.exports = class Repository {
 
             comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                retval += (comma + ' :' + fields[i].fieldName);
+                retval += (comma + ' :' + (fields[i].fieldName));
                 comma = ',';
             }
 
@@ -1022,16 +1020,7 @@ module.exports = class Repository {
     isDateType(field) {
         let retval = false;
         if (util.isDefined(field)) {
-            switch(dbConfig.getDbType(this.poolAlias)) {
-                case util.ORACLE:
-                    retval = (util.DATE_TYPE === field.type);
-                    break;
-                case util.MYSQL:
-                    retval = ((util.DATE_TYPE === field.type)
-                        || (util.DATETIME_TYPE === field.type)
-                        || (util.TIMESTAMP_TYPE === field.type));
-                    break;
-            }
+            retval = (util.DATE_TYPE === field.type);
         }
         
         return retval;

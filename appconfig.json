@@ -1,22 +1,21 @@
 {
-  "testMode" : false,
-  "dbConfiguration" : "c:\\work\\kfsormsec.json",
-  "queryDocumentRoot" : "c:\\work\\querydocs",
+  "testMode" : true,
+  "dbConfiguration" : "c:\\work\\hrdb.json",
+  "queryDocumentRoot" : "c:\\work\\hrdocs",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
-  "createTablesIfRequired" : true,
-  "startRestServer" : false,
-  "restUrlBase" : "/orm",
+  "createTablesIfRequired" : false,
+  "startRestServer" : true,
+  "restUrlBase" : "/hrorm",
   "restPort" : 8888, 
-  "applicationName" : "Simple ORM",
-  "logFile" : "orm.log",
+  "applicationName" : "HR Demo ORM",
+  "logFile" : "hrorm.log",
   "logLevel" : "info",
   "deasyncSleepTimeMillis": 200,
   "maxDeasyncWaitTime" : 30000,
   "maxRowsForGetAll" : 100000,
   "authorizer": "./auth/DefaultAuthorizer",
-  "aliases" : {
-        "simplename1" : "somelongobjectnamingconvention1",
-        "simplename2" : "somelongobjectnamingconvention2"
-  }
+  "saveAuthorizer": "./auth/DefaultSaveAuthorizer",
+  "deleteAuthorizer": "./auth/DefaultDeleteAuthorizer",
+  "aliases" : {}
 }

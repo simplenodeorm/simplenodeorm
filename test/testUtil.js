@@ -80,6 +80,7 @@ function getDataType(dbType) {
     let retval;
     if (util.isValidObject(dbType)) {
         if (dbType.includes('VARCHAR') 
+            || dbType.includes('CHAR') 
             || dbType.includes('CLOB')
             || dbType.includes('BLOB')) {
             retval = "string";
@@ -497,7 +498,6 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 module.exports.testInsert = async function (repository, conn, testResults) {
     let md = repository.getMetaData();
     let modelTestData = loadModelInsertData(md);
-    
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
@@ -528,7 +528,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             models.push(modelTestData[i]);
         }
         
-        let res = repository.saveSync(models, {conn: conn, returnValues: true});
+        res = repository.saveSync(models, {conn: conn, returnValues: true});
         
         if (res.error) {
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
@@ -636,19 +636,12 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
 
 function loadModelInsertData(metaData) {
     let retval = new Array();
-    let module = metaData.getModule();
-    
-    let pos2 = module.lastIndexOf('/');
-    let pos1 = module.lastIndexOf('/', pos2-1);
-    if ((pos1 > -1) && (pos2 > pos1)) {
-        if (fs.existsSync("./test/testdata" + module.substring(pos1, pos2))) {
-            let dirlist = fs.readdirSync("./test/testdata" + module.substring(pos1, pos2));
-            for (let i = 0; i < dirlist.length; ++i) {
-                if ((dirlist[i] !== '.') && (dirlist[i] !== "..")) {
-                    if (dirlist[i].startsWith(metaData.objectName + '_')) {
-                        retval.push(util.jsonToModel(fs.readFileSync('./test/testdata' + module.substring(pos1, pos2) + '/' + dirlist[i]), orm));
-                    }
-                }
+    let flist = fs.readdirSync("./test/testdata");
+    for (let i = 0; i < flist.length; ++i) {
+        if (flist[i].endsWith('.json')) {
+            let pos = flist[i].indexOf('_');
+            if ((pos > -1) && (metaData.objectName === flist[i].substring(0, pos))) {
+                retval.push(util.jsonToModel(fs.readFileSync('./test/testdata/' + flist[i]), orm));
             }
         }
     }
