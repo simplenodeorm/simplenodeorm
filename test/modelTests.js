@@ -3,6 +3,7 @@
 const util = require("../main/util.js");
 const testUtil = require("./testUtil.js");
 const assert = require('chai').assert;
+const modelTester = require('./modelTester.js');
 
 module.exports.run = async function(orm) {
     testUtil.logInfo("running model tests...");
@@ -13,8 +14,7 @@ module.exports.run = async function(orm) {
             let md = orm.getMetaData(models[i]);
             assert(util.isDefined(md), 'failed to load metadata for model ' + models[i]);
             assert(md.getObjectName() === models[i], 'model/metadata mismatch: expected ' + models[i] + ' but found ' + md.getObjectName());
-            let test = require("./" + md.module.replace(".js", "Test.js"));            
-            await test.run(md);
+            modelTester.test(orm.newModelInstance(md), md);
         }
         
         catch (e) {

@@ -3,6 +3,8 @@
 const util = require("../main/util.js");
 const testUtil = require('./testUtil.js');
 const fs = require('fs');
+const repositoryTester = require('./repositoryTester.js');
+
 module.exports.run = async function(orm) {
     testUtil.logInfo("running repository tests...");
     let modelList = orm.getModelList();
@@ -12,10 +14,9 @@ module.exports.run = async function(orm) {
             let repo = orm.getRepository(modelList[i]);
             let md = orm.getMetaData(modelList[i]);
             let nm = (md.getObjectName() + 'Repository');
-            let test = require("./" + repo.getModule().replace(".js", "Test.js"));
-            
+
             // exit test based on orm.testConfiguration.stopTestsOnFailure
-            if (!testUtil.outputTestResults(nm, await test.run(repo))) {
+            if (!testUtil.outputTestResults(nm, await repositoryTester.test(repo))) {
                 break;
             }
         }

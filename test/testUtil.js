@@ -16,6 +16,15 @@ module.exports.fillString = function(c, len) {
     return retval;
 };
 
+
+module.exports.getGetFunctionName = function(field) {
+    return ('get' + field.fieldName.substring(0, 1).toUpperCase() + field.fieldName.substring(1));
+};
+
+module.exports.getSetFunctionName = function(field) {
+    return ('set' + field.fieldName.substring(0, 1).toUpperCase() + field.fieldName.substring(1));
+};
+
 function getTestValue(field) {
     let testData;
     let dbType = getDataType(field.type);
@@ -335,6 +344,15 @@ module.exports.testCount = async function(repository, testResults) {
         } else if (res.result.rows[0][0] !== res2.result) {
             testResults.push(require('./testStatus.js')(util.ERROR, 'expect count = ' + res.result.rows[0][0] + ' but was ' +  res2.result.rows[0][0], util.COUNT));
         }
+
+        res2 = repository.countSync([], {joinDepth: 0});
+        if (util.isDefined(res2.error)) {
+            testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.COUNT));
+        } else if (res.result.rows[0][0] !== res2.result) {
+            testResults.push(require('./testStatus.js')(util.ERROR, 'expect count = ' + res.result.rows[0][0] + ' but was ' +  res2.result.rows[0][0], util.COUNT));
+        }
+
+    
     }
 };
 
@@ -416,6 +434,29 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                     testResults.push(require('./testStatus.js')(util.WARN, 'unable to determine updateable fields for test on ' + md.getObjectName(), util.SAVE + '[update]'));
                 }
             }
+
+            res = repository.findOneSync(params, {conn: conn});
+            if (util.isDefined(res.error)) {
+                testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
+            } else {
+                let m = res.result;
+                if (updateModelForTest(md, m)) {
+                    let res2 = repository.saveSync(m, {conn: conn, returnValues: true});
+                    if (util.isDefined(res2.error)) {
+                        testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
+                    } else {
+                        if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
+                            testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
+                        } else {
+                            verifyModelUpdates(m, res2.updatedValues[0], testResults);
+                            // use for list update test
+                            testList.push(res2.updatedValues[0]);
+                        }
+                    }
+                } else {
+                    testResults.push(require('./testStatus.js')(util.WARN, 'unable to determine updateable fields for test on ' + md.getObjectName(), util.SAVE + '[update]'));
+                }
+            }
         }
     }
 
@@ -433,6 +474,21 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                 verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
             }
         }
+
+        for (let i = 0; i < testList.length; ++i) {
+            updateModelForTest(md, testList[i]);
+        }
+        res = repository.saveSync(testList, {"conn": conn, returnValues: true});
+        if (util.isDefined(res.error)) {
+            testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
+        } else if (util.isUndefined(res.updatedValues)) {
+            testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
+        } else {
+            for (let i = 0; i < testList.length; ++i) {
+                verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
+            }
+        }
+
     }
 
     await conn.rollback();
@@ -451,6 +507,28 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         }
         
         let res = await repository.save(models, {conn: conn, returnValues: true});
+        
+        if (res.error) {
+            testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
+        } else {
+            if (util.isDefined(res.updatedValues)) {
+                if (res.updatedValues.length !== models.length) {
+                    testResults.push(require('./testStatus.js')(util.ERROR, 'expected to have ' + models.length + ' ' + md.getObjectName() + ' objects inserted  but found ' + res.updateValues.length, util.SAVE + '[insert]'));
+                } else {
+                    for (let i = 0; i < res.updatedValues.length; ++i) {
+                        verifyModelInserts(models[i], res.updatedValues[i], testResults);
+                    }
+                }
+            }
+        }
+        
+        conn.rollback();
+        models = new Array();
+        for (let i = 0; i < modelTestData.length; ++i) {
+            models.push(modelTestData[i]);
+        }
+        
+        let res = repository.saveSync(models, {conn: conn, returnValues: true});
         
         if (res.error) {
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
