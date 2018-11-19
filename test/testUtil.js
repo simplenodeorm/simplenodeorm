@@ -860,6 +860,7 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
             }
             
             let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
+
             if (util.isNotValidObject(fv)) {
                 fv = null;
             }

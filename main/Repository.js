@@ -1860,8 +1860,13 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
             let cpos = columnPos[joinDepth].get(curAlias);
             for (let j = 0; j < cpos.length; ++j) {
                 if (result.rows[i][cpos[j]] !== null) {
-                    curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
-                        doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
+                    if (repo.isDateType(scInfo[joinDepth][cpos[j]].field)) {
+                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                            doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, new Date(result.rows[i][cpos[j]]), true));
+                    } else {
+                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                            doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
+                    }
                 }
             }
 

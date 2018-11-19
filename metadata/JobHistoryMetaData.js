@@ -27,7 +27,7 @@ class JobHistoryMetaData extends MetaData {
             { // 2
                 fieldName: "endDate",
                 type: "DATE",
-                columnName: "START_DATE",
+                columnName: "END_DATE",
                 required: true
             },
             { // 3

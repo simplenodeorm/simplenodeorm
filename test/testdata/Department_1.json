@@ -1,0 +1,12 @@
+{
+   "__model__":"Department",
+   "modified":false,
+   "newModel":true,
+   "constraintsEnabled":false,
+   "data":{
+      "departmentId":null,
+      "departmentName":"Test",
+      "managerId":200,
+      "locationId":1700
+   }
+}

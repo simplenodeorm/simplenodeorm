@@ -13,7 +13,7 @@
   "logLevel" : "info",
   "deasyncSleepTimeMillis": 200,
   "maxDeasyncWaitTime" : 30000,
-  "maxRowsForGetAll" : 100000,
+  "maxRowsForGetAll" : 1000,
   "authorizer": "./auth/DefaultAuthorizer",
   "saveAuthorizer": "./auth/DefaultSaveAuthorizer",
   "deleteAuthorizer": "./auth/DefaultDeleteAuthorizer",
