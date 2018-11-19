@@ -1104,6 +1104,7 @@ module.exports = class Repository {
                 logger.logDebug('sql: ' + sql);
             }
 
+logger.logInfo(sql);
             let result = await conn.execute(sql, parameters, options);
 
             if (logger.isLogDebugEnabled()) {
