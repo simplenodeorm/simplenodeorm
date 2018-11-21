@@ -859,14 +859,17 @@ function buildQueryDocumentSql(queryDocument) {
 
         let alias;
         let field;
+        let repo;
         let pos = queryDocument.document.whereComparisons[i].fieldName.lastIndexOf('.');
         if (pos < 0) {
             alias = 't0';
-            let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+            repo = repositoryMap.get(queryDocument.document.rootModel.toLowerCase());
+            let md = repo.getMetaData();
             field = md.getField(queryDocument.document.whereComparisons[i].fieldName);
         } else {
             let info = aliasMap.get(queryDocument.document.whereComparisons[i].fieldName.substring(0, pos));
-            let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+            repo = repositoryMap.get(info.model.toLowerCase());
+            let md = repo.getMetaData();
             field = md.getField(queryDocument.document.whereComparisons[i].fieldName.substring(pos + 1));
             alias = info.alias;
         }
@@ -882,7 +885,9 @@ function buildQueryDocumentSql(queryDocument) {
 
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
                 if (queryDocument.document.whereComparisons[i].comparisonValue) {
-                    if (util.isQuoteRequired(field)) {
+                    if (repo.isDateType(field)) {
+                        sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') '
+                    } else if (util.isQuoteRequired(field)) {
                         if (queryDocument.document.whereComparisons[i].comparisonOperator === 'in') {
                             let vals = queryDocument.document.whereComparisons[i].comparisonValue.split(',');
                             comma = '';
