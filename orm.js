@@ -223,7 +223,10 @@ function startRestServer() {
                 let doc = req.body;
                 try {
                     if (doc.documentName && !doc.interactive) {
+                        let params = doc.parameters;
                         doc = loadQueryDocument(doc.groupId + '.' + doc.documentName + '.json');
+                        doc.parameters = params;
+                        
                     }
 
                     let authorizer;
