@@ -1,7 +1,7 @@
 {
   "testMode" : true,
-  "dbConfiguration" : "/usr/local/lib/node_modules/npm/node_modules/@simplenodeorm/simplenodeorm/hrdb.json",
-  "queryDocumentRoot" : "/usr/local/lib/node_modules/npm/node_modules/@simplenodeorm/simplenodeorm/hrdocs",
+  "dbConfiguration" : "examples/hrdb.json",
+  "queryDocumentRoot" : "examples/hrdocs",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
   "createTablesIfRequired" : false,

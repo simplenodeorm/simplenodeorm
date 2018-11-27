@@ -324,7 +324,7 @@ function startRestServer() {
             let data = new Object();
             data.key = 't0';
             data.title = modelname;
-            loadModelData(data, repo.metaData, 0, pathset, '', false);
+            loadModelData(data, repo.metaData, [], '', false);
             if (data.title) {
                 res.status(200).json(data);
             } else {
@@ -685,7 +685,7 @@ async function createTablesIfRequired() {
     }
 }
 
-function loadModelData(data, md, level, pathset, path, child) {
+function loadModelData(data, md, refs, path, child) {
     data.objectName = md.objectName;
     data.tableName = md.tableName;
     data.children = new Array();
@@ -703,8 +703,7 @@ function loadModelData(data, md, level, pathset, path, child) {
         data.children.push(f);
     }
 
-    if (md && (level < appConfiguration.defaultDesignTableDepth)) {
-        // add only top level many-to one defs
+    if (md) {
         if (!child && md.manyToOneDefintions) {
             for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
                 if (md.manyToOneDefinitions[i].targetModelName) {
@@ -715,8 +714,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                     } else {
                         newpath = md.manyToOneDefinitions[i].fieldName;
                     }
-                    if (repo && !pathset.has(newpath)) {
-                        pathset.add(newpath);
+                    if (repo) {
                         let def = new Object();
                         def.key = getUniqueKey();
                         def.__path__ = newpath;
@@ -725,8 +723,14 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.manyToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.manyToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.manyToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
-                        data.children.push(def);
+                        if (!circularReference(refs, def)) {
+                            refs.push(def);
+                            loadModelData(def, repo.metaData, refs, newpath, true);
+                            data.children.push(def);
+                            if (data.key === 't0') {
+                                refs = [];
+                            }
+                        }
                     }
                 }
             }
@@ -742,8 +746,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                     } else {
                         newpath = md.oneToOneDefinitions[i].fieldName;
                     }
-                    if (repo && !pathset.has(newpath)) {
-                        pathset.add(newpath);
+                    if (repo) {
                         let def = new Object();
                         def.key = getUniqueKey();
                         def.__path__ = newpath;
@@ -752,8 +755,14 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.oneToOneDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToOneDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToOneDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
-                        data.children.push(def);
+                        if (!circularReference(refs, def)) {
+                            refs.push(def);
+                            loadModelData(def, repo.metaData, refs, newpath, true);
+                            data.children.push(def);
+                            if (data.key === 't0') {
+                                refs = [];
+                            }
+                        }
                     }
                 }
             }
@@ -771,8 +780,7 @@ function loadModelData(data, md, level, pathset, path, child) {
                         newpath = md.oneToManyDefinitions[i].fieldName;
                     }
 
-                    if (repo && !pathset.has(newpath)) {
-                        pathset.add(newpath);
+                    if (repo) {
                         let def = new Object();
                         def.__path__ = newpath;
                         def.__type__ = 'otm';
@@ -781,8 +789,14 @@ function loadModelData(data, md, level, pathset, path, child) {
                         def.joinColumns = md.oneToManyDefinitions[i].joinColumns;
                         def.targetModelName = md.oneToManyDefinitions[i].targetModelName;
                         def.targetTableName = md.oneToManyDefinitions[i].targetTableName;
-                        loadModelData(def, repo.metaData, level + 1, pathset, newpath, true);
-                        data.children.push(def);
+                        if (!circularReference(refs, def)) {
+                            refs.push(def);
+                            loadModelData(def, repo.metaData, refs, newpath, true);
+                            data.children.push(def);
+                            if (data.key === 't0') {
+                                refs = [];
+                            }
+                        }
                     }
                 }
             }
@@ -790,6 +804,20 @@ function loadModelData(data, md, level, pathset, path, child) {
     }
 }
 
+function circularReference(parentRefs, curRef) {
+    let retval = false;
+    let curnm = (curRef.title + '.' + curRef.targetModelName);
+    
+    for (let i = 0; i < parentRefs.length; ++i) {
+        let refnm = parentRefs[i].title + '.' + parentRefs[i].targetModelName;
+        if (curnm === refnm) {
+            retval = true;
+            break;
+        }
+    }
+    
+    return retval;
+}
 
 function getUniqueKey() {
     return uuidv1();
