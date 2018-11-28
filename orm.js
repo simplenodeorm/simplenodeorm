@@ -1006,7 +1006,11 @@ function buildQueryDocumentSql(queryDocument) {
                 alias = info.alias;
             }
 
-            sql += (comma + ' ' + alias + '.' + colName);
+            if (orderByColumns[i].function) {
+                sql += (comma + orderByColumns[i].function + '(' + alias + '.' + colName + ')');
+            } else {
+                sql += (comma + alias + '.' + colName);
+            }
 
             if (orderByColumns[i].sortDescending) {
                 sql += ' desc';
