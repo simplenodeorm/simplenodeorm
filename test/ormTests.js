@@ -15,7 +15,7 @@ module.exports.run = async function(orm) {
         assert(util.isDefined(repo), 'failed to load repositoryMap');
         assert(util.isDefined(repo.getMetaData()), 'failed to load metaDataMap');
     } else {
-        testUtil.logWarning("no model objects found")
+        testUtil.logWarning("no model objects found");
     }
     
     let poolSet = new Set();
@@ -44,6 +44,6 @@ module.exports.run = async function(orm) {
         }
     }
 
-    testUtil.logInfo("    - orm tests complete");
+    testUtil.logInfo("    - orm tests complete [SUCCESS]");
 };
 
