@@ -1041,7 +1041,6 @@ function requiresGroupBy(selectedColumns) {
     for (let i = 0; i < selectedColumns.length; ++i) {
         if (selectedColumns[i].function) {
             haveFunctions = true;
-            break;
         } else {
             haveNonFunctions = true;
         }
