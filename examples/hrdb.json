@@ -1,18 +1,18 @@
 {
 	"pools": [{
-		"dbtype": 			"oracle",
-		"user": 			"hr",
-		"password": 		"hr",
-		"connectString": 	"localhost/xe",
-		"poolAlias": 		"hrdb",
-		"poolMax": 			20,
-		"poolMin":          2,
-		"poolIncrement":    5,
-		"poolTimeout":      120,
-		"retryCount":       3,
-		"retryInterval":    500,
+		"dbtype": "oracle",
+		"user": "hr",
+		"password": "hr",
+		"connectString": "localhost/XE",
+		"poolAlias": "hrdb",
+		"poolMax": 20,
+		"poolMin": 2,
+		"poolIncrement": 5,
+		"poolTimeout": 120,
+		"retryCount": 3,
+		"retryInterval": 500,
 		"runValidationSQL": true, 
-		"validationSQL": 	"alter session set current_schema=HR"
+		"validationSQL": "alter session set current_schema=HR"
 	}]
 }
 
