@@ -2,6 +2,7 @@
   "testMode" : true,
   "dbConfiguration" : "examples/hrdb.json",
   "queryDocumentRoot" : "examples/hrdocs",
+  "reportDocumentRoot" : "examples/hrreports",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
   "createTablesIfRequired" : false,

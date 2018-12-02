@@ -195,6 +195,17 @@ function startRestServer() {
         res.status(200).send(reportDocumentGroups);
     });
     
+    server.get(REST_URL_BASE + '/report/documents', async function (req, res) {
+        try {
+            res.status(200).send(loadReportDocuments());
+        }
+
+        catch (e) {
+            logger.logError('error occured while loading report documents', e);
+            res.status(500).send('error occured while loading report documents');
+        }
+    });
+
     server.get(REST_URL_BASE + '/design/documents', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocuments());
@@ -1181,6 +1192,32 @@ function loadQueryDocuments() {
     
     return JSON.stringify(retval);
 }
+
+function loadReportDocuments() {
+    let retval = new Object();
+    let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+
+    for (let i = 0; i < groups.length; ++i) {
+        let files = fs.readdirSync(appConfiguration.reportDocumentRoot + path.sep + groups[i])
+        retval[groups[i]] = new Array();
+        for (let j = 0; j < files.length; ++j) {
+            if (files[j].endsWith('.json')) {
+                retval[groups[i]].push(files[j]);
+            }
+        }
+        
+        if (retval[groups[i]].length > 0) {
+            retval[groups[i]].sort();
+        }
+    }
+    
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug('report documents: ' + JSON.stringify(retval));
+    }
+    
+    return JSON.stringify(retval);
+}
+
 
 function loadAuthorizers() {
     let retval = [];
