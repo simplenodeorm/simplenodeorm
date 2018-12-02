@@ -16,7 +16,8 @@ const path = require('path');
 const fspath = require('fs-path');
 const saveAuthorizer = new (require(appConfiguration.saveAuthorizer))();
 const deleteAuthorizer = new (require(appConfiguration.deleteAuthorizer))();
-
+const reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
+const queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
 
 // REST API stuff
 const express = require('express');
@@ -186,6 +187,14 @@ function startRestServer() {
         res.status(200).send(modelList);
     });
 
+    server.get(REST_URL_BASE + '/design/document/groups', async function (req, res) {
+        res.status(200).send(queryDocumentGroups);
+    });
+    
+    server.get(REST_URL_BASE + '/report/document/groups', async function (req, res) {
+        res.status(200).send(reportDocumentGroups);
+    });
+    
     server.get(REST_URL_BASE + '/design/documents', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocuments());
