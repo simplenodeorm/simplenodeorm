@@ -356,6 +356,49 @@ function startRestServer() {
         }
     });
 
+    server.get(REST_URL_BASE + '/report/querydocuments', async function (req, res) {
+        try {
+            let groupMap = new Map();
+            let queryDocs = JSON.parse(loadQueryDocuments());
+            loadGroupMap(queryDocumentGroups, groupMap);
+            
+            let retval = [];
+            
+            groupMap.forEach((v, k) => {
+                if (queryDocs[k]) {
+                    for (let i = 0; i < queryDocs[k].length; ++i) {
+                        retval.push({key: k, group: v.title, documentName: queryDocs[k][i]});
+                    }
+                }
+            });
+            
+            retval.sort((a, b) => {
+                let retval = 0;
+                if (a.group > b.group) {
+                    retval = 1;
+                } else if (a.group < b.group) {
+                    retval = -1;
+                } else {
+                    if (a.documentName > b.documentName) {
+                        retval = 1;
+                    } else {
+                        retval = -1;
+                    }
+                }
+                
+                return retval;
+            });
+            
+            res.status(200).send(JSON.stringify(retval));
+        }
+
+        catch (e) {
+            logger.logError('error occured while loading query documents', e);
+            res.status(500).send('error occured while loading query documents');
+        }
+    });
+
+    
 
     server.get(REST_URL_BASE + '/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
@@ -937,7 +980,7 @@ function buildQueryDocumentSql(queryDocument) {
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
                 if (queryDocument.document.whereComparisons[i].comparisonValue) {
                     if (repo.isDateType(field)) {
-                        sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') '
+                        sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') ';
                     } else if (util.isQuoteRequired(field)) {
                         if (queryDocument.document.whereComparisons[i].comparisonOperator === 'in') {
                             let vals = queryDocument.document.whereComparisons[i].comparisonValue.split(',');
@@ -1173,7 +1216,7 @@ function loadQueryDocuments() {
     let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
-        let files = fs.readdirSync(appConfiguration.queryDocumentRoot + path.sep + groups[i])
+        let files = fs.readdirSync(appConfiguration.queryDocumentRoot + path.sep + groups[i]);
         retval[groups[i]] = new Array();
         for (let j = 0; j < files.length; ++j) {
             if (files[j].endsWith('.json')) {
@@ -1267,6 +1310,22 @@ function loadQueryDocument(docid) {
     
     return JSON.parse(fs.readFileSync(fname));
 }
+
+function loadGroupMap(curGroup, groupMap) {
+    let g = {
+        key: curGroup.key,
+        title: curGroup.title
+    };
+    
+    groupMap.set(g.key, g);
+    
+    if (curGroup.children) {
+        for (let i = 0; i < curGroup.children.length; ++i) {
+            loadGroupMap(curGroup.children[i], groupMap);
+        }
+    }
+}
+
 
 function buildResultObjectGraph(doc, resultRows) {
     let retval = [];
@@ -1367,7 +1426,7 @@ function buildResultObjectGraph(doc, resultRows) {
                     let pathParts = rootpath.split('.');
                     // walk down relationship path
                     for (let k = 0; k < pathParts.length; ++k) {
-                        let modelName = curmodel.__model__
+                        let modelName = curmodel.__model__;
                         let ref = repositoryMap.get(modelName.toLowerCase()).getMetaData().findRelationshipByName(pathParts[k]);
                         if (util.isUndefined(curmodel[ref.fieldName]) || (curmodel[ref.fieldName].length === 0)) {
                             let obj = new Object();
