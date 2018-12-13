@@ -228,6 +228,17 @@ function startRestServer() {
         }
     });
 
+    server.get(REST_URL_BASE + '/report/authorizers', async function (req, res) {
+        try {
+            res.status(200).send(loadAuthorizers());
+        }
+
+        catch (e) {
+            logger.logError('error occured while loading available authorizers', e);
+            res.status(500).send('error occured while loading available authorizers');
+        }
+    });
+
     server.post(REST_URL_BASE + '/design/generatesql', async function (req, res) {
         try {
             res.status(200).send(buildQueryDocumentSql(req.body));
@@ -312,8 +323,18 @@ function startRestServer() {
             saveQueryDocument(req.body);
             res.status(200).send('success');
         } catch (e) {
-            logger.logError('error occured while saving query document' + req.body.documentName, e);
-            res.status(500).send('error occured while saving query document' + req.body.documentName + ' - ' + e);
+            logger.logError('error occured while saving query document ' + req.body.documentName, e);
+            res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
+        }
+    });
+
+    server.post(REST_URL_BASE + '/report/save', async function (req, res) {
+        try {
+            saveReport(req.body);
+            res.status(200).send('success');
+        } catch (e) {
+            logger.logError('error occured while saving query document ' + req.body.documentName, e);
+            res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
         }
     });
 
@@ -322,8 +343,27 @@ function startRestServer() {
             deleteQueryDocument(req.params.docid);
             res.status(200).send('success');
         } catch (e) {
-            logger.logError('error occured while delete document' + req.params.docid, e);
-            res.status(500).send('error occured while deleting document' + req.params.docid + ' - ' + e);
+            logger.logError('error occured while deleting query document ' + req.params.docid, e);
+            res.status(500).send('error occured while deleting query document ' + req.params.docid + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/report/delete/:docid', async function (req, res) {
+        try {
+            deleteReport(req.params.docid);
+            res.status(200).send('success');
+        } catch (e) {
+            logger.logError('error occured while deleting report ' + req.params.docid, e);
+            res.status(500).send('error occured while deleting report ' + req.params.docid + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/design/loadreport/:docid', async function (req, res) {
+        try {
+            res.status(200).send(loadReport(req.params.docid));
+        } catch (e) {
+            logger.logError('error occured while loading report ' + req.params.docid, e);
+            res.status(500).send('error occured while loading report ' + req.params.docid + ' - ' + e);
         }
     });
 
@@ -331,8 +371,8 @@ function startRestServer() {
         try {
             res.status(200).send(loadQueryDocument(req.params.docid));
         } catch (e) {
-            logger.logError('error occured while loading document' + req.params.docid, e);
-            res.status(500).send('error occured while loading document' + req.params.docid + ' - ' + e);
+            logger.logError('error occured while loading document ' + req.params.docid, e);
+            res.status(500).send('error occured while loading document ' + req.params.docid + ' - ' + e);
         }
     });
 
@@ -1292,6 +1332,17 @@ function saveQueryDocument(doc) {
     });
 }
 
+function saveReport(doc) {
+    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
+    fspath.writeFile(fname, JSON.stringify(doc), function(err){
+        if(err) {
+            throw err;
+        } else {
+            logger.logInfo('file created: ' + fname);
+        }
+    });
+}
+
 function deleteQueryDocument(docid) {
     let pos = docid.indexOf('.');
     let group = docid.substring(0, pos);
@@ -1301,12 +1352,31 @@ function deleteQueryDocument(docid) {
     fs.unlinkSync(fname);
 }
 
+function deleteReport(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName= docid.substring(pos+1);
+    
+    let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + docName;
+    fs.unlinkSync(fname);
+}
+
 function loadQueryDocument(docid) {
     let pos = docid.indexOf('.');
     let group = docid.substring(0, pos);
     let docName= docid.substring(pos+1);
     
     let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+    
+    return JSON.parse(fs.readFileSync(fname));
+}
+
+function loadReport(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName= docid.substring(pos+1);
+    
+    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + docName);
     
     return JSON.parse(fs.readFileSync(fname));
 }
