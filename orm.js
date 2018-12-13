@@ -358,7 +358,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/design/loadreport/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/report/load/:docid', async function (req, res) {
         try {
             res.status(200).send(loadReport(req.params.docid));
         } catch (e) {
@@ -1281,7 +1281,7 @@ function loadReportDocuments() {
     let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
-        let files = fs.readdirSync(appConfiguration.reportDocumentRoot + path.sep + groups[i])
+        let files = fs.readdirSync(appConfiguration.reportDocumentRoot + path.sep + groups[i]);
         retval[groups[i]] = new Array();
         for (let j = 0; j < files.length; ++j) {
             if (files[j].endsWith('.json')) {
@@ -1333,7 +1333,7 @@ function saveQueryDocument(doc) {
 }
 
 function saveReport(doc) {
-    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
+    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.reportName + '.json';
     fspath.writeFile(fname, JSON.stringify(doc), function(err){
         if(err) {
             throw err;
@@ -1355,9 +1355,9 @@ function deleteQueryDocument(docid) {
 function deleteReport(docid) {
     let pos = docid.indexOf('.');
     let group = docid.substring(0, pos);
-    let docName= docid.substring(pos+1);
+    let reportName= docid.substring(pos+1);
     
-    let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + docName;
+    let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName;
     fs.unlinkSync(fname);
 }
 
@@ -1374,9 +1374,9 @@ function loadQueryDocument(docid) {
 function loadReport(docid) {
     let pos = docid.indexOf('.');
     let group = docid.substring(0, pos);
-    let docName= docid.substring(pos+1);
+    let reportName= docid.substring(pos+1);
     
-    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + docName);
+    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
     
     return JSON.parse(fs.readFileSync(fname));
 }
