@@ -466,6 +466,9 @@ function startRestServer() {
                     }
                     result = await repo.findOne(params);
                     break;
+                case util.GET_ALL.toLowerCase():
+                    result = await repo.getAll();
+                    break;
                 case util.FIND.toLowerCase():
                     for (let i = 0; i < fields.length; ++i) {
                         if (util.isDefined(req.query[fields[i].fieldName])) {
@@ -493,6 +496,9 @@ function startRestServer() {
                         params.push(req.query[pk[i].fieldName]);
                     }
                     result = await repo.findOneSync(params);
+                    break;
+                case util.GET_ALL_SYNC.toLowerCase():
+                    result = await repo.getAllSync(params);
                     break;
                 case util.FIND_SYNC.toLowerCase():
                     for (let i = 0; i < fields.length; ++i) {

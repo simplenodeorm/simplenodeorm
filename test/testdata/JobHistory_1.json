@@ -1,0 +1,13 @@
+{
+   "__model__": "JobHistory",
+   "modified":false,
+   "newModel":true,
+    "data": {
+   "constraintsEnabled":false,
+   "employeeId": 102,
+   "startDate": "2016-01-13T00:00:00.000Z",
+   "endDate": "2017-01-13T00:00:00.000Z",
+   "jobId": "IT_PROG",
+   "departmentId": 60
+    }
+}

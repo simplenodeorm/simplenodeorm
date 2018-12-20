@@ -661,12 +661,11 @@ module.exports = class Repository {
         options = checkOptions(options);
         let retval = new Array();
         let fields = orm.getMetaData(model.getObjectName()).getFields();
-        
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName), false);
+            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName, true), false);
 
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
-               if (util.isValidObject(fields[i].autoIncrementGenerator)) {
+                if (util.isValidObject(fields[i].autoIncrementGenerator)) {
                    val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                    model.setFieldValue(fields[i].fieldName, val);
                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
@@ -687,7 +686,7 @@ module.exports = class Repository {
                    val = new Date(val);
                    model.setFieldValue(fields[i].fieldName, val);
                }
-           } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+            } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                 val = new Date(val);
                 model.setFieldValue(fields[i].fieldName, val);
             }
