@@ -46,7 +46,7 @@ function getTestValue(field) {
     }
 
     return testData;
-};
+}
 
 module.exports.getTestValue = getTestValue;
 
@@ -147,7 +147,7 @@ function buildExampleSelect(modelDef, maxRows) {
     retval += (" from " + modelDef.getTableName() + " where rownum < " + maxRows);
 
     return retval;
-};
+}
 
 module.exports.logInfo = function(msg) {
     logger.logInfo(msg);
@@ -214,7 +214,7 @@ module.exports.verifyFindResults = async function(repo, whereList, result, testR
         comma = ',';
     }
    
-    let params = new Array();
+    let params = [];
     sql += (' from ' + repo.getMetaData().getTableName() + ' where ');
     for (let i = 0; i < whereList.length; ++i) {
         if (i > 0) {
@@ -294,10 +294,10 @@ module.exports.isGetAllTestAllowed = async function(repo, testResults) {
 
 
 module.exports.getFindTestWhereLists = async function(repo, result) {
-    let retval = new Array();
+    let retval = [];
     
     let pkeys = repo.getMetaData().getPrimaryKeyFields();
-    let wlist = new Array();
+    let wlist = [];
     
     // add primary key find
     for (let i = 0; i < pkeys.length; ++i) {
@@ -307,12 +307,12 @@ module.exports.getFindTestWhereLists = async function(repo, result) {
     retval.push(wlist);
 
     // do a search by partial key
-    wlist = new Array();
+    wlist = [];
     if (pkeys.length > 1) {
         let sql = 'select count(*) from ' + repo.getMetaData().getTableName() + ' where ';
         
         let and = '';
-        let params = new Array();
+        let params = [];
         for (let i = 0; i < (pkeys.length-1); ++i) {
             sql += (and + pkeys[i].columnName + ' = :' + pkeys[i].fieldName);
             and = ' and ';
@@ -396,14 +396,14 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
 };
 
 module.exports.testUpdate = async function(repository, rows, conn, testResults) {
-    let testList = new Array();
+    let testList = [];
 
     let md = repository.getMetaData();
     let pkfields = md.getPrimaryKeyFields();
     let pkset = new Set();
 
     for (let i = 0; i < rows.length; ++i) {
-        let params = new Array();
+        let params = [];
         let key = '';
         for (let j = 0; j < pkfields.length; ++j) {
             params.push(rows[i][j]);
@@ -501,7 +501,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
-        let models = new Array();
+        let models = [];
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
@@ -523,7 +523,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         }
         
         conn.rollback();
-        models = new Array();
+        models = [];
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
@@ -635,7 +635,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
 }
 
 function loadModelInsertData(metaData) {
-    let retval = new Array();
+    let retval = [];
     let flist = fs.readdirSync("./test/testdata");
     for (let i = 0; i < flist.length; ++i) {
         if (flist[i].endsWith('.json')) {
@@ -681,7 +681,7 @@ function updateModelForTest(metaData, model) {
 }
 
 function findUpdateableFields(metaData) {
-    let retval = new Array();
+    let retval = [];
     
     let fields = metaData.getFields();
     
@@ -728,7 +728,7 @@ function findUpdateableFields(metaData) {
     }
     
     return retval;
-};
+}
 
 module.exports.testDelete = async function(repository, testResults) {
     let conn;
@@ -742,7 +742,7 @@ module.exports.testDelete = async function(repository, testResults) {
         if (util.isNotValidObject(modelTestData)) {
             testResults.push(require('./testStatus.js')(util.WARN, 'not insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
-            let models = new Array();
+            let models = [];
             for (let i = 0; i < modelTestData.length; ++i) {
                 models.push(modelTestData[i]);
             }
@@ -913,7 +913,7 @@ async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelOb
                         if (util.isDefined(relobj)) {
                             let repo = orm.getRepository(otodefs[i].targetModelName);
                             let md = orm.getMetaData(otodefs[i].targetModelName);
-                            let params = new Array();
+                            let params = [];
                             let pkfields = md.getPrimaryKeyFields();
                             
                             let haveRefFields = true;
@@ -1079,7 +1079,7 @@ function buildSelectFromRelationship(modelObject, reldef) {
         comma = ', ';
     }
     
-    let cmap = modelObject.getMetaData().getColumnToFieldMap();;
+    let cmap = modelObject.getMetaData().getColumnToFieldMap();
     
     retval += " from ";
     retval += md.tableName;

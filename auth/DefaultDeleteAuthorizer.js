@@ -20,6 +20,6 @@ class DefaultDeleteAuthorizer extends Authorizer {
     checkAuthorization(req) {
         return appConfiguration.allowUpdates || appConfiguration.testMode;
     }
-};
+}
 
 module.exports = DefaultDeleteAuthorizer;

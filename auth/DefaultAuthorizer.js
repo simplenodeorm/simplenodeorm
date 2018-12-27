@@ -18,6 +18,6 @@ class DefaultAuthorizer extends Authorizer {
     checkAuthorization(req) {
         return true;
     }
-};
+}
 
 module.exports = DefaultAuthorizer;

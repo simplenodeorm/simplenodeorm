@@ -14,6 +14,6 @@ class LengthConstraint extends FieldConstraint {
             util.throwError("LengthConstraint", objectName + "." + fieldName + " max length " + this.maxLength + " exceeded(" + value.length + ")", "LengthConstraint");
         }
     }
-};
+}
 
 module.exports = LengthConstraint; 

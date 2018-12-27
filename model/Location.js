@@ -24,7 +24,7 @@ class Location extends Model {
 
     getCountryId() { return this.getFieldValue("countryId"); };
     setCountryId(value) { this.setFieldValue("countryId", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new Location(metaData);

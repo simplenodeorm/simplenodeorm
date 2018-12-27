@@ -44,7 +44,7 @@ class MetaData {
             if (fields[i].required) {
                 let l = null;
                 if (!this.fieldConstraints.has(fields[i].fieldName)) {
-                    l = new Array();
+                    l = [];
                     this.fieldConstraints.set(fields[i].fieldName, l);
                 } else {
                     l = this.fieldConstraints.get(fields[i].fieldName);
@@ -55,7 +55,7 @@ class MetaData {
             if (this.isLengthConstraintRequired(fields[i])) {
                 let l = null;
                 if (!this.fieldConstraints.has(fields[i].fieldName)) {
-                    l = new Array();
+                    l = [];
                     this.fieldConstraints.set(fields[i].fieldName, l);
                 } else {
                     l = this.fieldConstraints.get(fields[i].fieldName);
@@ -88,7 +88,7 @@ class MetaData {
      * @returns ordered array of primary key field definitions
      */
     getPrimaryKeyFields() {
-        let retval = new Array();
+        let retval = [];
         for (let i = 0; i < this.fields.length; i++) {
             if (this.fields[i].primaryKey) {
                 retval.push(this.fields[i]);
@@ -104,7 +104,7 @@ class MetaData {
     addFieldConstraint(fieldName, constraint) {
         let len = 0;
         if (util.isNotValidObject(this.fieldConstraints.get(fieldName))) {
-            this.fieldConstraints.set(fieldName, new Object());
+            this.fieldConstraints.set(fieldName, {});
         } else {
             len = this.fieldConstraints.get(fieldName).length;
         }

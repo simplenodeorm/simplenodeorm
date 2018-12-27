@@ -10,7 +10,7 @@ class Model {
         this.modified = false;
         this.newModel = true;
         this.constraintsEnabled = false;
-        this.data = new Object();
+        this.data = {};
         this.initializeData();
     }
 
@@ -156,6 +156,6 @@ class Model {
             }
         }
     }
-};
+}
 
 module.exports = Model;

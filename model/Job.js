@@ -21,7 +21,7 @@ class Job extends Model {
     
     getEmployees() { return this.getFieldValue("employees"); };
     setEmployees(value) { this.setFieldValue("employees", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new Job(metaData);

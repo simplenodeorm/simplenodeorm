@@ -30,7 +30,7 @@ class JobHistory extends Model {
   
     getDepartment() { return this.getFieldValue("department"); };
     setDepartment(value) { this.setFieldValue("department", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new JobHistory(metaData);

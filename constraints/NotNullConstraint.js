@@ -12,6 +12,6 @@ class NotNullConstraint extends FieldConstraint {
             util.throwError("NotNullConstraint", objectName + "." + fieldName + " is null");
         }
     }
-};
+}
 
 module.exports = NotNullConstraint;

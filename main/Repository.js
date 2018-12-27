@@ -18,18 +18,18 @@ module.exports = class Repository {
     constructor(poolAlias, metaData) {
         this.metaData = metaData;
         this.poolAlias = poolAlias;
-        this.selectedColumnFieldInfo = new Array();
-        this.columnPositions = new Array();
-        this.pkPositions = new Array();
+        this.selectedColumnFieldInfo = [];
+        this.columnPositions = [];
+        this.pkPositions = [];
         this.namedDbOperations = new Map();
-        this.generatedSql = new Array();
+        this.generatedSql = [];
         
         // default named db operations
         this.namedDbOperations.set(util.FIND_ONE, this.buildFindOneNamedOperation(metaData));
         this.namedDbOperations.set(util.GET_ALL, this.buildGetAllNamedOperation(metaData));
         this.namedDbOperations.set(util.DELETE, this.buildDeleteNamedOperation(metaData));
-        this.selectClauses = new Array();
-        this.joinClauses = new Array();
+        this.selectClauses = [];
+        this.joinClauses = [];
         
         // load custom db operations in extening classes. These are object-based db operations, 
         // below is an example of Account findOne(): 
@@ -40,7 +40,7 @@ module.exports = class Repository {
     }
     
     async tableExists() {
-        let params = new Array();
+        let params = [];
         params.push(this.getMetaData().tableName);
         let result = await this.executeSqlQuerySync('SELECT table_name FROM user_tables where table_name = :tableName', params);
         if (util.isDefined(result.error)) {
@@ -59,8 +59,7 @@ module.exports = class Repository {
     }
 
     async createAutoIncrementGeneratorIfRequired() {
-        let repo = this;
-        let fields = this.getMetaData().fields;
+       let fields = this.getMetaData().fields;
         let showMessage = true;
         for (let i = 0; i < fields.length; ++i) {
             if (util.isDefined(fields[i].autoIncrementGenerator)) {
@@ -399,7 +398,7 @@ module.exports = class Repository {
         
         // allow a single model or an array of models
         if (!(l instanceof Array)) {
-            l = new Array();
+            l = [];
             l.push(modelInstances);
         }
 
@@ -599,7 +598,7 @@ module.exports = class Repository {
         let md = orm.getMetaData(model.getObjectName());
         let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.getTableName() + ' where ');
 
-        let params = new Array();
+        let params = [];
         let pkfields = md.getPrimaryKeyFields();
         let and = '';
         for (let i = 0; i < pkfields.length; ++i) {
@@ -633,7 +632,7 @@ module.exports = class Repository {
         if (cmodel instanceof Array) {
             l = cmodel;
         } else {
-            l = new Array();
+            l = [];
             l.push(cmodel);
         }
        
@@ -659,7 +658,7 @@ module.exports = class Repository {
      */
     async loadInsertParameters(model, options) {
         options = checkOptions(options);
-        let retval = new Array();
+        let retval = [];
         let fields = orm.getMetaData(model.getObjectName()).getFields();
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName, true), false);
@@ -708,8 +707,8 @@ module.exports = class Repository {
      * @returns {Array|nm$_Repository.Repository.loadUpdateParameters.retval|Repository.loadUpdateParameters.retval}
      */
     async loadUpdateParameters(model, options) {
-        let retval = new Array();
-        let pkparams = new Array();
+        let retval = [];
+        let pkparams = [];
         let md = orm.getMetaData(model.getObjectName());
         let fields = md.getFields();
         for (let i = 0; i < fields.length; ++i) {
@@ -852,10 +851,10 @@ module.exports = class Repository {
         options = checkOptions(options);
         let rowsAffected = 0;
         let l = modelInstances;
-        let updatedValues = new Array();
+        let updatedValues = [];
         // allow a single model or an array of models
         if (!(l instanceof Array)) {
-            l = new Array();
+            l = [];
             l.push(modelInstances);
         }
         
@@ -928,7 +927,7 @@ module.exports = class Repository {
         let pkfields = this.getMetaData().getPrimaryKeyFields();
         let sql = 'select 1 from dual where exists (select ';
         let and = '';
-        let params = new Array();
+        let params = [];
         for (let i = 0; i < pkfields.length; ++i) {
             if (i === 0) {
                 sql += (pkfields[i].columnName + ' from ' + this.getMetaData().getTableName() + ' where ');
@@ -958,9 +957,8 @@ module.exports = class Repository {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.exists(inputParams, options);
-            resultWrapper.result = result;
-        })(resultWrapper, repo, inputParams, options);
+            resultWrapper.result = await repo.exists(inputParams, options);
+            })(resultWrapper, repo, inputParams, options);
         
         let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result) 
@@ -1038,7 +1036,7 @@ module.exports = class Repository {
     }
     
     getPrimaryKeyValuesFromModel(model) {
-        let retval = new Array();
+        let retval = [];
         let pkfields = orm.getMetaData(model.getObjectName()).getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
             retval.push(model.getFieldValue(pkfields[i].fieldName));
@@ -1135,9 +1133,8 @@ module.exports = class Repository {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.executeSqlQuery(sql, parameters, options);
-            resultWrapper.result = result;
-        })(resultWrapper, repo, sql, parameters);
+            resultWrapper.result = await repo.executeSqlQuery(sql, parameters, options);
+          })(resultWrapper, repo, sql, parameters);
         
         let startTime = Date.now();
         while (util.isUndefined(resultWrapper.result)
@@ -1169,7 +1166,7 @@ module.exports = class Repository {
         
         let res = await this.executeSqlQuery(sql, parameters, options);   
         if (util.isUndefined(res.error)) {
-            let retval = new Array();
+            let retval = [];
 
             // load column positions by alias if needed
             if (this.columnPositions[options.joinDepth].size === 0) {
@@ -1178,7 +1175,7 @@ module.exports = class Repository {
                     
                     let cpos = this.columnPositions[options.joinDepth].get(a);
                     if (util.isUndefined(cpos)) {
-                        cpos = new Array();
+                        cpos = [];
                         this.columnPositions[options.joinDepth].set(a, cpos);
                     }
                     cpos.push(i);
@@ -1187,7 +1184,7 @@ module.exports = class Repository {
                         && (this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)) {
                         let pkpos = this.pkPositions[options.joinDepth].get(a);
                         if (util.isUndefined(pkpos)) {
-                            pkpos = new Array();
+                            pkpos = [];
                             this.pkPositions[options.joinDepth].set(a, pkpos);
                         }
 
@@ -1280,9 +1277,8 @@ module.exports = class Repository {
         let resultWrapper = {rowsAffected: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.executeSql(sql, parameters, options);
-            resultWrapper.result = result;
-        })(resultWrapper, repo, sql, parameters);
+            resultWrapper.result = await repo.executeSql(sql, parameters, options);
+            })(resultWrapper, repo, sql, parameters);
         
         let startTime = Date.now();
         while (util.isUndefined(resultWrapper.rowsAffected) 
@@ -1788,7 +1784,7 @@ module.exports = class Repository {
     }
 
     getParametersFromWhereComp(whereComparisons) {
-        let retval = new Array();
+        let retval = [];
         for (let i = 0; i < whereComparisons.length; ++i) {
             if (whereComparisons[i].getUseBindParams()) {
                 retval.push(whereComparisons[i].getComparisonValue());
@@ -1807,7 +1803,7 @@ module.exports = class Repository {
         if (util.isUndefined(retval)) {
             this.selectClauses[depth] = 'select ';
             this.joinClauses[depth] = '';
-            this.selectedColumnFieldInfo[depth] = new Array();
+            this.selectedColumnFieldInfo[depth] = [];
             this.columnPositions[depth] = new Map();
             this.pkPositions[depth] = new Map();
             this.generatedSql[depth] = new Map();
@@ -2002,7 +1998,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 let l = curobj.getFieldValue(otmdefs[j].fieldName, true);
 
                                 if (util.isUndefined(l)) {
-                                    l = new Array();
+                                    l = [];
                                     curobj.setFieldValue(otmdefs[j].fieldName, l);
                                 }
                                 
@@ -2076,7 +2072,7 @@ function checkOptions(options) {
 
 function canJoin(ref) {
     return (ref.status === util.ENABLED);
-};
+}
 
 function buildAlias(parentAlias, currentAlias, depth) {
     return (parentAlias + '_' + currentAlias + '_' + depth);

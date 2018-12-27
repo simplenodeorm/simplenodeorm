@@ -24,7 +24,7 @@ class Department extends Model {
 
     getLocation() { return this.getFieldValue("location"); };
     setLocation(value) { this.setFieldValue("location", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new Department(metaData);

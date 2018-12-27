@@ -19,8 +19,7 @@ var options = {
 
 function formatter(args) {
   var dateTimeComponents = new Date().toLocaleTimeString('en-us', options).split(',');
-  var logMessage = dateTimeComponents[0] + dateTimeComponents[1] + ' - ' + args.level + ': ' + args.message;
-  return logMessage;
+  return dateTimeComponents[0] + dateTimeComponents[1] + ' - ' + args.level + ': ' + args.message;
 }
 
 const logger = winston.createLogger({

@@ -20,6 +20,6 @@ class DefaultSaveAuthorizer extends Authorizer {
     checkAuthorization(req) {
         return appConfiguration.allowUpdates || appConfiguration.testMode;
     }
-};
+}
 
 module.exports = DefaultSaveAuthorizer;

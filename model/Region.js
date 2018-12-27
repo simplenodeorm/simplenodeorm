@@ -12,7 +12,7 @@ class Region extends Model {
 
     getRegionName() { return this.getFieldValue("regionName"); };
     setRegionName(value) { this.setFieldValue("regionName", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new Region(metaData);

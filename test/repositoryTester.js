@@ -8,7 +8,7 @@ const assert = require('chai').assert;
 module.exports.test = async function( repository) {
     let metaData = repository.getMetaData();
     testUtil.logInfo('    - testing ' + metaData.objectName + 'Repository...');
-    let testResults = new  Array();
+    let testResults = [];
 
     // test function array - both sync and async versions will be tested
     let functions = [
@@ -77,7 +77,7 @@ async function testRelationshipHandling(repository, metaData) {
             assert(col === refColumn, 'expected column name to be ' + refColumn + ' but was ' + col);
         }
     }
-};
+}
 
 async function testFindOne(repository,  testResults) {
     await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData()).then(async function(result) {
@@ -89,7 +89,7 @@ async function testFindOne(repository,  testResults) {
             return false;
         } else if (util.isDefined(result.result)) {
             let pkfields = repository.getMetaData().getPrimaryKeyFields();
-            let params = new Array();
+            let params = [];
             for (let i = 0; i < pkfields.length; ++i) {
                params.push(result.result.rows[0][i]);
             }
@@ -98,7 +98,7 @@ async function testFindOne(repository,  testResults) {
             return true;
         }
      });
-};
+}
 
 async function testFind(repository, testResults) {
     await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData(), 10).then(async function(result) {
@@ -121,7 +121,7 @@ async function testFind(repository, testResults) {
             }
         }
     });
-};
+}
 
 async function testGetAll(repository, testResults) {
     // control getAll test to only test tables with small number of rows
@@ -131,7 +131,7 @@ async function testGetAll(repository, testResults) {
     } else {
         testResults.push(require('../../testStatus.js')(util.WARN,  'not performing getAll() test on ' + repository.getMetaData().objectName, util.GET_ALL));
     }
-};
+}
 
 async function testExists(repository,testResults) {
     return await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData()).then(async function(result) {
@@ -160,18 +160,18 @@ async function testExists(repository,testResults) {
            }
         }
     });
-};
+}
 
 async function testCount(repository,  testResults) {
     await testUtil.testCount(repository, testResults);
-};
+}
 
 async function testSave(repository, testResults, insertOnly) {
     await testUtil.testSave(repository, testResults, insertOnly);
-};
+}
 
 async function testDelete(repository, testResults) {
     await testUtil.testDelete(repository, testResults);
-};
+}
 
 

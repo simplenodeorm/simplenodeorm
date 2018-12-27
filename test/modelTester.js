@@ -62,4 +62,4 @@ function testFieldDataHandlig(model, metaData, field) {
     let result = model[nm]();
     assert(testData === result, metaData.objectName + '.' + testUtil.getSetFunctionName(field) + 'expected to be ' + testData + ' but was ' + result);
   
-};
+}

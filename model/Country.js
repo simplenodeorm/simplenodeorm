@@ -18,7 +18,7 @@ class Country extends Model {
 
     getRegion() { return this.getFieldValue("region"); };
     setRegion(value) { this.setFieldValue("region", value); };
-};
+}
 
 module.exports = function(metaData) {
     return new Country(metaData);

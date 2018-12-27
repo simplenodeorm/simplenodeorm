@@ -26,7 +26,7 @@ class WhereComparison {
         
         if (this.isUnaryOperator()) {
             this.useBindParams = false;
-            comparisonValue = '';
+            this.comparisonValue = '';
         }
         
         if (util.IN === comparisonOperator) {
@@ -122,7 +122,7 @@ class WhereComparison {
         
         return retval;
     }
-};
+}
 
 
 module.exports.WhereComparison = WhereComparison;

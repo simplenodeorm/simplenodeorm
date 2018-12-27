@@ -15,7 +15,7 @@ class JobHistoryRepository extends Repository {
         // example: select Account o from Account where o.finCoaCd = :finCoaCd 
         // and o.accountNbr := accountNbr
     };
-};
+}
 
 module.exports = function(metaData) {
     return new JobHistoryRepository (metaData);

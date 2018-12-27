@@ -34,7 +34,7 @@ async function loadData(model, fieldName, resultWrapper) {
     let field = md.getField(fieldName);
     
     if (util.isDefined(field)) {
-        let params = new Array();
+        let params = [];
         let sql = 'select ' + field.columnName + ' from ' + md.tableName + ' where ';
         let and = '';
         let pkfields = md.getPrimaryKeyFields();
@@ -47,7 +47,7 @@ async function loadData(model, fieldName, resultWrapper) {
         let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1});
         if (util.isDefined(ret.error)) {
             resultWrapper.error = ret.error;
-        } else if (isDefined(ret.result)) {
+        } else if (util.isDefined(ret.result)) {
             resultWrapper.result = ret.result.rows[0][0];
         } else {
             resultWrapper.result = null;
@@ -60,7 +60,7 @@ async function loadData(model, fieldName, resultWrapper) {
             if (util.isDefined(refrepo)) {
                 let srccols = ref.joinColumns.sourceColumns.split(',');
                 let tgtcols = ref.joinColumns.targetColumns.split(',');
-                let criteria = new Array();
+                let criteria = [];
                 if (srccols.length !== tgtcols.length) {
                     okToQuery = false;
                 } else {

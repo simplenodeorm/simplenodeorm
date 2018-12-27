@@ -126,7 +126,7 @@ module.exports.throwError = function(ename, emessage) {
     if (this.isString(emessage)) {
         err = new Error(emessage);
     } else {
-        err = new Error(this.toString(err));
+        err = new Error(this.toString(emessage));
     }
     
     err.name = ename;
@@ -140,7 +140,7 @@ module.exports.throwWarning = function(ename, emessage) {
     if (emessage instanceof String) {
         err = new Error(emessage);
     } else {
-        err = new Error(this.toString(err));
+        err = new Error(this.toString(emessage));
     }
     
     err.name = ename;
@@ -152,13 +152,13 @@ module.exports.throwWarning = function(ename, emessage) {
 
 function isUndefined(obj) {
     return (typeof(obj) === 'undefined');
-};
+}
 
 module.exports.isUndefined = isUndefined;
 
 function isDefined(obj) {
     return !isUndefined(obj);
-};
+}
 
 module.exports.isDefined = isDefined;
 
