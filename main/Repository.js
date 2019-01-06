@@ -517,7 +517,6 @@ module.exports = class Repository {
             
             try {
                 result = await this.executeSql(sql, params, options);
-                let md = model.getMetaData();
             }
             
             catch (e) {

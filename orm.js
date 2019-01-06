@@ -367,6 +367,22 @@ function startRestServer() {
         }
     });
 
+    server.get(REST_URL_BASE + '/report/querycolumninfo/:qdocid', async function (req, res) {
+        try {
+            let qdoc = loadQueryDocument(req.params.qdocid);
+            let qcinfo = [];
+
+            for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
+                let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
+                qcinfo.push({path: qdoc.document.selectedColumns[i].path, field: fld});
+            }
+            res.status(200).send(qcinfo);
+        } catch (e) {
+            logger.logError('error occured while loading query columns for query ' + req.params.qdocid, e);
+            res.status(500).send('error occured while loading query columns for query ' + req.params.qdocid + ' - ' + e);
+        }
+    });
+
     server.get(REST_URL_BASE + '/design/loaddocument/:docid', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocument(req.params.docid));
@@ -1549,4 +1565,15 @@ function buildResultObjectGraph(doc, resultRows) {
     }
     
     return JSON.stringify(retval);
+}
+
+function findField(metaData, fieldPath) {
+    let fields = fieldPath.split('.');
+    let i = 0;
+    if (fields.length > 1) {
+        for (; i < fields.length - 1; ++i) {
+            metaData = repositoryMap.get(metaData.getReferenceDefinition(fields[i]).targetModelName.toLowerCase()).getMetaData();
+        }
+    }
+    return metaData.getField(fields[i]);
 }
