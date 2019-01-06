@@ -374,7 +374,11 @@ function startRestServer() {
 
             for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
                 let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
-                qcinfo.push({path: qdoc.document.selectedColumns[i].path, field: fld});
+                let label = qdoc.document.selectedColumns[i].__columnLabel;
+                if (!label) {
+                    label = fld.fieldName;
+                }
+                qcinfo.push({path: qdoc.document.selectedColumns[i].path, name: label, type: fld.type, length: fld.length});
             }
             res.status(200).send(qcinfo);
         } catch (e) {

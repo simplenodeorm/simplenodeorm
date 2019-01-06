@@ -9,7 +9,7 @@ class JobMetaData extends MetaData {
         'model/Job.js', // relative module path,
         'JOBS', // table name
         [ // field definitions - order is important,
-          //selected data will be in this order, primary key fields shoud be first
+          //selected data will be in this order, primary key fields should be first
             { // 0
                 fieldName: "jobId",
                 type: "VARCHAR2",
