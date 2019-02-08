@@ -333,8 +333,8 @@ function startRestServer() {
             saveReport(req.body);
             res.status(200).send('success');
         } catch (e) {
-            logger.logError('error occured while saving query document ' + req.body.documentName, e);
-            res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
+            logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
+            res.status(500).send('error occured while saving query document ' + req.body.document.documentName + ' - ' + e);
         }
     });
 
@@ -1359,7 +1359,7 @@ function saveQueryDocument(doc) {
 }
 
 function saveReport(doc) {
-    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.reportName + '.json';
+    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
     fspath.writeFile(fname, JSON.stringify(doc), function(err){
         if(err) {
             throw err;
