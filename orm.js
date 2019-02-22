@@ -337,6 +337,34 @@ function startRestServer() {
             res.status(500).send('error occured while saving query document ' + req.body.document.documentName + ' - ' + e);
         }
     });
+    
+    server.get(REST_URL_BASE + '/report/run/:docid', async function (req, res) {
+        try {
+            let report = loadReport(req.params.docid);
+            let query = loadQueryDocument(report.document.queryDocumentId);
+            let requiredInputs = getRequiredInputFields(query.document);
+            // see if we need user input
+            if (requiredInputs.length > 0) {
+                res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
+            } else {
+                res.status(200).send(generateReport(report, query));
+            }
+        } catch (e) {
+            logger.logError('error occured while running report ' + req.params.docid, e);
+            res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+        }
+    });
+    
+    server.post(REST_URL_BASE + '/report/run/:docid', async function (req, res) {
+        try {
+            let report = loadReport(req.params.docid);
+            let query = loadQueryDocument(report.document.queryDocumentId);
+            res.status(200).send(generateReport(report, query, req.body.parameters));
+        } catch (e) {
+            logger.logError('error occured while running report ' + req.params.docid, e);
+            res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+        }
+    });
 
     server.get(REST_URL_BASE + '/design/deletedocument/:docid', async function (req, res) {
         try {
@@ -1404,6 +1432,9 @@ function loadReport(docid) {
     
     let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
     
+    if (!fname.endsWith('.json')) {
+        fname += '.json';
+    }
     return JSON.parse(fs.readFileSync(fname));
 }
 
@@ -1580,4 +1611,26 @@ function findField(metaData, fieldPath) {
         }
     }
     return metaData.getField(fields[i]);
+}
+
+function getRequiredInputFields(querydoc) {
+    let retval = [];
+    
+    for (let i = 0; i < querydoc.whereComparisons.length; ++i) {
+        if (!querydoc.whereComparisons[i].customFilterInput
+            && !isUnaryOperator(querydoc.whereComparisons[i].comparisonOperator)
+            && !querydoc.whereComparisons[i].comparisonValue) {
+            retval.push(querydoc.whereComparisons[i]);
+        }
+    }
+    
+    return retval;
+}
+
+function isUnaryOperator(op) {
+    return (op && ((op === 'is null') || (op === 'is not null')));
+}
+
+function generateReport(report, query, parameters) {
+
 }
