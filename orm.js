@@ -347,7 +347,7 @@ function startRestServer() {
             if (requiredInputs.length > 0) {
                 res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
             } else {
-                res.status(200).send(generateReport(report, query));
+                res.status(200).send(await generateReport(report, query));
             }
         } catch (e) {
             logger.logError('error occured while running report ' + req.params.docid, e);
@@ -359,7 +359,7 @@ function startRestServer() {
         try {
             let report = loadReport(req.params.docid);
             let query = loadQueryDocument(report.document.queryDocumentId);
-            res.status(200).send(generateReport(report, query, req.body.parameters));
+            res.status(200).send(await generateReport(report, query, req.body.parameters));
         } catch (e) {
             logger.logError('error occured while running report ' + req.params.docid, e);
             res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
@@ -1631,6 +1631,31 @@ function isUnaryOperator(op) {
     return (op && ((op === 'is null') || (op === 'is not null')));
 }
 
-function generateReport(report, query, parameters) {
-
+async function generateReport(report, query, parameters) {
+    let retval = '';
+    let sql = buildQueryDocumentSql(query);
+    
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug(util.toString(query));
+        logger.logDebug(sql);
+    }
+    
+    let repo = repositoryMap.get(query.document.rootModel.toLowerCase());
+    let result = await repo.executeSqlQuery(sql, parameters);
+    if (result.error) {
+        throw Exception(result.error);
+    } else {
+        let resultSet = buildResultObjectGraph(query, result.result.rows);
+        let ppi = report.document.pixelsPerInch;
+        let width = report.document.documentWidth/ppi;
+        let height = report.document.documentHeight/ppi;
+        
+        let style = '.report { background-color: white; overflow: auto; width: '
+            + width
+            + 'in; height: '
+            + height
+            + 'in;}';
+        retval = {"style": style, "html": '<div class="report"></div>'};
+    }
+    return retval;
 }
