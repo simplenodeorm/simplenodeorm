@@ -1649,13 +1649,32 @@ async function generateReport(report, query, parameters) {
         let ppi = report.document.pixelsPerInch;
         let width = report.document.documentWidth/ppi;
         let height = report.document.documentHeight/ppi;
-        
-        let style = '.report { background-color: white; overflow: auto; width: '
+
+        let style = '@media print body {width: '
+            + width
+            'in; margin-left: '
+            + (report.document.margins[0]/ppi)
+            + 'in; margin-top: '
+            + (report.document.margins[1]/ppi)
+            + 'in; margin-right: '
+            + (report.document.margins[2]/ppi)
+            + 'in; margin-bottom: '
+            + (report.document.margins[3]/ppi)
+            + 'in;} @page {size: '
+            + report.document.documentSize
+            + ';} .page { background-color: var(--page-bkcolor); width: '
             + width
             + 'in; height: '
             + height
             + 'in;}';
-        retval = {"style": style, "html": '<div class="report"></div>'};
+        
+        for (let i = 0; i < report.document.reportObjects.length; ++i) {
+            if (report.document.reportObjects[i].style) {
+                logger.logInfo(report.document.reportObjects[i].style);
+                style += report.document.reportObjects[i].style;
+            }
+        }
+        retval = {"style": style, "html": '<div class="page"></div>'};
     }
     return retval;
 }
