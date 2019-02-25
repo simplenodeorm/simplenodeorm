@@ -1652,7 +1652,7 @@ async function generateReport(report, query, parameters) {
 
         let style = '@media print body {width: '
             + width
-            'in; margin-left: '
+            + 'in; margin-left: '
             + (report.document.margins[0]/ppi)
             + 'in; margin-top: '
             + (report.document.margins[1]/ppi)
@@ -1662,18 +1662,44 @@ async function generateReport(report, query, parameters) {
             + (report.document.margins[3]/ppi)
             + 'in;} @page {size: '
             + report.document.documentSize
-            + ';} .page { background-color: var(--page-bkcolor); width: '
+            + ';} .page { background-color: white; width: '
             + width
             + 'in; height: '
             + height
             + 'in;}';
+       
+        let headerObjects = [];
+        let bodyObjects = [];
+        let footerObjects = [];
+        let pageBreakObject;
         
+        let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
             if (report.document.reportObjects[i].style) {
-                logger.logInfo(report.document.reportObjects[i].style);
-                style += report.document.reportObjects[i].style;
+                if (!mySet.has(report.document.reportObjects[i].style)) {
+                    mySet.add(report.document.reportObjects[i].style);
+                    style += (' ' + report.document.reportObjects[i].style);
+                }
+                
+                if (report.document.reportObjects[i].pageBreakControl) {
+                    pageBreakObject = report.document.reportObjects[i];
+                }
+                
+                switch(report.document.reportObjects[i].reportSection) {
+                    case "header":
+                        headerObjects.push(report.document.reportObjects[i]);
+                        break;
+                    case "body":
+                        bodyObjects.push(report.document.reportObjects[i]);
+                        break;
+                    case "footer":
+                        footerObjects.push(report.document.reportObjects[i]);
+                        break;
+                }
             }
         }
+        
+        
         retval = {"style": style, "html": '<div class="page"></div>'};
     }
     return retval;
