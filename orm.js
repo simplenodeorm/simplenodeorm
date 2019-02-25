@@ -1699,8 +1699,43 @@ async function generateReport(report, query, parameters) {
             }
         }
         
+        let done = false;
+        let yOffset = 0;
+        let html = '';
+        do {
+            html += '<div class="page">';
+            for (let i = 0; i < headerObjects.length; ++i) {
+                html += getObjectHtml(yOffset, headerObjects[i]);
+            }
+    
+            yOffset += report.document.headerHeight;
+            for (let i = 0; i < bodyObjects.length; ++i) {
+                html += getObjectHtml(yOffset, bodyObjects[i]);
+            }
+    
+            yOffset += (report.document.height - report.document.footerHeight);
+            for (let i = 0; i < footerObjects.length; ++i) {
+                html += getObjectHtml(yOffset, footerObjects[i]);
+            }
+            
+            yOffset += report.document.height;
+            
+            if (!pageBreakObject) {
+                done = true;
+            }
+            html += '</div>';
+        } while (!done);
         
-        retval = {"style": style, "html": '<div class="page"></div>'};
+        retval = {"style": style, "html": html};
+    }
+    
+    return retval;
+}
+
+function getObjectHtml(yOffset, reportObject) {
+    let retval = '';
+    if (!reportObject.pageBreakController) {
+    
     }
     return retval;
 }
