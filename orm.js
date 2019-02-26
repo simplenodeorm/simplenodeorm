@@ -1700,30 +1700,43 @@ async function generateReport(report, query, parameters) {
         }
         
         let done = false;
-        let yOffset = 0;
+        let pagenum = 0;
         let html = '';
         do {
+            let pbRequired = false;
             html += '<div class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
-                html += getObjectHtml(yOffset, headerObjects[i]);
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('header', report), headerObjects[i]);
+                if (headerObjects[i].pageBreakController) {
+                    pbRequired = true;
+                    break;
+                }
+            }
+ 
+            if (!pbRequired) {
+                for (let i = 0; i < bodyObjects.length; ++i) {
+                    html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i]);
+                    if (bodyObjects[i].pageBreakController) {
+                        pbRequired = true;
+                        break;
+                    }
+                }
             }
     
-            yOffset += report.document.headerHeight;
-            for (let i = 0; i < bodyObjects.length; ++i) {
-                html += getObjectHtml(yOffset, bodyObjects[i]);
+    
+            if (!pbRequired) {
+                for (let i = 0; i < footerObjects.length; ++i) {
+                    html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i]);
+                }
             }
     
-            yOffset += (report.document.height - report.document.footerHeight);
-            for (let i = 0; i < footerObjects.length; ++i) {
-                html += getObjectHtml(yOffset, footerObjects[i]);
-            }
-            
-            yOffset += report.document.height;
-            
             if (!pageBreakObject) {
                 done = true;
+            } else {
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection(pageBreakObject.reportSection, report), pageBreakObject);
             }
             html += '</div>';
+            pagenum++;;
         } while (!done);
         
         retval = {"style": style, "html": html};
@@ -1732,6 +1745,19 @@ async function generateReport(report, query, parameters) {
     return retval;
 }
 
+function getYOffsetBySection(section, report) {
+    switch(section) {
+        case 'header':
+            return 0;
+            break;
+        case 'body':
+            return report.document.headerHeight;
+            break;
+        case 'footer':
+            return (report.document.height - report.document.footerHeight);
+            break;
+    }
+}
 function getObjectHtml(yOffset, reportObject) {
     let retval = '';
     if (!reportObject.pageBreakController) {
