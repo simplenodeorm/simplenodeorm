@@ -1681,10 +1681,6 @@ async function generateReport(report, query, parameters) {
                     style += (' ' + report.document.reportObjects[i].style);
                 }
                 
-                if (report.document.reportObjects[i].pageBreakControl) {
-                    pageBreakObject = report.document.reportObjects[i];
-                }
-                
                 switch(report.document.reportObjects[i].reportSection) {
                     case "header":
                         headerObjects.push(report.document.reportObjects[i]);
@@ -1702,47 +1698,41 @@ async function generateReport(report, query, parameters) {
         let done = false;
         let pagenum = 0;
         let html = '';
+        let currentRow = 0;
         do {
             let pbRequired = false;
             html += '<div class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('header', report), headerObjects[i]);
-                if (headerObjects[i].pageBreakController) {
-                    pbRequired = true;
-                    break;
-                }
             }
  
-            if (!pbRequired) {
-                for (let i = 0; i < bodyObjects.length; ++i) {
-                    html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i]);
-                    if (bodyObjects[i].pageBreakController) {
-                        pbRequired = true;
-                        break;
-                    }
+            for (let i = 0; i < bodyObjects.length; ++i) {
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i]);
+                if (isPageBreakRequired(bodyObjects[i], result.result.rows, {row: currentRow})) {
+                    pbRequired = true;
                 }
             }
     
-    
-            if (!pbRequired) {
-                for (let i = 0; i < footerObjects.length; ++i) {
-                    html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i]);
-                }
+            for (let i = 0; i < footerObjects.length; ++i) {
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i]);
             }
     
-            if (!pageBreakObject) {
+            if (!pbRequired) {
                 done = true;
-            } else {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection(pageBreakObject.reportSection, report), pageBreakObject);
             }
             html += '</div>';
-            pagenum++;;
+            pagenum++;
         } while (!done);
         
         retval = {"style": style, "html": html};
     }
     
     return retval;
+}
+
+function isPageBreakRequired(reportObject, rows, rowInfo) {
+    return ((reportObject.objectType === "dbdata")
+        && ((reportObject.displayFormat === 2) || (reportObject.displayFormat === 4)));
 }
 
 function getYOffsetBySection(section, report) {
