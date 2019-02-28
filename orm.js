@@ -1702,6 +1702,7 @@ async function generateReport(report, query, parameters) {
         let rowInfo = {
             currentRow: 0,
             rows: result.result.rows,
+            ppi = report.document.pixelsPerInch,
             pageBreakRequired: false
         };
         
@@ -1753,7 +1754,10 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
     
     switch(reportObject.objectType) {
         case 'dbdata':
-            retval = getDbDataHtml(yOffset, reportObject, rowInfo)
+            retval = getDbGridDataHtml(yOffset, reportObject, rowInfo)
+            break;
+        case 'dbcol':
+            retval = getDbColumnHtml(yOffset, reportObject, rowInfo)
             break;
         case 'current date':
             break;
@@ -1774,16 +1778,70 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
     return retval;
 }
 
+const dbDataHeaderLoop = (reportObject, rowInfo)) => {
+    let retval = '';
+    for (let i = 0; i < reportObject.columnCount; ++i) {
+        let width = (reportObject.reportColumns[i].width / rowInfo.ppi) + 'in;'
+        retval += ('<th style="width: '
+            + width
+            + '"><div>'
+            + reportObject.reportColumns[i].name
+            + '</div></th>');
+    }
+    
+    return retval;
+};
+
+const dbDataRowLoop = (reportObject, rowInfo, numRows)) => {
+    let retval = '';
+    for (let i = rowInfo.currentRow; i < numRows; ++i) {
+        retval += ('<tr>' + dbDataColumnLoop(row) + '</tr>)';
+        rowInfo.currentRow++;
+    }
+    return retval;
+};
+
+const dbDataColumnLoop = (reportObject, rowInfo) => {
+    let retval = '';
+    for (let i = 0; i < reportObject.columnCount; ++i) {
+        return += '<td><div>'
+            + getDbDataByPath(reportObject.path, rowInfo.rows[rowInfo.currentRow])
+            + '</div></td>';
+        
+    }
+    return retval;
+};
+
+const getDbDataByPath(path, rowData) => {
+    let pathParts = path.split('.');
+    
+    return
+}
+
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
-    switch(reportObject.displayFormat) {
-        case 1: // Grid
-            break;
-        case 2: // grid with page break
-            break;
-        case 3: // Name/Value Pairs by Row
-            break;
-        case 4: // Name/Value Pairs by Row with Page Break
-            break;
-            
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    let retval = '<div class="' + cname + '" ';
+    let cy = reportObject.height / rowInfo.ppi;
+    let headerHeight = reportObject.headerHeight / rowInfo.ppi;
+    let dataRowHeight = reportObject.dataRowHeight / rowInfo.ppi;
+    let numRows = Math.floor((cy - headerHeight) / dataRowHeight);
+
+    retval += '<table><thead><tr>'
+        + dbDataHeaderLoop(reportObject, rowInfo)
+        + '</tr></thead><tbody>'
+        + dbDataRowLoop(reportObject, rowInfo, numRows) }
+        + '</tbody></table>';
+    
+    
+    if (reportObject.displayFormat === 2) {
+        rowInfo.pageBreakRequired = true;
+    }
+    return retval
+}
+
+function getDbColumnHtml(yOffset, reportObject, rowInfo) {
+    if (reportObject.displayFormat === 4) {
+        rowInfo.pageBreakRequired = true;
     }
 }
