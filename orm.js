@@ -1699,25 +1699,29 @@ async function generateReport(report, query, parameters) {
         let pagenum = 0;
         let html = '';
         let currentRow = 0;
+        let rowInfo = {
+            currentRow: 0,
+            rows: result.result.rows,
+            pageBreakRequired: false
+        };
+        
         do {
-            let pbRequired = false;
+            rowInfo.pageBreakRequired = false;
             html += '<div class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('header', report), headerObjects[i]);
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('header', report), headerObjects[i], rowInfo);
             }
  
             for (let i = 0; i < bodyObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i]);
-                if (isPageBreakRequired(bodyObjects[i], result.result.rows, {row: currentRow})) {
-                    pbRequired = true;
-                }
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i], rowInfo);
             }
     
             for (let i = 0; i < footerObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i]);
+                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i], rowInfo);
             }
     
-            if (!pbRequired) {
+            if (!rowInfo.pageBreakRequired
+                || (rowInfo.currentRow === result.result.rows.length)) {
                 done = true;
             }
             html += '</div>';
@@ -1728,11 +1732,6 @@ async function generateReport(report, query, parameters) {
     }
     
     return retval;
-}
-
-function isPageBreakRequired(reportObject, rows, rowInfo) {
-    return ((reportObject.objectType === "dbdata")
-        && ((reportObject.displayFormat === 2) || (reportObject.displayFormat === 4)));
 }
 
 function getYOffsetBySection(section, report) {
@@ -1748,10 +1747,43 @@ function getYOffsetBySection(section, report) {
             break;
     }
 }
-function getObjectHtml(yOffset, reportObject) {
+
+function getObjectHtml(yOffset, reportObject, rowInfo) {
     let retval = '';
-    if (!reportObject.pageBreakController) {
     
+    switch(reportObject.objectType) {
+        case 'dbdata':
+            retval = getDbDataHtml(yOffset, reportObject, rowInfo)
+            break;
+        case 'current date':
+            break;
+        case 'image':
+            break;
+        case 'graph':
+            break;
+        case 'label':
+            break;
+        case 'link':
+            break;
+        case 'page number':
+            break;
+        case 'shape':
+            break;
     }
+    
     return retval;
+}
+
+function getDbDataHtml(yOffset, reportObject, rowInfo) {
+    switch(reportObject.displayFormat) {
+        case 1: // Grid
+            break;
+        case 2: // grid with page break
+            break;
+        case 3: // Name/Value Pairs by Row
+            break;
+        case 4: // Name/Value Pairs by Row with Page Break
+            break;
+            
+    }
 }
