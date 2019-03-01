@@ -1454,7 +1454,7 @@ function loadGroupMap(curGroup, groupMap) {
 }
 
 
-function buildResultObjectGraph(doc, resultRows) {
+function buildResultObjectGraph(doc, resultRows, asObject) {
     let retval = [];
     let positionMap = new Map();
     let keyColumnMap = new Map();
@@ -1599,7 +1599,11 @@ function buildResultObjectGraph(doc, resultRows) {
         retval = retval[0];
     }
     
-    return JSON.stringify(retval);
+    if (!asObject) {
+        return JSON.stringify(retval);
+    } else {
+        return retval;
+    }
 }
 
 function findField(metaData, fieldPath) {
@@ -1645,17 +1649,19 @@ async function generateReport(report, query, parameters) {
     if (result.error) {
         throw Exception(result.error);
     } else {
-        let resultSet = buildResultObjectGraph(query, result.result.rows);
+        let resultSet = buildResultObjectGraph(query, result.result.rows, true);
         let ppi = report.document.pixelsPerInch;
         let width = report.document.documentWidth/ppi;
         let height = report.document.documentHeight/ppi;
-
+        let marginLeft = report.document.margins[0] / ppi;
+        let marginTop = report.document.margins[1] / ppi;
+        
         let style = '@media print body {width: '
             + width
             + 'in; margin-left: '
-            + (report.document.margins[0]/ppi)
+            + marginLeft
             + 'in; margin-top: '
-            + (report.document.margins[1]/ppi)
+            + marginTop
             + 'in; margin-right: '
             + (report.document.margins[2]/ppi)
             + 'in; margin-bottom: '
@@ -1672,13 +1678,23 @@ async function generateReport(report, query, parameters) {
         let bodyObjects = [];
         let footerObjects = [];
         let pageBreakObject;
+        let columnMap = new Map();
+        
+        for (let i = 0; i < report.document.reportColumns.length; ++i) {
+            columnMap.set(report.document.reportColumns[i].key, report.document.reportColumns[i]);
+        }
+        
         
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
             if (report.document.reportObjects[i].style) {
                 if (!mySet.has(report.document.reportObjects[i].style)) {
                     mySet.add(report.document.reportObjects[i].style);
-                    style += (' ' + report.document.reportObjects[i].style);
+                    style += (' '
+                        + report.document.reportObjects[i].style.replace('div.rpt-'
+                            + report.document.reportObjects[i].objectType
+                            + '-' + report.document.reportObjects[i].id
+                            + ':hover { border: dotted 1px red;}', ''));
                 }
                 
                 switch(report.document.reportObjects[i].reportSection) {
@@ -1699,26 +1715,35 @@ async function generateReport(report, query, parameters) {
         let pagenum = 0;
         let html = '';
         let currentRow = 0;
+    
+        let paths = [];
+        
         let rowInfo = {
             currentRow: 0,
-            rows: result.result.rows,
-            ppi = report.document.pixelsPerInch,
+            rows: resultSet,
+            ppi: report.document.pixelsPerInch,
+            columnMap: columnMap,
+            marginLeft: marginLeft,
+            marginTop: marginTop,
             pageBreakRequired: false
         };
         
-        do {
+   ////     do {
             rowInfo.pageBreakRequired = false;
             html += '<div class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('header', report), headerObjects[i], rowInfo);
+                let offset = marginTop + (pagenum * report.document.documentHeight)/ppi
+                html += getObjectHtml(offset, headerObjects[i], rowInfo);
             }
  
             for (let i = 0; i < bodyObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('body', report), bodyObjects[i], rowInfo);
+                let offset = ((pagenum * report.document.documentHeight) + getYOffsetBySection('body', report)) / ppi;
+                html += getObjectHtml(offset, bodyObjects[i], rowInfo);
             }
     
             for (let i = 0; i < footerObjects.length; ++i) {
-                html += getObjectHtml((pagenum * report.document.height) + getYOffsetBySection('footer', report), footerObjects[i], rowInfo);
+                let offset = ((pagenum * report.document.documentHeight) - getYOffsetBySection('footer', report)) / ppi;
+                html += getObjectHtml(offset, footerObjects[i], rowInfo);
             }
     
             if (!rowInfo.pageBreakRequired
@@ -1726,8 +1751,9 @@ async function generateReport(report, query, parameters) {
                 done = true;
             }
             html += '</div>';
+            
             pagenum++;
-        } while (!done);
+      //  } while (!done);
         
         retval = {"style": style, "html": html};
     }
@@ -1754,7 +1780,7 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
     
     switch(reportObject.objectType) {
         case 'dbdata':
-            retval = getDbGridDataHtml(yOffset, reportObject, rowInfo)
+            retval = getDbDataHtml(yOffset, reportObject, rowInfo);
             break;
         case 'dbcol':
             retval = getDbColumnHtml(yOffset, reportObject, rowInfo)
@@ -1778,62 +1804,84 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
     return retval;
 }
 
-const dbDataHeaderLoop = (reportObject, rowInfo)) => {
+function getDbDataHeader(reportObject, rowInfo) {
     let retval = '';
     for (let i = 0; i < reportObject.columnCount; ++i) {
-        let width = (reportObject.reportColumns[i].width / rowInfo.ppi) + 'in;'
+        let nm = rowInfo.columnMap.get(reportObject.reportColumns[i].key).name;
+        let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
         retval += ('<th style="width: '
             + width
             + '"><div>'
-            + reportObject.reportColumns[i].name
+            + nm
             + '</div></th>');
     }
     
     return retval;
 };
 
-const dbDataRowLoop = (reportObject, rowInfo, numRows)) => {
+function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
-    for (let i = rowInfo.currentRow; i < numRows; ++i) {
-        retval += ('<tr>' + dbDataColumnLoop(row) + '</tr>)';
+    let start = rowInfo.currentRow;
+    for (let i = start; i < numRows; ++i) {
+        retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo.columnMap, rowInfo.rows[i]) + '</tr>');
         rowInfo.currentRow++;
     }
     return retval;
 };
 
-const dbDataColumnLoop = (reportObject, rowInfo) => {
+function getDbDataRowColumns(reportObject, columnMap, data) {
     let retval = '';
     for (let i = 0; i < reportObject.columnCount; ++i) {
-        return += '<td><div>'
-            + getDbDataByPath(reportObject.path, rowInfo.rows[rowInfo.currentRow])
-            + '</div></td>';
+        let path = columnMap.get(reportObject.reportColumns[i].key).path;
+        retval += ('<td><div>'
+            + getDbDataByPath(path, data)
+            + '</div></td>');
         
     }
     return retval;
-};
+}
 
-const getDbDataByPath(path, rowData) => {
-    let pathParts = path.split('.');
-    
-    return
+function getDbDataByPath(path, rowData) {
+    function index(obj,i) {if (obj) { return obj[i]; } else { return '';}};
+    return path.split('.').reduce(index, rowData);
+}
+
+function getReportObjectStyle(yOffset, reportObject, rowInfo) {
+    return 'left: '
+        + (rowInfo.marginLeft + (reportObject.rect.left / rowInfo.ppi)).toFixed(3)
+        + 'in; top: '
+        + (yOffset + (reportObject.rect.top / rowInfo.ppi)).toFixed(3)
+        + 'in; width: '
+        + (reportObject.rect.width / rowInfo.ppi).toFixed(3)
+        + 'in; height: '
+        + (reportObject.rect.height / rowInfo.ppi).toFixed(3)
+        + 'in;';
 }
 
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id
-    let retval = '<div class="' + cname + '" ';
-    let cy = reportObject.height / rowInfo.ppi;
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+    + '" class="' + cname + '">';
+    
+    let cy = reportObject.rect.height / rowInfo.ppi;
     let headerHeight = reportObject.headerHeight / rowInfo.ppi;
     let dataRowHeight = reportObject.dataRowHeight / rowInfo.ppi;
     let numRows = Math.floor((cy - headerHeight) / dataRowHeight);
-
-    retval += '<table><thead><tr>'
-        + dbDataHeaderLoop(reportObject, rowInfo)
+    if (!Array.isArray(rowInfo.rows)) {
+        let obj = rowInfo.rows;
+        rowInfo.rows = [];
+        rowInfo.rows.push(obj);
+    }
+    retval += ('<table><thead><tr>'
+        + getDbDataHeader(reportObject, rowInfo)
         + '</tr></thead><tbody>'
-        + dbDataRowLoop(reportObject, rowInfo, numRows) }
-        + '</tbody></table>';
+        + getDbDataRows(reportObject, rowInfo, numRows)
+        + '</tbody></table></div>');
     
-    
+    logger.logInfo(retval);
     if (reportObject.displayFormat === 2) {
         rowInfo.pageBreakRequired = true;
     }
