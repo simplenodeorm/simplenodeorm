@@ -1619,7 +1619,6 @@ function findField(metaData, fieldPath) {
 
 function getRequiredInputFields(querydoc) {
     let retval = [];
-    
     for (let i = 0; i < querydoc.whereComparisons.length; ++i) {
         if (!querydoc.whereComparisons[i].customFilterInput
             && !isUnaryOperator(querydoc.whereComparisons[i].comparisonOperator)
@@ -1672,7 +1671,7 @@ async function generateReport(report, query, parameters) {
             + width
             + 'in; height: '
             + height
-            + 'in;}';
+            + 'in; border-bottom: 2px dashed darkGray;}';
        
         let headerObjects = [];
         let bodyObjects = [];
@@ -1714,9 +1713,6 @@ async function generateReport(report, query, parameters) {
         let done = false;
         let pagenum = 0;
         let html = '';
-        let currentRow = 0;
-    
-        let paths = [];
         
         let rowInfo = {
             currentRow: 0,
@@ -1728,51 +1724,41 @@ async function generateReport(report, query, parameters) {
             pageBreakRequired: false
         };
         
-   ////     do {
+        do {
+            let pageY = (pagenum * report.document.documentHeight)/ppi;
             rowInfo.pageBreakRequired = false;
-            html += '<div class="page">';
+            html += '<div style="top: ' + pageY + 'in;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
-                let offset = marginTop + (pagenum * report.document.documentHeight)/ppi
+                let offset = marginTop + pageY;
                 html += getObjectHtml(offset, headerObjects[i], rowInfo);
             }
  
             for (let i = 0; i < bodyObjects.length; ++i) {
-                let offset = ((pagenum * report.document.documentHeight) + getYOffsetBySection('body', report)) / ppi;
+                let offset = pageY + report.document.headerHeight/ppi;
                 html += getObjectHtml(offset, bodyObjects[i], rowInfo);
             }
     
             for (let i = 0; i < footerObjects.length; ++i) {
-                let offset = ((pagenum * report.document.documentHeight) - getYOffsetBySection('footer', report)) / ppi;
+                let offset = pageY + (report.document.height - report.document.footerHeight)/ppi;
                 html += getObjectHtml(offset, footerObjects[i], rowInfo);
             }
     
+            html += '</div>';
             if (!rowInfo.pageBreakRequired
-                || (rowInfo.currentRow === result.result.rows.length)) {
+                || (rowInfo.currentRow >= resultSet.length)) {
                 done = true;
             }
-            html += '</div>';
             
             pagenum++;
-      //  } while (!done);
+            if (pagenum > 3) {
+                break;
+            }
+        } while (!done);
         
         retval = {"style": style, "html": html};
     }
     
     return retval;
-}
-
-function getYOffsetBySection(section, report) {
-    switch(section) {
-        case 'header':
-            return 0;
-            break;
-        case 'body':
-            return report.document.headerHeight;
-            break;
-        case 'footer':
-            return (report.document.height - report.document.footerHeight);
-            break;
-    }
 }
 
 function getObjectHtml(yOffset, reportObject, rowInfo) {
@@ -1822,7 +1808,7 @@ function getDbDataHeader(reportObject, rowInfo) {
 function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
     let start = rowInfo.currentRow;
-    for (let i = start; i < numRows; ++i) {
+    for (let i = start; (i < numRows) && (i < rowInfo.rows.length); ++i) {
         retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo.columnMap, rowInfo.rows[i]) + '</tr>');
         rowInfo.currentRow++;
     }
@@ -1847,15 +1833,21 @@ function getDbDataByPath(path, rowData) {
 }
 
 function getReportObjectStyle(yOffset, reportObject, rowInfo) {
-    return 'left: '
-        + (rowInfo.marginLeft + (reportObject.rect.left / rowInfo.ppi)).toFixed(3)
+    let left = rowInfo.marginLeft + Number(reportObject.rect.left / rowInfo.ppi);
+    let top = yOffset + (reportObject.rect.top / rowInfo.ppi);
+    
+    let width = Number(reportObject.rect.width / rowInfo.ppi);
+    let height = Number(reportObject.rect.height / rowInfo.ppi);
+    let retval = 'left: '
+        + left.toFixed(3)
         + 'in; top: '
-        + (yOffset + (reportObject.rect.top / rowInfo.ppi)).toFixed(3)
+        + top.toFixed(3)
         + 'in; width: '
-        + (reportObject.rect.width / rowInfo.ppi).toFixed(3)
+        + width.toFixed(3)
         + 'in; height: '
-        + (reportObject.rect.height / rowInfo.ppi).toFixed(3)
+        + height.toFixed(3)
         + 'in;';
+    return retval;
 }
 
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
@@ -1866,9 +1858,9 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
     + '" class="' + cname + '">';
     
-    let cy = reportObject.rect.height / rowInfo.ppi;
-    let headerHeight = reportObject.headerHeight / rowInfo.ppi;
-    let dataRowHeight = reportObject.dataRowHeight / rowInfo.ppi;
+    let cy = (reportObject.rect.height / rowInfo.ppi).toFixed(3);
+    let headerHeight = (reportObject.headerHeight / rowInfo.ppi).toFixed(3);
+    let dataRowHeight = (reportObject.dataRowHeight / rowInfo.ppi).toFixed(3);
     let numRows = Math.floor((cy - headerHeight) / dataRowHeight);
     if (!Array.isArray(rowInfo.rows)) {
         let obj = rowInfo.rows;
