@@ -1808,9 +1808,9 @@ function getDbDataHeader(reportObject, rowInfo) {
 function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
     let start = rowInfo.currentRow;
-    for (let i = start; (i < numRows) && (i < rowInfo.rows.length); ++i) {
+    for (let i = start; (i < (start + numRows)) && (i < rowInfo.rows.length); ++i) {
         retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo.columnMap, rowInfo.rows[i]) + '</tr>');
-        rowInfo.currentRow++;
+        rowInfo.currentRow = rowInfo.currentRow + 1;
     }
     return retval;
 };
