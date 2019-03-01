@@ -1881,7 +1881,6 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + getDbDataRows(reportObject, rowInfo, numRows)
         + '</tbody></table></div>');
     
-    logger.logInfo(retval);
     if (reportObject.displayFormat === 2) {
         rowInfo.pageBreakRequired = true;
     }
