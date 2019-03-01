@@ -1835,10 +1835,9 @@ function getDbDataByPath(path, rowData) {
 function getReportObjectStyle(yOffset, reportObject, rowInfo) {
     let left = rowInfo.marginLeft + Number(reportObject.rect.left / rowInfo.ppi);
     let top = yOffset + (reportObject.rect.top / rowInfo.ppi);
-    
-    let width = Number(reportObject.rect.width / rowInfo.ppi);
-    let height = Number(reportObject.rect.height / rowInfo.ppi);
-    let retval = 'left: '
+    let width = reportObject.rect.width / rowInfo.ppi;
+    let height = reportObject.rect.height / rowInfo.ppi;
+    return 'left: '
         + left.toFixed(3)
         + 'in; top: '
         + top.toFixed(3)
@@ -1847,7 +1846,6 @@ function getReportObjectStyle(yOffset, reportObject, rowInfo) {
         + 'in; height: '
         + height.toFixed(3)
         + 'in;';
-    return retval;
 }
 
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
