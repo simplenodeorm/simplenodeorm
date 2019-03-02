@@ -1655,23 +1655,14 @@ async function generateReport(report, query, parameters) {
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
         
-        let style = '@media print body {width: '
+        let style = '@media print {body {width: '
             + width
-            + 'in; margin-left: '
-            + marginLeft
-            + 'in; margin-top: '
-            + marginTop
-            + 'in; margin-right: '
-            + (report.document.margins[2]/ppi)
-            + 'in; margin-bottom: '
-            + (report.document.margins[3]/ppi)
-            + 'in;} @page {size: '
-            + report.document.documentSize
-            + ';} .page { background-color: white; width: '
+            + 'in;} } @page {page-size: ' + report.document.documentSize + '; margin: 0;} '
+            + '.page {position: relative; background-color: white; width: '
             + width
             + 'in; height: '
             + height
-            + 'in; border-bottom: 2px dashed darkGray;}';
+            + 'in;}';
        
         let headerObjects = [];
         let bodyObjects = [];
@@ -1725,7 +1716,8 @@ async function generateReport(report, query, parameters) {
         };
         
         do {
-            let pageY = (pagenum * report.document.documentHeight)/ppi;
+            
+            let pageY = (0 * report.document.documentHeight)/ppi;
             rowInfo.pageBreakRequired = false;
             html += '<div style="top: ' + pageY + 'in;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
@@ -1743,16 +1735,13 @@ async function generateReport(report, query, parameters) {
                 html += getObjectHtml(offset, footerObjects[i], rowInfo);
             }
     
-            html += '</div>';
+            html += '</div><br />';
             if (!rowInfo.pageBreakRequired
                 || (rowInfo.currentRow >= resultSet.length)) {
                 done = true;
             }
             
             pagenum++;
-            if (pagenum > 3) {
-                break;
-            }
         } while (!done);
         
         retval = {"style": style, "html": html};
