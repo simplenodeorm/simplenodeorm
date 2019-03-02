@@ -1674,7 +1674,6 @@ async function generateReport(report, query, parameters) {
             columnMap.set(report.document.reportColumns[i].key, report.document.reportColumns[i]);
         }
         
-        
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
             if (report.document.reportObjects[i].style) {
@@ -1716,9 +1715,9 @@ async function generateReport(report, query, parameters) {
         };
         
         do {
-            
             let pageY = (0 * report.document.documentHeight)/ppi;
             rowInfo.pageBreakRequired = false;
+            rowInfo.pageNumber = pagenum+1;
             html += '<div style="top: ' + pageY + 'in;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 let offset = marginTop + pageY;
@@ -1731,7 +1730,7 @@ async function generateReport(report, query, parameters) {
             }
     
             for (let i = 0; i < footerObjects.length; ++i) {
-                let offset = pageY + (report.document.height - report.document.footerHeight)/ppi;
+                let offset = pageY + height - (report.document.footerHeight/ppi);
                 html += getObjectHtml(offset, footerObjects[i], rowInfo);
             }
     
@@ -1761,18 +1760,23 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             retval = getDbColumnHtml(yOffset, reportObject, rowInfo)
             break;
         case 'current date':
+            retval = getCurrentDateHtml(yOffset, reportObject, rowInfo);
             break;
         case 'image':
             break;
         case 'graph':
             break;
         case 'label':
+            retval = getLabelHtml(yOffset, reportObject, rowInfo);
             break;
         case 'link':
+            retval = getLinkHtml(yOffset, reportObject, rowInfo);
             break;
         case 'page number':
+            retval = getPageNumberHtml(yOffset, reportObject, rowInfo);
             break;
         case 'shape':
+            retval = getShapeHtml(yOffset, reportObject, rowInfo);
             break;
     }
     
@@ -1836,6 +1840,94 @@ function getReportObjectStyle(yOffset, reportObject, rowInfo) {
         + height.toFixed(3)
         + 'in;';
 }
+
+function getLabelHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += ('<div>' + reportObject.labelText + '</div></div>');
+    return retval;
+}
+
+function getShapeHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += '<div>&nbsp;</div></div>';
+    return retval;
+}
+
+
+function getLinkHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += ('<div></div><a href="' + reportObject.url + '" target="__blank">' + reportObject.linkText + '</a></div>');
+    return retval;
+}
+
+
+function getCurrentDateHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += ('<div>' + formatDate(new Date(),reportObject.format) + '</div></div>');
+    return retval;
+}
+
+function formatDate(dt, format) {
+    let dstr = dt.toISOString();
+    let day = dstr.substring(8, 10);
+    let mon = dstr.substring(5, 7);
+    let year = dstr.substring(0, 4);
+    let mname;
+    if (format.includes('MMM')) {
+        mname = config.monthNames[dt.getMonth()];
+    }
+    
+    let retval = format.replace('dd', day).replace('yyyy', year);
+    
+    if (mname) {
+        if (format.includes(' MMM ')) {
+            retval = retval.replace('MMM', mname.substring(0, 3));
+        } else {
+            retval = retval.replace('MMMMMMMMM', mname);
+        }
+    } else {
+        retval = retval.replace('mm', mon);
+    }
+    
+    return retval;
+}
+
+function getPageNumberHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += ('<div>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</div></div>');
+    return retval;
+}
+
 
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
