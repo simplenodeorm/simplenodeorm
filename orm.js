@@ -1718,6 +1718,7 @@ async function generateReport(report, query, parameters) {
             let pageY = (0 * report.document.documentHeight)/ppi;
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = pagenum+1;
+            rowInfo.startRow = rowInfo.currentRow;
             html += '<div style="top: ' + pageY + 'in;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 let offset = marginTop + pageY;
@@ -1975,7 +1976,18 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
 }
 
 function getDbColumnHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += ('<div>' + getDbDataByPath(reportObject.columnPath, rowInfo.rows[rowInfo.startRow])+ '</div></div>');
+    
     if (reportObject.displayFormat === 4) {
         rowInfo.pageBreakRequired = true;
     }
+    
+    return retval;
 }
