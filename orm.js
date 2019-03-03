@@ -1941,7 +1941,7 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
     
-    retval += ('<div>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</div></div>');
+    retval += ('<span>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</span></div>');
     return retval;
 }
 
@@ -1983,7 +1983,7 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
     
-    retval += ('<div>' + getDbDataByPath(reportObject.columnPath, rowInfo.rows[rowInfo.startRow])+ '</div></div>');
+    retval += (getDbDataByPath(reportObject.columnPath, rowInfo.rows[rowInfo.currentRow])+ '</div>');
     
     if (reportObject.displayFormat === 4) {
         rowInfo.pageBreakRequired = true;
