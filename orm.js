@@ -1763,6 +1763,7 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             retval = getCurrentDateHtml(yOffset, reportObject, rowInfo);
             break;
         case 'image':
+            retval = getImageHtml(yOffset, reportObject, rowInfo);
             break;
         case 'graph':
             break;
@@ -1861,10 +1862,25 @@ function getShapeHtml(yOffset, reportObject, rowInfo) {
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
     
-    retval += '<div>&nbsp;</div></div>';
+    retval += '&nbsp;</div>';
     return retval;
 }
 
+function getImageHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<img alt="'
+        + reportObject.altText
+        + '" src="'
+        + reportObject.url
+        + '" style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    retval += '&nbsp;</div>';
+    return retval;
+}
 
 function getLinkHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
