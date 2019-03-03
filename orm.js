@@ -1869,16 +1869,13 @@ function getImageHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id
     
-    let retval = '<img alt="'
+    return '<img alt="'
         + reportObject.altText
         + '" src="'
         + reportObject.url
         + '" style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
-        + '" class="' + cname + '">';
-    
-    retval += '&nbsp;</div>';
-    return retval;
+        + '" class="' + cname + '"/>';
 }
 
 function getLinkHtml(yOffset, reportObject, rowInfo) {
@@ -1975,11 +1972,11 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
 
 function getDbColumnHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
-    let retval = '<div style="'
+    let retval = ('<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
-        + '" class="' + cname + '">';
+        + '" class="' + cname + '">');
     
     let crow = Math.min(rowInfo.currentRow, rowInfo.rows.length-1);
     retval += ('<div>' + getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]) + '</div></div>');
