@@ -1715,30 +1715,28 @@ async function generateReport(report, query, parameters) {
         };
         
         do {
-            let pageY = (0 * report.document.documentHeight)/ppi;
             rowInfo.pageBreakRequired = false;
-            rowInfo.pageNumber = pagenum+1;
+            rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
-            html += '<div style="top: ' + pageY + 'in;" class="page">';
+            html += '<div style="top: 0;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
-                let offset = marginTop + pageY;
-                html += getObjectHtml(offset, headerObjects[i], rowInfo);
+                html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
             }
  
             for (let i = 0; i < bodyObjects.length; ++i) {
-                let offset = pageY + report.document.headerHeight/ppi;
-                html += getObjectHtml(offset, bodyObjects[i], rowInfo);
+                html += getObjectHtml(report.document.headerHeight/ppi, bodyObjects[i], rowInfo);
             }
     
             for (let i = 0; i < footerObjects.length; ++i) {
-                let offset = pageY + height - (report.document.footerHeight/ppi);
-                html += getObjectHtml(offset, footerObjects[i], rowInfo);
+                html += getObjectHtml(height - (report.document.footerHeight/ppi), footerObjects[i], rowInfo);
             }
     
-            html += '</div><br />';
+            html += '</div>';
             if (!rowInfo.pageBreakRequired
                 || (rowInfo.currentRow >= resultSet.length)) {
                 done = true;
+            } else {
+                html += '<br />';
             }
             
             pagenum++;
@@ -1983,7 +1981,8 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
     
-    retval += (getDbDataByPath(reportObject.columnPath, rowInfo.rows[rowInfo.currentRow])+ '</div>');
+    let crow = Math.min(rowInfo.currentRow, rowInfo.rows.length-1);
+    retval += ('<div>' + getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]) + '</div></div>');
     
     if (reportObject.displayFormat === 4) {
         rowInfo.pageBreakRequired = true;
