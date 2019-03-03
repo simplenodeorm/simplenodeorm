@@ -1812,9 +1812,17 @@ function getDbDataRowColumns(reportObject, columnMap, data) {
     let retval = '';
     for (let i = 0; i < reportObject.columnCount; ++i) {
         let path = columnMap.get(reportObject.reportColumns[i].key).path;
+        let val = getDbDataByPath(path, data);
         retval += ('<td><div>'
-            + getDbDataByPath(path, data)
+            + val
             + '</div></td>');
+        
+        if (val && reportObject.displayTotal) {
+            if (!reportObject.total) {
+                reportObject.total = 0;
+            }
+            reportObject.total += val;
+        }
         
     }
     return retval;
@@ -1979,7 +1987,15 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
         + '" class="' + cname + '">');
     
     let crow = Math.min(rowInfo.currentRow, rowInfo.rows.length-1);
-    retval += ('<div>' + getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]) + '</div></div>');
+    let val = getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]);
+    retval += ('<div>' + val + '</div></div>');
+    
+    if (val && reportObject.displayTotal) {
+        if (!reportObject.total) {
+            reportObject.total = 0;
+        }
+        reportObject.total += val;
+    }
     
     if (reportObject.displayFormat === 4) {
         rowInfo.pageBreakRequired = true;
