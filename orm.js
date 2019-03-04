@@ -1890,11 +1890,11 @@ function getLinkHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id
     
-    let retval = '<div style="'
+    let retval = '<div style="z-index: 1; '
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
     
-    retval += ('<div></div><a href="' + reportObject.url + '" target="__blank">' + reportObject.linkText + '</a></div>');
+    retval += ('<a href="' + reportObject.url + '" target="__blank">' + reportObject.linkText + '</a></div>');
     return retval;
 }
 
