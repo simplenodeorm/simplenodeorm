@@ -1685,7 +1685,7 @@ async function generateReport(report, query, parameters) {
                             + '-' + report.document.reportObjects[i].id
                             + ':hover { border: dotted 1px red;}', ''));
                 }
-                
+            
                 switch(report.document.reportObjects[i].reportSection) {
                     case "header":
                         headerObjects.push(report.document.reportObjects[i]);
@@ -1706,6 +1706,7 @@ async function generateReport(report, query, parameters) {
         
         let rowInfo = {
             currentRow: 0,
+            totalsRequired: false,
             rows: resultSet,
             ppi: report.document.pixelsPerInch,
             columnMap: columnMap,
@@ -1802,26 +1803,27 @@ function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
     let start = rowInfo.currentRow;
     for (let i = start; (i < (start + numRows)) && (i < rowInfo.rows.length); ++i) {
-        retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo.columnMap, rowInfo.rows[i]) + '</tr>');
+        retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo, rowInfo.rows[i]) + '</tr>');
         rowInfo.currentRow = rowInfo.currentRow + 1;
     }
     return retval;
 };
 
-function getDbDataRowColumns(reportObject, columnMap, data) {
+function getDbDataRowColumns(reportObject, rowInfo, data) {
     let retval = '';
     for (let i = 0; i < reportObject.columnCount; ++i) {
-        let path = columnMap.get(reportObject.reportColumns[i].key).path;
+        let path = rowInfo.columnMap.get(reportObject.reportColumns[i].key).path;
         let val = getDbDataByPath(path, data);
         retval += ('<td><div>'
             + val
             + '</div></td>');
         
-        if (val && reportObject.displayTotal) {
-            if (!reportObject.total) {
-                reportObject.total = 0;
+        if (val && reportObject.reportColumns[i].displayTotal) {
+            if (!reportObject.reportColumns[i].total) {
+                reportObject.reportColumns[i].total = 0;
             }
-            reportObject.total += val;
+            reportObject.reportColumns[i].total += val;
+            rowInfo.totalsRequired = true;
         }
         
     }
@@ -1970,8 +1972,27 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + getDbDataHeader(reportObject, rowInfo)
         + '</tr></thead><tbody>'
         + getDbDataRows(reportObject, rowInfo, numRows)
-        + '</tbody></table></div>');
+        + '</tbody>');
+  
+    if ((rowInfo.currentRow === rowInfo.rows.length) && rowInfo.totalsRequired) {
+        retval += '<tr>'
     
+        for (let i = 0; i < reportObject.columnCount; ++i) {
+            let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
+            retval += ('<th style="width: '
+                + width
+                + ';"/><div style="text-align: right; border-top: ' + (3/rowInfo.ppi).toFixed(3) + 'in black solid;">');
+            if (reportObject.reportColumns[i].total) {
+                retval += reportObject.reportColumns[i].total.toFixed(2);
+            } else {
+                retval += '&nbsp;'
+            }
+            retval += '</div></th>';
+        }
+        
+        retval += '</tr>';
+    }
+    retval += '</table></div>'
     if (reportObject.displayFormat === 2) {
         rowInfo.pageBreakRequired = true;
     }
