@@ -1955,7 +1955,6 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
- logger.logInfo('----------------->' + reportObject.format)  ;
     retval += ('<span>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</span></div>');
     return retval;
 }
