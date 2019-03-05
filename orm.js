@@ -1720,6 +1720,7 @@ async function generateReport(report, query, parameters) {
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
+            rowInfo.incrementRowRequired = false;
             html += '<div style="top: 0;" class="page">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
@@ -1733,11 +1734,15 @@ async function generateReport(report, query, parameters) {
                 html += getObjectHtml(height - (report.document.footerHeight/ppi), footerObjects[i], rowInfo);
             }
     
+            if (rowInfo.incrementRowRequired) {
+                rowInfo.currentRow = rowInfo.currentRow + 1;
+            }
+            
             html += '</div>';
             
             if (!rowInfo.forcePageBreak
                 && (!rowInfo.pageBreakRequired
-                    || (rowInfo.currentRow >= resultSet.length))) {
+                    || (rowInfo.currentRow >= rowInfo.rows.length))) {
                 done = true;
             } else {
                 html += '<br />';
@@ -1950,7 +1955,7 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+ logger.logInfo('----------------->' + reportObject.format)  ;
     retval += ('<span>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</span></div>');
     return retval;
 }
@@ -1999,7 +2004,7 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         }
     }
     retval += '</table></div>'
-    if (reportObject.displayFormat === 2) {
+    if (Number(reportObject.displayFormat) === 2) {
         rowInfo.pageBreakRequired = true;
     }
     
@@ -2025,7 +2030,8 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
         reportObject.total += val;
     }
     
-    if (reportObject.displayFormat === 4) {
+    rowInfo.incrementRowRequired = true;
+    if (Number(reportObject.displayFormat) === 4) {
         rowInfo.pageBreakRequired = true;
     }
     
