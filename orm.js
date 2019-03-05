@@ -1888,14 +1888,37 @@ function getShapeHtml(yOffset, reportObject, rowInfo) {
 function getImageHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id
+    let style;
+    if (!reportObject.sizeToContent) {
+        if (!reportObject.retainAspect) {
+            style = 'width: 100%; height: 100%;';
+        } else {
+            style = 'width: auto; height: auto; max-width: 100%; max-height: 100%;';
+        }
+    }
     
-    return '<img alt="'
-        + reportObject.altText
-        + '" src="'
-        + reportObject.url
-        + '" style="'
+    let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
-        + '" class="' + cname + '"/>';
+        + '" class="' + cname + '">';
+    if (style) {
+        retval += '<img alt="'
+            + reportObject.altText
+            + '" src="'
+            + reportObject.url
+            + '" style="'
+            + style
+            + '" class="' + cname + '"/>';
+    } else {
+        retval += '<img alt="'
+            + reportObject.altText
+            + '" src="'
+            + reportObject.url
+            + ' class="' + cname + '"/>';
+    }
+    
+    retval += '</div>';
+    
+    return retval;
 }
 
 function getLinkHtml(yOffset, reportObject, rowInfo) {
