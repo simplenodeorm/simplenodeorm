@@ -1716,6 +1716,7 @@ async function generateReport(report, query, parameters) {
         };
         
         do {
+            rowInfo.forcePageBreak = false;
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
@@ -1733,8 +1734,10 @@ async function generateReport(report, query, parameters) {
             }
     
             html += '</div>';
-            if (!rowInfo.pageBreakRequired
-                || (rowInfo.currentRow >= resultSet.length)) {
+            
+            if (!rowInfo.forcePageBreak
+                && (!rowInfo.pageBreakRequired
+                    || (rowInfo.currentRow >= resultSet.length))) {
                 done = true;
             } else {
                 html += '<br />';
@@ -1802,9 +1805,11 @@ function getDbDataHeader(reportObject, rowInfo) {
 function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
     let start = rowInfo.currentRow;
+    rowInfo.pageRowsDisplayed = 0;
     for (let i = start; (i < (start + numRows)) && (i < rowInfo.rows.length); ++i) {
         retval += ('<tr>' + getDbDataRowColumns(reportObject, rowInfo, rowInfo.rows[i]) + '</tr>');
         rowInfo.currentRow = rowInfo.currentRow + 1;
+        rowInfo.pageRowsDisplayed++;
     }
     return retval;
 };
@@ -1973,29 +1978,31 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + '</tr></thead><tbody>'
         + getDbDataRows(reportObject, rowInfo, numRows)
         + '</tbody>');
-  
-    if ((rowInfo.currentRow === rowInfo.rows.length) && rowInfo.totalsRequired) {
-        retval += '<tr>'
     
-        for (let i = 0; i < reportObject.columnCount; ++i) {
-            let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
-            retval += ('<th style="width: '
-                + width
-                + ';"/><div style="text-align: right; border-top: ' + (3/rowInfo.ppi).toFixed(3) + 'in black solid;">');
-            if (reportObject.reportColumns[i].total) {
-                retval += reportObject.reportColumns[i].total.toFixed(2);
-            } else {
-                retval += '&nbsp;'
+    if ((rowInfo.currentRow >= rowInfo.rows.length) && rowInfo.totalsRequired) {
+        if (rowInfo.pageRowsDisplayed < numRows) {
+            retval += '<tr>'
+            for (let i = 0; i < reportObject.columnCount; ++i) {
+                let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
+                retval += ('<td/><div style="font-weight: strong; border-top: ' + reportObject.totalsSeparator + ';">');
+                if (reportObject.reportColumns[i].total) {
+                    retval += reportObject.reportColumns[i].total.toFixed(2);
+                } else {
+                    retval += '&nbsp;'
+                }
+                retval += '</div></td>';
             }
-            retval += '</div></th>';
+    
+            retval += '</tr>';
+        } else if (reportObject.displayFormat === 2) {
+            rowInfo.forcePageBreak = true;
         }
-        
-        retval += '</tr>';
     }
     retval += '</table></div>'
     if (reportObject.displayFormat === 2) {
         rowInfo.pageBreakRequired = true;
     }
+    
     return retval
 }
 
