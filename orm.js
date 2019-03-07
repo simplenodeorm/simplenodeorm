@@ -365,6 +365,34 @@ function startRestServer() {
             res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
         }
     });
+    
+    server.post(REST_URL_BASE + '/report/runfordesign', async function (req, res) {
+        try {
+            let report = req.body.report;
+            let query = loadQueryDocument(report.document.queryDocumentId);
+            res.status(200).send(await generateReport(report, query, req.body.parameters));
+        } catch (e) {
+            logger.logError('error occured while running report ' + req.body.report.reportName, e);
+            res.status(500).send('error occured while running report ' + req.body.report.reportName + ' - ' + e);
+        }
+    });
+
+    server.get(REST_URL_BASE + '/report/userinputrequired/:queryDocumentId', async function (req, res) {
+        try {
+            let query = loadQueryDocument(req.params.queryDocumentId);
+            let requiredInputs = getRequiredInputFields(query.document);
+            // see if we need user input
+            if (requiredInputs.length > 0) {
+                res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
+            } else {
+                res.status(200).send({"userInputRequired": false});
+            }
+        } catch (e) {
+            logger.logError('error occured while checking user input required ' + req.params.queryDocumentId, e);
+            res.status(500).send('eerror occured while checking user input required  ' + req.params.queryDocumentId + ' - ' + e);
+        }
+    });
+
 
     server.get(REST_URL_BASE + '/design/deletedocument/:docid', async function (req, res) {
         try {
