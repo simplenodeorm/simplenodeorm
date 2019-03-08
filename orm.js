@@ -1677,6 +1677,12 @@ async function generateReport(report, query, parameters) {
         throw new Error(result.error);
     } else {
         let resultSet = buildResultObjectGraph(query, result.result.rows, true);
+        
+        // expect to work with array of results so
+        // make an array if only 1 object comes back
+        if (!Array.isArray(resultSet)) {
+            resultSet = [resultSet];
+        }
         let ppi = report.document.pixelsPerInch;
         let width = report.document.documentWidth/ppi;
         let height = report.document.documentHeight/ppi;
@@ -1685,7 +1691,11 @@ async function generateReport(report, query, parameters) {
         
         let style = '@media print {body {width: '
             + width
-            + 'in;} } @page {page-size: ' + report.document.documentSize + '; margin: 0;} '
+            + 'in;} } @page {page-size: '
+            + report.document.documentSize
+            + '; orientation: '
+            + report.document.orientation
+            + '; margin: 0;} '
             + '.page {position: relative; background-color: white; width: '
             + width
             + 'in; height: '
@@ -1769,7 +1779,6 @@ async function generateReport(report, query, parameters) {
             }
             
             html += '</div>';
-            
             if (!rowInfo.forcePageBreak
                 && (!rowInfo.pageBreakRequired
                     || (rowInfo.currentRow >= rowInfo.rows.length))) {
@@ -2056,7 +2065,8 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         }
     }
     retval += '</table></div>'
-    if (Number(reportObject.displayFormat) === 2) {
+    if ((Number(reportObject.displayFormat) === 2)
+        && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
     }
     
@@ -2083,7 +2093,8 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
     }
     
     rowInfo.incrementRowRequired = true;
-    if (Number(reportObject.displayFormat) === 4) {
+    if ((Number(reportObject.displayFormat) === 4)
+        && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
     }
     
