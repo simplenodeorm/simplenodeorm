@@ -1674,7 +1674,7 @@ async function generateReport(report, query, parameters) {
     let repo = repositoryMap.get(query.document.rootModel.toLowerCase());
     let result = await repo.executeSqlQuery(sql, parameters);
     if (result.error) {
-        throw Exception(result.error);
+        throw new Error(result.error);
     } else {
         let resultSet = buildResultObjectGraph(query, result.result.rows, true);
         let ppi = report.document.pixelsPerInch;
@@ -1698,8 +1698,10 @@ async function generateReport(report, query, parameters) {
         let pageBreakObject;
         let columnMap = new Map();
         
-        for (let i = 0; i < report.document.reportColumns.length; ++i) {
-            columnMap.set(report.document.reportColumns[i].key, report.document.reportColumns[i]);
+        if (report.document.reportColumns) {
+            for (let i = 0; i < report.document.reportColumns.length; ++i) {
+                columnMap.set(report.document.reportColumns[i].key, report.document.reportColumns[i]);
+            }
         }
         
         let mySet = new Set();
