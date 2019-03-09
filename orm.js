@@ -1841,6 +1841,9 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
         case 'link':
             retval = getLinkHtml(yOffset, reportObject, rowInfo);
             break;
+        case 'email':
+            retval = getEmailHtml(yOffset, reportObject, rowInfo);
+            break;
         case 'page number':
             retval = getPageNumberHtml(yOffset, reportObject, rowInfo);
             break;
@@ -1993,6 +1996,20 @@ function getLinkHtml(yOffset, reportObject, rowInfo) {
     return retval;
 }
 
+function getEmailHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id
+    
+    let retval = '<div style="z-index: 1; '
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">';
+    
+    if (!reportObject.emailText) {
+        reportObject.emailText = reportObject.email;
+    }
+    retval += ('<a href="mailto:' + reportObject.email + '">' + reportObject.emailText + '</a></div>');
+    return retval;
+}
 
 function getCurrentDateHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
