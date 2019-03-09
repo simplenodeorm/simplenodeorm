@@ -1761,19 +1761,40 @@ async function generateReport(report, query, parameters) {
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
             rowInfo.incrementRowRequired = false;
-            html += '<div style="top: 0;" class="page">';
+            html += '<div style="top: 0;" class="page"><div style="position: absolute; overflow: hidden; left: 0; top: 0; width: '
+                + report.document.documentWidth/rowInfo.ppi
+                + 'in; height: '
+                + report.document.headerHeight/rowInfo.ppi
+                + 'in;">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
             }
  
+            html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
+                + report.document.headerHeight/rowInfo.ppi
+                + 'in; width: '
+                + report.document.documentWidth/rowInfo.ppi
+                + 'in; height: '
+                + (report.document.documentHeight - (report.document.headerHeight + report.document.footerHeight))/rowInfo.ppi
+                + 'in;">';
             for (let i = 0; i < bodyObjects.length; ++i) {
-                html += getObjectHtml(report.document.headerHeight/ppi, bodyObjects[i], rowInfo);
+                html += getObjectHtml(0, bodyObjects[i], rowInfo);
             }
     
+            html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
+                + (report.document.documentHeight - report.document.footerHeight)/rowInfo.ppi
+                + 'in; width: '
+                + report.document.documentWidth/rowInfo.ppi
+                + 'in; height: '
+                + report.document.footerHeight/rowInfo.ppi
+                + 'in;">';
+            
             for (let i = 0; i < footerObjects.length; ++i) {
-                html += getObjectHtml(height - (report.document.footerHeight/ppi), footerObjects[i], rowInfo);
+                html += getObjectHtml(0, footerObjects[i], rowInfo);
             }
-    
+            
+            html += '</div>';
+            
             if (rowInfo.incrementRowRequired) {
                 rowInfo.currentRow = rowInfo.currentRow + 1;
             }
@@ -2017,7 +2038,7 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    retval += ('<span>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</span></div>');
+    retval += ('<div>' + reportObject.format.replace('?', rowInfo.pageNumber) + '</div></div>');
     return retval;
 }
 
