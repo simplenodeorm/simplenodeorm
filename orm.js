@@ -3,7 +3,7 @@
 const oracledb = require('oracledb');
 const fs = require('fs');
 const util = require('./main/util.js');
-const modelList = new Array();
+const modelList = [];
 const repositoryMap = new Map();
 const events = require('events');
 const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
@@ -1752,11 +1752,11 @@ async function generateReport(report, query, parameters) {
             columnMap: columnMap,
             marginLeft: marginLeft,
             marginTop: marginTop,
-            pageBreakRequired: false
+            pageBreakRequired: false,
+            forcePageBreak: false
         };
         
         do {
-            rowInfo.forcePageBreak = false;
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
@@ -1895,38 +1895,65 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                 && reportObject.reportColumns[i].specialHandlingType !== 'none') {
                 switch (reportObject.reportColumns[i].specialHandlingType) {
                     case 'email':
-                        retval += '<a href="mailto:'
+                        val = '<a href="mailto:'
                             + val
                             + '" target="_blank">'
                             + val
-                            + '</a>'
+                            + '</a>';
                         break;
                     case 'link':
-                        retval += '<a href="'
+                        val = '<a href="'
                             + val
                             + '" target="_blank">'
                             + val
-                            + '</a>'
+                            + '</a>';
                         break;
                     case 'image':
-                        retval += '<img style="width: auto; height: auto; max-width: 100%; max-height: 100%" src="'
+                        val = '<img style="width: auto; height: auto; max-width: 100%; max-height: 100%" src="'
                             + val
                             + '"/>';
                         break;
+                    case 'sum':
+                    case 'avg':
+                        if (!reportObject.reportColumns[i].total) {
+                            reportObject.reportColumns[i].total = 0;
+                            reportObject.reportColumns[i].count = 0;
+                        }
+                        
+                        if (val) {
+                            reportObject.reportColumns[i].total += val;
+                            reportObject.reportColumns[i].count++;
+                        }
+                        rowInfo.totalsRequired = true;
+                        break;
+                    case 'max':
+                        if (!reportObject.reportColumns[i].max
+                            || (reportObject.reportColumns[i].max < val)) {
+                            reportObject.reportColumns[i].max = val;
+                        }
+                        rowInfo.totalsRequired = true;
+                        break;
+                    case 'min':
+                        if (!reportObject.reportColumns[i].min
+                            || (reportObject.reportColumns[i].min > val)) {
+                            reportObject.reportColumns[i].min = val;
+                        }
+                        rowInfo.totalsRequired = true;
+                        break;
+                }
+            }
+            
+            if (val) {
+                if (reportObject.reportColumns[i].isNumeric) {
+                    retval += val.toFixed(2);
+                } else {
+                    retval += val;
                 }
             } else {
-                retval += val
+                val = '&nbsp;';
             }
     
             retval += '</div></td>';
-    
-            if (val && reportObject.reportColumns[i].displayTotal) {
-                if (!reportObject.reportColumns[i].total) {
-                    reportObject.reportColumns[i].total = 0;
-                }
-                reportObject.reportColumns[i].total += val;
-                rowInfo.totalsRequired = true;
-            }
         }
     }
     return retval;
@@ -2100,7 +2127,7 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
     let cy = (reportObject.rect.height / rowInfo.ppi).toFixed(3);
     let headerHeight = (reportObject.headerHeight / rowInfo.ppi).toFixed(3);
     let dataRowHeight = (reportObject.dataRowHeight / rowInfo.ppi).toFixed(3);
-    let numRows = Math.floor((cy - headerHeight) / dataRowHeight);
+    let numRows = Math.floor(cy / dataRowHeight);
     if (!Array.isArray(rowInfo.rows)) {
         let obj = rowInfo.rows;
         rowInfo.rows = [];
@@ -2112,18 +2139,40 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + getDbDataRows(reportObject, rowInfo, numRows)
         + '</tbody>');
     
-    if ((rowInfo.currentRow >= rowInfo.rows.length) && rowInfo.totalsRequired) {
+    if (rowInfo.forcePageBreak || ((rowInfo.currentRow >= rowInfo.rows.length) && rowInfo.totalsRequired)) {
         if (rowInfo.pageRowsDisplayed < numRows) {
             retval += '<tr>'
-            for (let i = 0; i < reportObject.columnCount; ++i) {
-                let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
-                retval += ('<td/><div style="font-weight: strong; border-top: ' + reportObject.totalsSeparator + ';">');
-                if (reportObject.reportColumns[i].total) {
-                    retval += reportObject.reportColumns[i].total.toFixed(2);
-                } else {
-                    retval += '&nbsp;'
+            for (let i = 0; i < reportObject.reportColumns.length; ++i) {
+                if (reportObject.reportColumns[i].displayResult) {
+                    let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
+                    retval += ('<td/><div style="font-weight: strong; border-top: ' + reportObject.totalsSeparator + ';">');
+                    if (reportObject.reportColumns[i].total || reportObject.reportColumns[i].min || reportObject.reportColumns[i].max) {
+                        switch (reportObject.reportColumns[i].specialHandlingType) {
+                            case 'sum':
+                                retval += reportObject.reportColumns[i].total.toFixed(2);
+                                break;
+                            case 'avg':
+                                if (reportObject.reportColumns[i].count
+                                    && (reportObject.reportColumns[i].count > 0)) {
+                                    retval += Number(reportObject.reportColumns[i].total / reportObject.reportColumns[i].count).toFixed(2);
+                                }
+                                break;
+                            case 'max':
+                                if (reportObject.reportColumns[i].max) {
+                                    retval += reportObject.reportColumns[i].max.toFixed(2);
+                                }
+                                break;
+                            case 'min':
+                                if (reportObject.reportColumns[i].min) {
+                                    retval += reportObject.reportColumns[i].min.toFixed(2);
+                                }
+                                break;
+                        }
+                    } else {
+                        retval += '&nbsp;'
+                    }
+                    retval += '</div></td>';
                 }
-                retval += '</div></td>';
             }
     
             retval += '</tr>';
@@ -2151,13 +2200,6 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
     let crow = Math.min(rowInfo.currentRow, rowInfo.rows.length-1);
     let val = getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]);
     retval += ('<div>' + val + '</div></div>');
-    
-    if (val && reportObject.displayTotal) {
-        if (!reportObject.total) {
-            reportObject.total = 0;
-        }
-        reportObject.total += val;
-    }
     
     rowInfo.incrementRowRequired = true;
     if ((Number(reportObject.displayFormat) === 4)
