@@ -1857,14 +1857,16 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
 
 function getDbDataHeader(reportObject, rowInfo) {
     let retval = '';
-    for (let i = 0; i < reportObject.columnCount; ++i) {
-        let nm = rowInfo.columnMap.get(reportObject.reportColumns[i].key).name;
-        let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
-        retval += ('<th style="width: '
-            + width
-            + '"><div>'
-            + nm
-            + '</div></th>');
+    for (let i = 0; i < reportObject.reportColumns.length; ++i) {
+        if (reportObject.reportColumns[i].displayResult) {
+            let nm = rowInfo.columnMap.get(reportObject.reportColumns[i].key).name;
+            let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
+            retval += ('<th style="width: '
+                + width
+                + '"><div>'
+                + nm
+                + '</div></th>');
+        }
     }
     
     return retval;
@@ -1884,21 +1886,48 @@ function getDbDataRows(reportObject, rowInfo, numRows) {
 
 function getDbDataRowColumns(reportObject, rowInfo, data) {
     let retval = '';
-    for (let i = 0; i < reportObject.columnCount; ++i) {
-        let path = rowInfo.columnMap.get(reportObject.reportColumns[i].key).path;
-        let val = getDbDataByPath(path, data);
-        retval += ('<td><div>'
-            + val
-            + '</div></td>');
-        
-        if (val && reportObject.reportColumns[i].displayTotal) {
-            if (!reportObject.reportColumns[i].total) {
-                reportObject.reportColumns[i].total = 0;
+    for (let i = 0; i < reportObject.reportColumns.length; ++i) {
+        if (reportObject.reportColumns[i].displayResult) {
+            let path = rowInfo.columnMap.get(reportObject.reportColumns[i].key).path;
+            let val = getDbDataByPath(path, data);
+            retval += '<td><div>'
+            if (reportObject.reportColumns[i].specialHandlingType
+                && reportObject.reportColumns[i].specialHandlingType !== 'none') {
+                switch (reportObject.reportColumns[i].specialHandlingType) {
+                    case 'email':
+                        retval += '<a href="mailto:'
+                            + val
+                            + '" target="_blank">'
+                            + val
+                            + '</a>'
+                        break;
+                    case 'link':
+                        retval += '<a href="'
+                            + val
+                            + '" target="_blank">'
+                            + val
+                            + '</a>'
+                        break;
+                    case 'image':
+                        retval += '<img style="width: auto; height: auto; max-width: 100%; max-height: 100%" src="'
+                            + val
+                            + '"/>';
+                        break;
+                }
+            } else {
+                retval += val
             }
-            reportObject.reportColumns[i].total += val;
-            rowInfo.totalsRequired = true;
+    
+            retval += '</div></td>';
+    
+            if (val && reportObject.reportColumns[i].displayTotal) {
+                if (!reportObject.reportColumns[i].total) {
+                    reportObject.reportColumns[i].total = 0;
+                }
+                reportObject.reportColumns[i].total += val;
+                rowInfo.totalsRequired = true;
+            }
         }
-        
     }
     return retval;
 }
@@ -2007,7 +2036,7 @@ function getEmailHtml(yOffset, reportObject, rowInfo) {
     if (!reportObject.emailText) {
         reportObject.emailText = reportObject.email;
     }
-    retval += ('<a href="mailto:' + reportObject.email + '">' + reportObject.emailText + '</a></div>');
+    retval += ('<a href="mailto:' + reportObject.email + '" target="_blank">' + reportObject.emailText + '</a></div>');
     return retval;
 }
 
