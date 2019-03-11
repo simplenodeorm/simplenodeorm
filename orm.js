@@ -158,8 +158,8 @@ function loadModelFiles(dir, modelFiles) {
 
 function startRestServer() {
     logger.logInfo('starting ' + APP_NAME + ' REST server...');
-    server.use(bodyParser.urlencoded({extended: false}));
-    server.use(bodyParser.json());
+    server.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
+    server.use(bodyParser.json({limit: '5MB'} ));
     server.use(cors());
 
     // plug authentication in here
@@ -1929,7 +1929,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                     case 'max':
                         if (!reportObject.reportColumns[i].max
                             || (reportObject.reportColumns[i].max < val)) {
-                            if (reportObject.reportColumns[i].precision) {
+                            if (reportObject.reportColumns[i].precision && val) {
                                 reportObject.reportColumns[i].max
                                     = val.toFixed(reportObject.reportColumns[i].precision);
                             } else {
@@ -1941,7 +1941,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                     case 'min':
                         if (!reportObject.reportColumns[i].min
                             || (reportObject.reportColumns[i].min > val)) {
-                            if (reportObject.reportColumns[i].precision) {
+                            if (reportObject.reportColumns[i].precision && val) {
                                 reportObject.reportColumns[i].min
                                     = val.toFixed(reportObject.reportColumns[i].precision);
                             } else {
@@ -2173,12 +2173,20 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
                                 break;
                             case 'max':
                                 if (reportObject.reportColumns[i].max) {
-                                    retval += reportObject.reportColumns[i].max.toFixed(2);
+                                    if (reportObject.reportColumns[i].precision) {
+                                        retval += Number(reportObject.reportColumns[i].max).toFixed(reportObject.reportColumns[i].precision);
+                                    } else {
+                                        retval += reportObject.reportColumns[i].max;
+                                    }
                                 }
                                 break;
                             case 'min':
                                 if (reportObject.reportColumns[i].min) {
-                                    retval += reportObject.reportColumns[i].min.toFixed(2);
+                                    if (reportObject.reportColumns[i].precision) {
+                                        retval += Number(reportObject.reportColumns[i].min).toFixed(reportObject.reportColumns[i].precision);
+                                    } else {
+                                        retval += reportObject.reportColumns[i].min;
+                                    }
                                 }
                                 break;
                         }
