@@ -1929,14 +1929,24 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                     case 'max':
                         if (!reportObject.reportColumns[i].max
                             || (reportObject.reportColumns[i].max < val)) {
-                            reportObject.reportColumns[i].max = val;
+                            if (reportObject.reportColumns[i].precision) {
+                                reportObject.reportColumns[i].max
+                                    = val.toFixed(reportObject.reportColumns[i].precision);
+                            } else {
+                                reportObject.reportColumns[i].max = val;
+                            }
                         }
                         rowInfo.totalsRequired = true;
                         break;
                     case 'min':
                         if (!reportObject.reportColumns[i].min
                             || (reportObject.reportColumns[i].min > val)) {
-                            reportObject.reportColumns[i].min = val;
+                            if (reportObject.reportColumns[i].precision) {
+                                reportObject.reportColumns[i].min
+                                    = val.toFixed(reportObject.reportColumns[i].precision);
+                            } else {
+                                reportObject.reportColumns[i].min = val;
+                            }
                         }
                         rowInfo.totalsRequired = true;
                         break;
@@ -1945,7 +1955,11 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
             
             if (val) {
                 if (reportObject.reportColumns[i].isNumeric) {
-                    retval += val.toFixed(2);
+                    if (reportObject.reportColumns[i].precision) {
+                        retval += val.toFixed(reportObject.reportColumns[i].precision);
+                    } else {
+                        retval += val;
+                    }
                 } else {
                     retval += val;
                 }
