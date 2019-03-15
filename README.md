@@ -1,16 +1,13 @@
 Simple Oracle ORM framework for Node.js.
 
 Documentation:
-http://simplenodeorm.org/wp-content/uploads/2018/11/simplenodeorm.pdf
+http://simplenodeorm.org/wp-content/uploads/2019/03/simplenodeorm.pdf
 
 Source:
 https://github.com/rbtucker/simplenodeorm
 
 Demo:
-http://35.227.159.75/
-
-Demo Database:
-docker run -d -p 8080:8080 -p 1521:1521 rbtucker16/hrdemo
+http://simplenodeorm.org
 
 Requirements:
 1. ensure node.js 10.5 or above installed
