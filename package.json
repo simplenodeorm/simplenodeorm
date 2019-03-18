@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A simple Node.js ORM for oracle",
   "main": "./orm.js",
   "repository": {
@@ -21,7 +21,7 @@
     "express-session": ">=1.15.6",
     "fs-path": ">=0.0.24",
     "jsonpath-plus": "^0.18.0",
-    "oracledb": ">=2.2",
+    "oracledb": "^3.1.2",
     "properties-reader": ">=0.0.16",
     "uuid": ">=3.2.1",
     "winston": ">=2.4"

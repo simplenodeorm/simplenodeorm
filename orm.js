@@ -65,7 +65,7 @@ function loadOrm() {
     Object.freeze(repositoryMap);
     
     logger.logInfo(APP_NAME + " loaded ");
-};
+}
 
 // export some of the constants for use in other modules
 module.exports.APP_NAME = APP_NAME;
@@ -106,7 +106,7 @@ function getModelNameFromPath(path) {
 
 function loadOrmDefinitions() {
     logger.logInfo("loading orm definitions...");
-    let modelFiles = new Array();
+    let modelFiles = [];
     loadModelFiles("./model", modelFiles);
     let indx = 1;
 
@@ -139,9 +139,7 @@ function loadOrmDefinitions() {
     }
 
     logger.logInfo("orm definitions loaded");
-};
-
-
+}
 
 function loadModelFiles(dir, modelFiles) {
     let files = fs.readdirSync(dir);
@@ -342,12 +340,27 @@ function startRestServer() {
         try {
             let report = loadReport(req.params.docid);
             let query = loadQueryDocument(report.document.queryDocumentId);
-            let requiredInputs = getRequiredInputFields(query.document);
-            // see if we need user input
-            if (requiredInputs.length > 0) {
-                res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
+            let authorizer;
+            try {
+                logger.logInfo('authorizer: ' + report.authenticator);
+                let Authenticator = require('./auth/' + report.authenticator + '.js');
+                authorizer = new Authenticator();
+            }
+    
+            catch(e) {
+            }
+    
+            if (!authorizer || !authorizer.checkAuthorization(req)) {
+                logger.logInfo('unauthorized access attempted');
+                res.status(401).send('unauthorized');
             } else {
-                res.status(200).send(await generateReport(report, query));
+                let requiredInputs = getRequiredInputFields(query.document);
+                // see if we need user input
+                if (requiredInputs.length > 0) {
+                    res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
+                } else {
+                    res.status(200).send(await generateReport(report, query));
+                }
             }
         } catch (e) {
             logger.logError('error occured while running report ' + req.params.docid, e);
@@ -430,7 +443,7 @@ function startRestServer() {
 
             for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
                 let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
-                let label = qdoc.document.selectedColumns[i].__columnLabel;
+                let label = qdoc.document.selectedColumns[i].label;
                 if (!label) {
                     label = fld.fieldName;
                 }
@@ -456,8 +469,7 @@ function startRestServer() {
         let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
         if (repo && repo.metaData) {
-            let pathset = new Set();
-            let data = new Object();
+            let data = {};
             data.key = 't0';
             data.title = modelname;
             loadModelData(data, repo.metaData, [], '', false);
@@ -527,7 +539,7 @@ function startRestServer() {
             }
         }
 
-        let params = new Array();
+        let params = [];
         let pk = md.getPrimaryKeyFields();
         let fields = md.getFields();
 
@@ -698,7 +710,7 @@ function startRestServer() {
         } else if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
-            let f;
+            let result;
             switch (req.params.method.toLowerCase()) {
                 case util.SAVE.toLowerCase():
                     result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
@@ -743,6 +755,7 @@ function startRestServer() {
         } else if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
+            let result;
             switch (req.params.method.toLowerCase()) {
                 case util.DELETE.toLowerCase():
                     result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
@@ -777,7 +790,7 @@ function populateWhereFromRequestInput(input) {
             input = JSON.parse(input);
         }
 
-        let retval = new Array();
+        let retval = [];
 
         for (let i = 0; i < input.length; ++i) {
             let wc = require('./main/WhereComparison.js')();
@@ -797,7 +810,7 @@ function populateOrderByFromRequestInput(input) {
             input = JSON.parse(input);
         }
 
-        let retval = new Array();
+        let retval = [];
 
         for (let i = 0; i < input.length; ++i) {
             let obe = require('./main/OrderByEntry.js')();
@@ -817,7 +830,7 @@ function populateModelObjectsFromRequestInput(input) {
             input = JSON.parse(input);
         }
 
-        let retval = new Array();
+        let retval = [];
 
         if (input.length > 0) {
 
@@ -847,7 +860,7 @@ function populateOptionsFromRequestInput(input) {
 }
 
 async function createTablesIfRequired() {
-    let newTableRepos = new Array();
+    let newTableRepos = [];
     logger.logInfo('in createTablesIfRequired()');
 
     let keys = Array.from(repositoryMap.keys());
@@ -873,7 +886,7 @@ async function createTablesIfRequired() {
 function loadModelData(data, md, refs, path, child) {
     data.objectName = md.objectName;
     data.tableName = md.tableName;
-    data.children = new Array();
+    data.children = [];
 
     for (let i = 0; i < md.fields.length; ++i) {
         let f = Object.assign({}, md.fields[i]);
@@ -900,7 +913,7 @@ function loadModelData(data, md, refs, path, child) {
                         newpath = md.manyToOneDefinitions[i].fieldName;
                     }
                     if (repo) {
-                        let def = new Object();
+                        let def = {};
                         def.key = getUniqueKey();
                         def.__path__ = newpath;
                         def.__type__ = 'mto';
@@ -932,7 +945,7 @@ function loadModelData(data, md, refs, path, child) {
                         newpath = md.oneToOneDefinitions[i].fieldName;
                     }
                     if (repo) {
-                        let def = new Object();
+                        let def = {};
                         def.key = getUniqueKey();
                         def.__path__ = newpath;
                         def.__type__ = 'oto';
@@ -966,7 +979,7 @@ function loadModelData(data, md, refs, path, child) {
                     }
 
                     if (repo) {
-                        let def = new Object();
+                        let def = {};
                         def.__path__ = newpath;
                         def.__type__ = 'otm';
                         def.key = getUniqueKey();
@@ -1010,7 +1023,7 @@ function getUniqueKey() {
 
 function buildQueryDocumentSql(queryDocument) {
     let relationshipTree = loadRelationshipTree(queryDocument.document);
-    let joins = new Array();
+    let joins = [];
     let joinset = new Set();
     let aliasMap = new Map();
     for (let i = 0; i < relationshipTree.length; ++i) {
@@ -1209,7 +1222,7 @@ function buildQueryDocumentSql(queryDocument) {
 }
 
 function getOrderByColumns(selectedColumns) {
-    let retval = new Array();
+    let retval = [];
 
     for (let i = 0; i < selectedColumns.length; ++i) {
         if (selectedColumns[i].sortPosition) {
@@ -1240,10 +1253,10 @@ function requiresGroupBy(selectedColumns) {
 }
 
 function loadRelationshipTree(queryDocument) {
-    let retval = new Array();
+    let retval = [];
     let paths = getDistinctJoinPaths(queryDocument.selectedColumns);
     for (let i = 0; i < paths.length; ++i) {
-        let l = new Array();
+        let l = [];
         retval.push(l);
         loadRelationships(queryDocument.rootModel, paths[i], l);
     }
@@ -1272,7 +1285,7 @@ function loadRelationships(model, path, rlist) {
 }
 
 function getDistinctJoinPaths(selectedColumns) {
-    let retval = new Array();
+    let retval = [];
     let pset = new Set();
 
     for (let i = 0; i < selectedColumns.length; ++i) {
@@ -1334,12 +1347,12 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 }
 
 function loadQueryDocuments() {
-    let retval = new Object();
+    let retval = {};
     let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
         let files = fs.readdirSync(appConfiguration.queryDocumentRoot + path.sep + groups[i]);
-        retval[groups[i]] = new Array();
+        retval[groups[i]] = [];
         for (let j = 0; j < files.length; ++j) {
             if (files[j].endsWith('.json')) {
                 retval[groups[i]].push(files[j]);
@@ -1359,12 +1372,12 @@ function loadQueryDocuments() {
 }
 
 function loadReportDocuments() {
-    let retval = new Object();
+    let retval = {};
     let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
         let files = fs.readdirSync(appConfiguration.reportDocumentRoot + path.sep + groups[i]);
-        retval[groups[i]] = new Array();
+        retval[groups[i]] = [];
         for (let j = 0; j < files.length; ++j) {
             if (files[j].endsWith('.json')) {
                 retval[groups[i]].push(files[j]);
@@ -1492,7 +1505,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
     for (let i = 0; i < doc.document.selectedColumns.length; ++i) {
         let pos = positionMap.get(doc.document.selectedColumns[i].alias);
         if (util.isUndefined(pos)) {
-            pos = new Array();
+            pos = [];
             positionMap.set(doc.document.selectedColumns[i].alias, pos);
             aliasList.push(doc.document.selectedColumns[i].alias);
         }
@@ -1512,7 +1525,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
                 keySet.add(pkfields.fieldName);
             }
 
-            let keyPositions = new Array();
+            let keyPositions = [];
             for (let i = 0; i < value.length; ++i) {
                 let fieldName = doc.document.selectedColumns[value[i]].path.substring(doc.document.selectedColumns[value[i]].path.lastIndexOf('.'));
 
@@ -1541,7 +1554,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
 
         if (!lastKey || (lastKey !== key)) {
             lastKeyMap.set('t0', key);
-            let model = new Object();
+            let model = {};
             model.__model__ = doc.document.rootModel;
             retval.push(model);
             
@@ -1584,7 +1597,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
                         let modelName = curmodel.__model__;
                         let ref = repositoryMap.get(modelName.toLowerCase()).getMetaData().findRelationshipByName(pathParts[k]);
                         if (util.isUndefined(curmodel[ref.fieldName]) || (curmodel[ref.fieldName].length === 0)) {
-                            let obj = new Object();
+                            let obj = {};
                             obj.__model__ = ref.targetModelName;
                             switch(ref.type) {
                                 case 1:
@@ -1592,7 +1605,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
                                     break;
                                 case 2:
                                 case 3:
-                                    curmodel[ref.fieldName] = new Array();
+                                    curmodel[ref.fieldName] = [];
                                     curmodel[ref.fieldName].push(obj);
                                     break;
                             }
@@ -1705,7 +1718,6 @@ async function generateReport(report, query, parameters) {
         let headerObjects = [];
         let bodyObjects = [];
         let footerObjects = [];
-        let pageBreakObject;
         let columnMap = new Map();
         
         if (report.document.reportColumns) {
@@ -1825,7 +1837,7 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             retval = getDbDataHtml(yOffset, reportObject, rowInfo);
             break;
         case 'dbcol':
-            retval = getDbColumnHtml(yOffset, reportObject, rowInfo)
+            retval = getDbColumnHtml(yOffset, reportObject, rowInfo);
             break;
         case 'current date':
             retval = getCurrentDateHtml(yOffset, reportObject, rowInfo);
@@ -1860,7 +1872,7 @@ function getDbDataHeader(reportObject, rowInfo) {
     for (let i = 0; i < reportObject.reportColumns.length; ++i) {
         if (reportObject.reportColumns[i].displayResult) {
             let nm = rowInfo.columnMap.get(reportObject.reportColumns[i].key).name;
-            let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
+            let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;';
             retval += ('<th style="width: '
                 + width
                 + '"><div>'
@@ -1870,7 +1882,7 @@ function getDbDataHeader(reportObject, rowInfo) {
     }
     
     return retval;
-};
+}
 
 function getDbDataRows(reportObject, rowInfo, numRows) {
     let retval = '';
@@ -1882,7 +1894,7 @@ function getDbDataRows(reportObject, rowInfo, numRows) {
         rowInfo.pageRowsDisplayed++;
     }
     return retval;
-};
+}
 
 function getDbDataRowColumns(reportObject, rowInfo, data) {
     let retval = '';
@@ -1890,7 +1902,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
         if (reportObject.reportColumns[i].displayResult) {
             let path = rowInfo.columnMap.get(reportObject.reportColumns[i].key).path;
             let val = getDbDataByPath(path, data);
-            retval += '<td><div>'
+            retval += '<td><div>';
             if (reportObject.reportColumns[i].specialHandlingType
                 && reportObject.reportColumns[i].specialHandlingType !== 'none') {
                 switch (reportObject.reportColumns[i].specialHandlingType) {
@@ -1974,7 +1986,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
 }
 
 function getDbDataByPath(path, rowData) {
-    function index(obj,i) {if (obj) { return obj[i]; } else { return '';}};
+    function index(obj,i) {if (obj) { return obj[i]; } else { return '';}}
     return path.split('.').reduce(index, rowData);
 }
 
@@ -1996,7 +2008,7 @@ function getReportObjectStyle(yOffset, reportObject, rowInfo) {
 
 function getLabelHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
@@ -2008,7 +2020,7 @@ function getLabelHtml(yOffset, reportObject, rowInfo) {
 
 function getShapeHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
@@ -2020,7 +2032,7 @@ function getShapeHtml(yOffset, reportObject, rowInfo) {
 
 function getImageHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     let style;
     if (!reportObject.sizeToContent) {
         if (!reportObject.retainAspect) {
@@ -2056,7 +2068,7 @@ function getImageHtml(yOffset, reportObject, rowInfo) {
 
 function getLinkHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="z-index: 1; '
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
@@ -2068,7 +2080,7 @@ function getLinkHtml(yOffset, reportObject, rowInfo) {
 
 function getEmailHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="z-index: 1; '
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
@@ -2120,7 +2132,7 @@ function formatDate(dt, format) {
 
 function getPageNumberHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
@@ -2132,14 +2144,13 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
 
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
     + '" class="' + cname + '">';
     
     let cy = (reportObject.rect.height / rowInfo.ppi).toFixed(3);
-    let headerHeight = (reportObject.headerHeight / rowInfo.ppi).toFixed(3);
     let dataRowHeight = (reportObject.dataRowHeight / rowInfo.ppi).toFixed(3);
     let numRows = Math.floor(cy / dataRowHeight);
     if (!Array.isArray(rowInfo.rows)) {
@@ -2155,11 +2166,10 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
     
     if (rowInfo.forcePageBreak || ((rowInfo.currentRow >= rowInfo.rows.length) && rowInfo.totalsRequired)) {
         if (rowInfo.pageRowsDisplayed < numRows) {
-            retval += '<tr>'
+            retval += '<tr>';
             for (let i = 0; i < reportObject.reportColumns.length; ++i) {
                 if (reportObject.reportColumns[i].displayResult) {
-                    let width = (reportObject.reportColumns[i].width / rowInfo.ppi).toFixed(3) + 'in;'
-                    retval += ('<td/><div style="font-weight: strong; border-top: ' + reportObject.totalsSeparator + ';">');
+                    retval += ('<td/><div style="font-weight: bold; border-top: ' + reportObject.totalsSeparator + ';">');
                     if (reportObject.reportColumns[i].total || reportObject.reportColumns[i].min || reportObject.reportColumns[i].max) {
                         switch (reportObject.reportColumns[i].specialHandlingType) {
                             case 'sum':
@@ -2202,7 +2212,7 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
             rowInfo.forcePageBreak = true;
         }
     }
-    retval += '</table></div>'
+    retval += '</table></div>';
     if ((Number(reportObject.displayFormat) === 2)
         && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
