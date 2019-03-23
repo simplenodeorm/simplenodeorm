@@ -13,7 +13,19 @@
 		"retryInterval": 500,
 		"runValidationSQL": true, 
 		"validationSQL": "alter session set current_schema=HR"
-	}]
+	},
+	{
+		"dbtype": "mysql",
+		"host": "localhost",
+		"user": "root",
+		"poolAlias": "empl",
+		"password": "root",
+		"database": "employees",
+		"supportBigNumbers": true,
+		"waitForConnections": true,
+		"connectionLimit": 20
+	}
+	]
 }
 
 

@@ -39,7 +39,14 @@ module.exports.run = async function(orm) {
 
         finally {
             if (conn) {
-                await conn.close();
+                switch(conn.__mytype) {
+                    case 'oracle':
+                        await conn.close();
+                        break;
+                    case 'mysql':
+                        await conn.release();
+                        break;
+                }
             }
         }
     }

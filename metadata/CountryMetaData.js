@@ -9,7 +9,7 @@ class CountryMetaData extends MetaData {
         'model/Country.js', // relative module path,
         'COUNTRIES', // table name
         [ // field definitions - order is important,
-          //selected data will be in this order, primary key fields shoud be first
+          //selected data will be in this order, primary key fields should be first
             { // 0
                 fieldName: "countryId",
                 type: "CHAR",

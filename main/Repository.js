@@ -1100,8 +1100,9 @@ module.exports = class Repository {
                 logger.logDebug('sql: ' + sql);
             }
 
-            let result = await conn.execute(sql, parameters, options);
-
+            let result = await this.executeDatabaseSpecificQuery(conn, sql, parameters, options);
+            
+            
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("result: " + util.toString(result));
             }
@@ -1123,11 +1124,51 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await conn.close();
+                this.closeDatabaseConnection(conn);
             }
         }
     }
     
+    async closeDatabaseConnection(conn) {
+        switch(conn.__mytype) {
+            case 'oracle':
+                await conn.close();
+                break;
+            case 'mysql':
+                await conn.release();
+                break;
+        }
+    }
+    
+    async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
+        let retval;
+        switch(conn.__mytype) {
+            case 'oracle':
+                retval = await conn.execute(sql, parameters, options);
+                break;
+            case 'mysql':
+                retval = await conn.query(sql, parameters, options);
+                break;
+        }
+        
+        return retval;
+    
+    }
+    
+    async executeDatabaseSpecificSql(conn, sql, parameters, options) {
+        let retval;
+        switch (conn.__mytype) {
+            case 'oracle':
+                retval = await conn.execute(sql, parameters, options);
+                break;
+            case 'mysql':
+                retval =  await conn.query(sql, parameters, options);
+                break;
+        }
+        
+        return retval;
+    }
+
     executeSqlQuerySync(sql, parameters, options) {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
@@ -1163,7 +1204,7 @@ module.exports = class Repository {
             sql = 'select distinct ' + sql.substring(7);
         }
         
-        let res = await this.executeSqlQuery(sql, parameters, options);   
+        let res = await this.executeSqlQuery(sql, parameters, options);
         if (util.isUndefined(res.error)) {
             let retval = [];
 
@@ -1247,9 +1288,9 @@ module.exports = class Repository {
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
             }
-
-            let res = await conn.execute(sql, parameters, options);
-            
+    
+            let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
+    
             return {rowsAffected: res.rowsAffected};
         }
 
@@ -1267,26 +1308,9 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await conn.close();
+                this.closeDatabaseConnection(conn);
             }
         }
-    }
-
-    executeSqlSync(sql, parameters, options) {
-        let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            resultWrapper.result = await repo.executeSql(sql, parameters, options);
-            })(resultWrapper, repo, sql, parameters);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.rowsAffected) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper.result;
     }
 
     /**
@@ -1925,7 +1949,6 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 }
 
                                 if (pk) {
-                                    let ta;
                                     let r = orm.getRepository(otodefs[j].targetModelName);
                                     let nm = r.getMetaData().getObjectName();
                                     let key = (nm + '-' + a + '-' + pk);

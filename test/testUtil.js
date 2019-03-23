@@ -3,8 +3,6 @@
 const fs = require('fs');
 const util = require("../main/util.js");
 const orm = require("../orm.js");
-const oracledb = require('oracledb');
-const assert = require('chai').assert;
 const logger = require('../main/Logger.js');
 
 module.exports.fillString = function(c, len) {
@@ -117,7 +115,14 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     finally {
         if (conn) {
-            await conn.close();
+            switch(conn.__mytype) {
+                case 'oracle':
+                    await conn.close();
+                    break;
+                case 'mysql':
+                    await conn.release();
+                    break;
+            }
         }
     }
 };
@@ -388,7 +393,14 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             finally {
                 await conn.rollback();
                 if (conn) {
-                    await conn.close();
+                    switch(conn.__mytype) {
+                        case 'oracle':
+                            await conn.close();
+                            break;
+                        case 'mysql':
+                            await conn.release();
+                            break;
+                    }
                 }
             }
         }
@@ -789,7 +801,14 @@ module.exports.testDelete = async function(repository, testResults) {
     
     finally {
         if (conn) {
-            await conn.close();
+            switch(conn.__mytype) {
+                case 'oracle':
+                    await conn.close();
+                    break;
+                case 'mysql':
+                    await conn.release();
+                    break;
+            }
         }
     }
 };
@@ -1025,7 +1044,16 @@ async function runQuery(poolAlias, sql, parameters, options) {
         }
 
         conn = await orm.getConnection(poolAlias);
-        let result = await conn.execute(sql, parameters, options);
+        let result;
+        switch(conn.__mytype) {
+            case 'oracle':
+                result = await conn.execute(sql, parameters, options);
+                break;
+            case 'mysql':
+                result = await conn.query(sql, parameters, options);
+                break;
+        }
+    
         return {result: result};
     }
 
@@ -1035,7 +1063,14 @@ async function runQuery(poolAlias, sql, parameters, options) {
 
     finally {
         if (conn) {
-            await conn.close();
+            switch(conn.__mytype) {
+                case 'oracle':
+                    await conn.close();
+                    break;
+                case 'mysql':
+                    await conn.release();
+                    break;
+            }
         }
     }
 }

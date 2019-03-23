@@ -1,6 +1,7 @@
 "use strict";
 
 const oracledb = require('oracledb');
+const mysqldb = require('promise-mysql');
 const fs = require('fs');
 const util = require('./main/util.js');
 const modelList = [];
@@ -31,7 +32,7 @@ const REST_SERVER_PORT = appConfiguration.restPort || 8888;
  
 // create an event emitter to signal when
 // connection pool is initialized
-var poolCreatedEmitter = new events.EventEmitter();
+const poolCreatedEmitter = new events.EventEmitter();
 poolCreatedEmitter.on('poolscreated', async function() { 
     loadOrm();
     
@@ -50,9 +51,10 @@ poolCreatedEmitter.on('poolscreated', async function() {
     }
 }); 
 
+const dbTypeMap = new Map();
 
 // setup database pool and fire off orm load
-require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration);
+require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
 
 function loadOrm() {
     logger.logInfo("loading " + APP_NAME + "...");
@@ -89,7 +91,19 @@ module.exports.getModelList = function () {
 };
 
 module.exports.getConnection = async function(poolAlias) {
-    return await oracledb.getConnection(poolAlias);
+    let retval;
+    switch(dbTypeMap.get(poolAlias)) {
+        case 'oracle':
+            retval = await oracledb.getConnection(poolAlias);
+            retval.__mytype = 'oracle';
+            break;
+        case 'mysql':
+            retval = await mysqldb.getConnection();
+            retval.__mytype = 'mysql';
+            break;
+    }
+    
+    return retval;
 };
 
 function getModelNameFromPath(path) {
@@ -2095,7 +2109,7 @@ function getEmailHtml(yOffset, reportObject, rowInfo) {
 
 function getCurrentDateHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
-        + '-' + reportObject.id
+        + '-' + reportObject.id;
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
