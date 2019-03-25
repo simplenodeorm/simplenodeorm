@@ -18,9 +18,9 @@
 		"dbtype": "mysql",
 		"host": "localhost",
 		"user": "root",
-		"poolAlias": "empl",
+		"poolAlias": "sakila",
 		"password": "root",
-		"database": "employees",
+		"database": "sakila",
 		"supportBigNumbers": true,
 		"waitForConnections": true,
 		"connectionLimit": 20
