@@ -97,3 +97,7 @@ class CustomerMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new CustomerMetaData();
+};

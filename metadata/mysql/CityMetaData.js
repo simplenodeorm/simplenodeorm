@@ -57,3 +57,7 @@ class CityMetaData extends MetaData {
             []); // many-to-one definitions
     }
 }
+
+module.exports = function() {
+    return new CityMetaData();
+};

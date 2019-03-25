@@ -69,3 +69,7 @@ class StoreMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new StoreMetaData();
+};

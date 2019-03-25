@@ -131,3 +131,7 @@ class FilmMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new FilmMetaData();
+};

@@ -64,3 +64,7 @@ class FilmCategoryMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new FilmCategoryMetaData();
+};

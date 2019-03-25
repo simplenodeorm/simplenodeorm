@@ -1,6 +1,6 @@
 {
     "stopTestsOnFailure" : false,
-    "testDbConfiguration" : "examples/hrdb.json",
+    "testDbConfiguration" : "examples/exampledb.json",
     "maxRowsForGetAll" : 50,
     "fieldsToIgnoreForUpdate" : ["startDate"]
 }

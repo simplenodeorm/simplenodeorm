@@ -98,3 +98,8 @@ class PaymentMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new PaymentMetaData();
+};
+

@@ -98,3 +98,7 @@ class RentalMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new RentalMetaData();
+};

@@ -1,6 +1,6 @@
 {
   "testMode" : true,
-  "dbConfiguration" : "examples/hrdb.json",
+  "dbConfiguration" : "examples/exampledb.json",
   "queryDocumentRoot" : "examples/hrdocs",
   "reportDocumentRoot" : "examples/hrreports",
   "defaultMaxJoinDepth" : 4,

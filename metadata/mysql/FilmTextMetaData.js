@@ -39,4 +39,9 @@ class FilmTextMetaData extends MetaData {
     
     }
 }
+
+module.exports = function() {
+    return new FilmTextMetaData();
+};
+
     

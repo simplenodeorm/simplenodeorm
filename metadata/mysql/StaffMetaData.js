@@ -117,3 +117,8 @@ class StaffMetaData extends MetaData {
     }
 }
 
+module.exports = function() {
+    return new StaffMetaData();
+};
+
+
