@@ -1,7 +1,6 @@
 "use strict";
 
 const oracledb = require('oracledb');
-const mysqldb = require('promise-mysql');
 const fs = require('fs');
 const util = require('./main/util.js');
 const modelList = [];
@@ -98,7 +97,8 @@ module.exports.getConnection = async function(poolAlias) {
             retval.__mytype = 'oracle';
             break;
         case 'mysql':
-            retval = await mysqldb.getConnection();
+            // little hack to pull the mysql pool
+            retval = await dbTypeMap.get(poolAlias + '.pool').getConnection();
             retval.__mytype = 'mysql';
             break;
     }
@@ -1935,7 +1935,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                             + '</a>';
                         break;
                     case 'image':
-                        val = '<img style="width: auto; height: auto; max-width: 100%; max-height: 100%" src="'
+                        val = '<img alt="" style="width: auto; height: auto; max-width: 100%; max-height: 100%" src="'
                             + val
                             + '"/>';
                         break;
