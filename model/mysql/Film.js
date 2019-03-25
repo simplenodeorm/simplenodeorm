@@ -42,6 +42,12 @@ class Film extends Model {
     
     getLastUpdate() { return this.getFieldValue("lastUpdate"); };
     setLastUpdate(value) { this.setFieldValue("lastUpdate", value); };
+    
+    getLanguage() { return this.getFieldValue("language"); };
+    setLanguage(value) { this.setFieldValue("language", value); };
+    
+    getOriginalLanguage() { return this.getFieldValue("originalLanguage"); };
+    setOriginalLanguage(value) { this.setFieldValue("originalLanguage", value); };
 }
 
 module.exports = function(metaData) {
