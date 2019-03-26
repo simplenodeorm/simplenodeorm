@@ -6,7 +6,7 @@ http://simplenodeorm.org/wp-content/uploads/2019/03/simplenodeorm.pdf
 Source:
 https://github.com/rbtucker/simplenodeorm
 
-Demo:
+Website:
 http://simplenodeorm.org
 
 Requirements:
