@@ -28,8 +28,8 @@ class Staff extends Model {
     getStoreId() { return this.getFieldValue("storeId"); }
     setStoreId(value) { this.setFieldValue("storeId", value); }
     
-    isActive() { return this.getFieldValue("active"); }
-    setActibe(value) { this.setFieldValue("active", value); }
+    getActive() { return this.getFieldValue("active"); }
+    setActive(value) { this.setFieldValue("active", value); }
     
     getUsername() { return this.getFieldValue("username"); }
     setUsername(value) { this.setFieldValue("username", value); }

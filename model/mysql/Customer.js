@@ -25,7 +25,7 @@ class Customer extends Model {
     getAddressId() { return this.getFieldValue("addressId"); }
     setAddressId(value) { this.setFieldValue("addressId", value); }
 
-    isActive() { return this.getFieldValue("active"); }
+    getActive() { return this.getFieldValue("active"); }
     setActive(value) { this.setFieldValue("active", value); }
 
     getCreateDate() { return this.getFieldValue("createDate"); }

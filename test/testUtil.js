@@ -25,7 +25,7 @@ module.exports.getSetFunctionName = function(field) {
 
 function getTestValue(field) {
     let testData;
-    let dbType = getDataType(field.type);
+    let dbType = getDataType(field.type.toUpperCase());
     switch(dbType) {
         case 'string':
             testData = 'N';
@@ -36,6 +36,9 @@ function getTestValue(field) {
             break;
         case 'date':
             testData = new Date();
+            break;
+        case 'boolean':
+            testData = true;
             break;
     }
 
@@ -77,19 +80,30 @@ module.exports.isLogInfoEnabled = function() {
 function getDataType(dbType) {
     let retval;
     if (util.isValidObject(dbType)) {
-        if (dbType.includes('VARCHAR') 
-            || dbType.includes('CHAR') 
+        if (dbType.includes('VARCHAR')
+            || dbType.includes('TEXT')
+            || dbType.includes('CHAR')
             || dbType.includes('CLOB')
+            || dbType.includes('ENUM')
+            || dbType.includes('SET')
             || dbType.includes('BLOB')) {
             retval = "string";
-        } else if (dbType.includes('DATE')) {
+        } else if (dbType.includes('DATE')
+            || dbType.includes('TIME')) {
             retval = 'date';
-        } else if (dbType.includes('NUMBER')) {
-            if (dbType.endsWith(", 0)")) {
+        } else if (dbType.includes('NUMBER')
+            || dbType.includes('INT')
+            || dbType.includes('YEAR')
+            || dbType.includes('DECIMAL')
+            || dbType.includes('FLOAT')) {
+            if (!dbType.includes('FLOAT') &&
+                (!dbType.includes('(') || dbType.endsWith(", 0)"))) {
                 retval = 'int';
             } else {
                 retval = 'float';
             }
+        } else if (dbType.includes('BOOL')) {
+            retval = 'boolean';
         }
     }
     

@@ -22,6 +22,9 @@ class Film extends Model {
     getLanguageId() { return this.getFieldValue("languageId"); }
     setLanguageId(value) { this.setFieldValue("languageId", value); }
     
+    getOriginalLanguageId() { return this.getFieldValue("originalLanguageId"); }
+    setOriginalLanguageId(value) { this.setFieldValue("originalLanguageId", value); }
+    
     getRentalDuration() { return this.getFieldValue("rentalDuration"); }
     setRentalDuration(value) { this.setFieldValue("rentalDuration", value); }
     

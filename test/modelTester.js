@@ -1,12 +1,11 @@
 "use strict";
 
-const util = require("../main/util.js");
 const testUtil = require("./testUtil.js");
 const assert = require('chai').assert;
 
 module.exports.test = function(model, metaData) {
     for (let i = 0; i < metaData.fields.length; ++i) {
-        testFieldDataHandlig(model, metaData, metaData.fields[i]);
+        testFieldDataHandling(model, metaData, metaData.fields[i]);
     }
     
     assert(model.isModified(), 'expected model to be modified but is not');
@@ -54,7 +53,7 @@ function testFieldConstraints(model, metaData, field) {
 }
 
 
-function testFieldDataHandlig(model, metaData, field) {
+function testFieldDataHandling(model, metaData, field) {
     let testData = testUtil.getTestValue(field);
     let nm = testUtil.getSetFunctionName(field);
     model[nm](testData);

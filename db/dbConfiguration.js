@@ -21,27 +21,22 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
     let pdefs = JSON.parse(fs.readFileSync(securityPath));
     let haveOracle = false;
     for (let i = 0; i < pdefs.pools.length; ++i) {
-        let ok = false;
         let pool;
         switch(pdefs.pools[i].dbtype) {
             case 'oracle':
-                await oracledb.createPool(pdefs.pools[i]);
-                ok = true;
+                pool = await oracledb.createPool(pdefs.pools[i]);
                 haveOracle = true;
                 break;
             case 'mysql':
                 pool = mysqldb.createPool(pdefs.pools[i]);
-                ok = true;
                 break;
         }
 
 
-        if (ok) {
+        if (pool) {
             logger.logInfo("    " + pdefs.pools[i].poolAlias + " connection pool created");
             dbTypeMap.set(pdefs.pools[i].poolAlias, pdefs.pools[i].dbtype);
-            if (pool) {
-                dbTypeMap.set(pdefs.pools[i].poolAlias + '.pool', pool);
-            }
+            dbTypeMap.set(pdefs.pools[i].poolAlias + '.pool', pool);
         } else {
             logger.logWarning('invalid dbtype: ' + pdefs.pools[i].dbtype)
         }

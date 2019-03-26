@@ -13,7 +13,7 @@ class FilmText extends Model {
     getTitle() { return this.getFieldValue("title"); }
     setTitle(value) { this.setFieldValue("title", value); }
     
-    getDecription() { return this.getFieldValue("description"); }
+    getDescription() { return this.getFieldValue("description"); }
     setDescription(value) { this.setFieldValue("description", value); }
 }
 

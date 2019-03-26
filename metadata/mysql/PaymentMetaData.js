@@ -44,7 +44,7 @@ class PaymentMetaData extends MetaData {
                 { // 5
                     fieldName: "paymentDate",
                     type: "DATETIME",
-                    columnName: "paymet_date",
+                    columnName: "payment_date",
                     required: true
                 },
                 { // 6

@@ -19,7 +19,7 @@ class StoreMetaData extends MetaData {
                     autoincrementGenerator: "LAST_INSERT_ID()"
                 },
                 { // 1
-                    fieldName: "managerSraffId",
+                    fieldName: "managerStaffId",
                     type: "TINYINT UNSIGNED",
                     columnName: "manager_staff_id",
                     required: true

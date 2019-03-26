@@ -27,10 +27,8 @@ class FilmTextMetaData extends MetaData {
                 { // 3
                     fieldName: "description",
                     type: "TEXT",
-                    lob: true,
-                    columnName: "last_update",
-                    required: true,
-                    defaultValue: "CURRENT_TIMESTAMP()"
+                    columnName: "description",
+                    required: true
                 }
             ],
             [], // one-to-one definitions

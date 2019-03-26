@@ -1,6 +1,5 @@
 "use strict";
 
-const oracledb = require('oracledb');
 const fs = require('fs');
 const util = require('./main/util.js');
 const modelList = [];
@@ -90,7 +89,10 @@ module.exports.getModelList = function () {
 };
 
 module.exports.getConnection = async function(poolAlias) {
-    let retval;
+    let retval = await dbTypeMap.get(poolAlias + '.pool').getConnection();
+    retval.mytype =  dbTypeMap.get(poolAlias);
+
+/*
     switch(dbTypeMap.get(poolAlias)) {
         case 'oracle':
             retval = await oracledb.getConnection(poolAlias);
@@ -102,6 +104,7 @@ module.exports.getConnection = async function(poolAlias) {
             retval.__mytype = 'mysql';
             break;
     }
+    */
     
     return retval;
 };

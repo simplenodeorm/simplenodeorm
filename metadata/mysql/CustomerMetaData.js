@@ -45,9 +45,9 @@ class CustomerMetaData extends MetaData {
                     columnName: "email"
                 },
                 { // 5
-                    fieldName: "address_id",
+                    fieldName: "addressId",
                     type: "SMALLINT UNSIGNED",
-                    columnName: "addressId",
+                    columnName: "address_id",
                     required: true
                 },
                 { // 6
