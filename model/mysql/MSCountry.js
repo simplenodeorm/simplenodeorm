@@ -2,7 +2,7 @@
 
 const Model = require('../../main/Model.js');
 
-class Country extends Model {
+class MSCountry extends Model {
     constructor(metaData) {
         super(metaData);
     }
@@ -18,5 +18,5 @@ class Country extends Model {
 }
 
 module.exports = function(metaData) {
-    return new Country(metaData);
+    return new MSCountry(metaData);
 };

@@ -2,5 +2,6 @@
     "stopTestsOnFailure" : false,
     "testDbConfiguration" : "examples/exampledb.json",
     "maxRowsForGetAll" : 50,
-    "fieldsToIgnoreForUpdate" : ["startDate"]
+    "fieldsToIgnoreForUpdate" : ["startDate"],
+    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate"]
 }

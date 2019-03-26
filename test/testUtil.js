@@ -115,14 +115,14 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     try {
         conn = await orm.getConnection(poolAlias);
-        let result = { rows: []};
+        let result = {};
         let dbType = orm.getDbType(poolAlias);
         switch(dbType) {
             case 'oracle':
                 result = await conn.execute(buildExampleSelect(modelDef, dbType, maxRows));
                 break;
             case 'mysql':
-                result.rows = await conn.query(buildExampleSelect(modelDef, dbType, maxRows));
+                result = util.convertObjectArrayToResultSet(await conn.query(buildExampleSelect(modelDef, dbType, maxRows)));
                 break;
         }
         
@@ -184,7 +184,7 @@ function buildExampleSelect(modelDef, dbType, maxRows) {
             break;
             
     }
-logger.logInfo(retval);
+
     return retval;
 }
 
@@ -902,42 +902,43 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
     let retval = false;
     let fields = modelObject.getFields();
     if (fields) {
-        let cmap = modelObject.getMetaData().getColumnToFieldMap();
-    
+        let cmap = orm.getMetaData(modelObject.__model__).getColumnToFieldMap();
         let failed = false;
         for (let i = 0; i < columnNames.length; ++i) {
             let field = cmap.get(columnNames[i].name);
-            let rd = rowData[i];
-            if (util.isDefined(field.converter)) {
-                rd = require('../converters/' + field.converter + '.js')(field, rd, true);
-            }
-            
-            let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
-
-            if (util.isNotValidObject(fv)) {
-                fv = null;
-            }
-
-            if (rd) {
-                if (rd instanceof Date) {
-                    rd = rd.getTime();
-                } else if (rd instanceof Object) { 
-                    rd = util.toString(rd);
+            if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(field.fieldName)) {
+                let rd = rowData[i];
+                if (util.isDefined(field.converter)) {
+                    rd = require('../converters/' + field.converter + '.js')(field, rd, true);
                 }
-            }
-            
-            if (fv) {
-                if (fv instanceof Date) {
-                    fv = fv.getTime();
-                } else if (fv instanceof Object) {
-                    fv = util.toString(fv);
+    
+                let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
+    
+                if (util.isNotValidObject(fv)) {
+                    fv = null;
                 }
-            }
-            
-            if (rd !== fv) {
-                failed = true;
-                testResults.push(require('./testStatus.js')(util.ERROR, '[' + columnNames[i].name + ']: ' + fv + ' != ' + rd, parentFunction + '.rowToModelMatch'));
-                break;
+    
+                if (rd) {
+                    if (rd instanceof Date) {
+                        rd = rd.getTime();
+                    } else if (rd instanceof Object) {
+                        rd = util.toString(rd);
+                    }
+                }
+    
+                if (fv) {
+                    if (fv instanceof Date) {
+                        fv = fv.getTime();
+                    } else if (fv instanceof Object) {
+                        fv = util.toString(fv);
+                    }
+                }
+    
+                if (rd !== fv) {
+                    failed = true;
+                    testResults.push(require('./testStatus.js')(util.ERROR, '[' + columnNames[i].name + ']: ' + fv + ' != ' + rd, parentFunction + '.rowToModelMatch'));
+                    break;
+                }
             }
         }
         

@@ -2,33 +2,34 @@
 
 var MetaData = require('../../main/MetaData.js').MetaData;
 
-class CityMetaData extends MetaData {
+class ActorMetaData extends MetaData {
     constructor() {
         super(
-            'City', // object name,
-            'model/mysql/City.js', // relative module path,
-            'city', // table name
+            'Actor', // object name,
+            'model/mysql/Actor.js', // relative module path,
+            'actor', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
                 { // 0
-                    fieldName: "cityId",
+                    fieldName: "actorId",
                     type: "SMALLINT UNSIGNED",
-                    columnName: "city_id",
+                    columnName: "actor_id",
                     required: true,
                     primaryKey: true,
                     autoincrementGenerator: "LAST_INSERT_ID()"
                 },
                 { // 1
-                    fieldName: "city",
+                    fieldName: "firstName",
                     type: "VARCHAR",
-                    length: 50,
-                    columnName: "city",
+                    length: 45,
+                    columnName: "first_name",
                     required: true
                 },
                 { // 2
-                    fieldName: "countryId",
-                    type: "SMALLINT UNSIGNED",
-                    columnName: "country_id",
+                    fieldName: "lastName",
+                    type: "VARCHAR",
+                    length: 45,
+                    columnName: "last_name",
                     required: true
                 },
                 { // 3
@@ -39,25 +40,13 @@ class CityMetaData extends MetaData {
                     defaultValue: "CURRENT_TIMESTAMP()"
                 }
             ],
-            [ // one-to-one definitions
-                { // 0
-                    fieldName: "country",
-                    type: 1,
-                    targetModelName: "MSCountry",
-                    targetModule: "../model/mysql/MSCountry.js",
-                    targetTableName: "country",
-                    status: "enabled",
-                    joinColumns: {
-                        sourceColumns: "country_id",
-                        targetColumns: "country_id"
-                    }
-                }
-            ],
+            [],// one-to-one definitions
             [], // one-to-many definitions
             []); // many-to-one definitions
+    
     }
 }
 
 module.exports = function() {
-    return new CityMetaData();
+    return new ActorMetaData();
 };

@@ -194,11 +194,10 @@ module.exports = class Repository {
     async findOne(primaryKey, options) {
         options = checkOptions(options);
         let res =  await this.executeNamedDbOperation(util.FIND_ONE, primaryKey, options);
-        
         if (util.isDefined(res.result)) {
-            if (res.result.length > 0) {
-                return {result: res.result[0] };
-            } 
+            if (res.result && res.result.length > 0) {
+                return {result: res.result[0]};
+            }
         } else if (util.isDefined(res.error)) {
             return res;
         } 
@@ -208,9 +207,12 @@ module.exports = class Repository {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.findOne(primaryKey, options);
-            resultWrapper.result = result.result;
-            resultWrapper.error = result.error;
+            try {
+                let result = await repo.findOne(primaryKey, options);
+                
+                resultWrapper.result = result.result;
+                resultWrapper.error = result.error;
+            } catch (e) { resultWrapper.error = e;}
         })(resultWrapper, repo, primaryKey, options);
         
         let startTime = Date.now();
@@ -1147,7 +1149,7 @@ module.exports = class Repository {
                 retval = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                retval = await conn.query(sql.replace(/\"/g, "`"), parameters);
+                retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/\"/g, "`"), parameters));
                 break;
         }
         
@@ -1727,6 +1729,7 @@ module.exports = class Repository {
     buildWhereClause(whereComparisons) {
         let where = '';
         
+        let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < whereComparisons.length; ++i) {
             if (i > 0) {
                 where += (' ' + whereComparisons[i].getLogicalOperator() + ' ');
@@ -1741,13 +1744,20 @@ module.exports = class Repository {
             where += this.getColumnNameFromFieldName(fieldName);
             where += (' ' + whereComparisons[i].getComparisonOperator() + ' ');
             if (whereComparisons[i].getUseBindParams()) {
-                where += (':p' + (i+1));
+                switch(dbType) {
+                    case 'oracle':
+                        where += (':p' + (i+1));
+                        break;
+                    case 'mysql':
+                        where += ' ?';
+                        break;
+                }
             } else {
                 where += whereComparisons[i].getComparisonValue();
             }
             where += whereComparisons[i].getCloseParen();
         }
-        
+
         return where;
     }
     
@@ -1762,13 +1772,24 @@ module.exports = class Repository {
         } else {
             onm = this.metaData.getObjectName();
         }
-        let sql = ("select " + onm + " o from " + onm + " where ");
+        let sql = ('select ' + onm + ' o from ' + onm + ' where ');
 
-        let and = "";
+        let dbType = orm.getDbType(this.poolAlias);
+        let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + "o." +  pkfields[i].fieldName + " = :" + pkfields[i].fieldName);
-            and = " and ";
+            sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
+            
+            switch(dbType) {
+                case 'oracle':
+                    sql += (':' + pkfields[i].fieldName);
+                    break;
+                case 'mysql':
+                    sql += ' ?';
+                    break;
+                
+            }
+            and = ' and ';
         }
 
         return sql;
@@ -1780,13 +1801,13 @@ module.exports = class Repository {
      */
     buildGetAllNamedOperation() {
         let onm = this.metaData.getObjectName();
-        let sql = ("select " + onm + " o from " + onm + " order by  ");
+        let sql = ('select ' + onm + ' o from ' + onm + ' order by  ');
 
-        let comma = "";
+        let comma = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (comma + "o." +  pkfields[i].fieldName);
-            comma = ",";
+            sql += (comma + 'o.' +  pkfields[i].fieldName);
+            comma = ',';
         }
 
         return sql;
@@ -1796,10 +1817,20 @@ module.exports = class Repository {
         let onm = this.metaData.getObjectName();
         let sql = ('delete from ' + onm + ' o where  ');
 
+        let dbType = orm.getDbType(this.poolAlias);
         let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + 'o.' +  pkfields[i].fieldName + ' = :' + pkfields[i].fieldName);
+            sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
+            switch(dbType) {
+                case 'oracle':
+                    sql += (':' + pkfields[i].fieldName);
+                    break;
+                case 'mysql':
+                    sql += ' ?';
+                    break;
+        
+            }
             and = ' and ';
         }
 

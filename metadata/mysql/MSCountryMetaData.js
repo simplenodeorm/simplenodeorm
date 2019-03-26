@@ -2,11 +2,11 @@
 
 var MetaData = require('../../main/MetaData.js').MetaData;
 
-class CountryMetaData extends MetaData {
+class MSCountryMetaData extends MetaData {
     constructor() {
         super(
-            'Country', // object name,
-            'model/mysql/Country.js', // relative module path,
+            'MSCountry', // object name,
+            'model/mysql/MSCountry.js', // relative module path,
             'country', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
@@ -39,5 +39,5 @@ class CountryMetaData extends MetaData {
 }
 
 module.exports = function() {
-    return new CountryMetaData();
+    return new MSCountryMetaData();
 };

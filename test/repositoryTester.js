@@ -90,6 +90,7 @@ async function testFindOne(repository,  testResults) {
         } else if (util.isDefined(result.result)) {
             let pkfields = repository.getMetaData().getPrimaryKeyFields();
             let params = [];
+            
             for (let i = 0; i < pkfields.length; ++i) {
                params.push(result.result.rows[0][i]);
             }

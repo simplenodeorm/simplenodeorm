@@ -3,7 +3,7 @@
 const poolAlias = 'sakila';
 const Repository = require('../../main/Repository.js');
 
-class CountryRepository extends Repository {
+class ActorRepository extends Repository {
     constructor(metaData) {
         super(poolAlias, metaData);
     };
@@ -17,5 +17,5 @@ class CountryRepository extends Repository {
 }
 
 module.exports = function(metaData) {
-    return new CountryRepository(metaData);
+    return new ActorRepository(metaData);
 };
