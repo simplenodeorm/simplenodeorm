@@ -73,6 +73,7 @@ class CustomerMetaData extends MetaData {
                     targetModule: "../model/mysql/Address.js",
                     targetTableName: "address",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "address_id",
                         targetColumns: "address_id"
@@ -85,6 +86,7 @@ class CustomerMetaData extends MetaData {
                     targetModule: "../model/mysql/Store.js",
                     targetTableName: "store",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "store_id",
                         targetColumns: "store_id"

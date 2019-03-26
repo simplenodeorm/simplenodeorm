@@ -47,6 +47,7 @@ class CityMetaData extends MetaData {
                     targetModule: "../model/mysql/MSCountry.js",
                     targetTableName: "country",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "country_id",
                         targetColumns: "country_id"

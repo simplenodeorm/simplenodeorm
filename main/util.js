@@ -242,7 +242,13 @@ module.exports.designJSONReplacer = function(key, value) {
 };
 
 module.exports.isQuoteRequired = function(field) {
-    return !field.type.includes('NUMBER');
+    let ft = field.type.toUpperCase();
+    return (!ft.includes('NUMBER')
+        && !ft.includes('INT')
+        && !ft.includes('DOUBLE')
+        && !ft.includes('DECIMAL')
+        && !ft.includes('BOOLEAN')
+        && !ft.includes( 'YEAR'));
 };
 
 module.exports.convertObjectArrayToResultSet = function(results) {

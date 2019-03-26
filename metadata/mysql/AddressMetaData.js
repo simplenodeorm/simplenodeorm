@@ -74,6 +74,7 @@ class AddressMetaData extends MetaData {
                     targetModule: "../model/mysql/City.js",
                     targetTableName: "city",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "city_id",
                         targetColumns: "city_id"

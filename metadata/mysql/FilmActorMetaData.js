@@ -40,6 +40,7 @@ class FilmActorMetaData extends MetaData {
                     targetModule: "../model/mysql/Actor.js",
                     targetTableName: "actor",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "actor_id",
                         targetColumns: "actor_id"

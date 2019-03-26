@@ -40,6 +40,7 @@ class FilmCategoryMetaData extends MetaData {
                     targetModule: "../model/mysql/Category.js",
                     targetTableName: "category",
                     status: "enabled",
+                    required: true,
                     joinColumns: {
                         sourceColumns: "category_id",
                         targetColumns: "category_id"

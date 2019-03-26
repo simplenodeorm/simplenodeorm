@@ -1205,11 +1205,9 @@ module.exports = class Repository {
         if (util.isDefined(options.distinct) && options.distinct) {
             sql = 'select distinct ' + sql.substring(7);
         }
-        
         let res = await this.executeSqlQuery(sql, parameters, options);
         if (util.isUndefined(res.error)) {
             let retval = [];
-
             // load column positions by alias if needed
             if (this.columnPositions[options.joinDepth].size === 0) {
                 for (let i = 0; i < this.selectedColumnFieldInfo[options.joinDepth].length; ++i) {
@@ -1473,6 +1471,7 @@ module.exports = class Repository {
     buildSelectClause(parentMetaData, tableAlias, currentDepth, joinDepth, checkSet) {
         // special case for depth 0 - just pull columns for table - no
         // joins
+        let dbType = orm.getDbType(this.poolAlias);
         if (joinDepth === 0) {
             let pfields = parentMetaData.getFields();
             let comma = "";
@@ -1480,6 +1479,7 @@ module.exports = class Repository {
                 this.selectClauses[joinDepth] += comma;
                 this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
                 this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+                
                 comma = ", ";
             }
         } else {
@@ -1497,7 +1497,15 @@ module.exports = class Repository {
                 if (!checkSet.has(f)) {
                     this.selectClauses[joinDepth] += comma;
                     this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
-                    this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+    
+                    let colsel = (tableAlias + "." + pfields[i].columnName);
+                    if (dbType === 'mysql') {
+                        colsel += (' as ' + tableAlias + "_" + pfields[i].columnName);
+                    }
+    
+    
+                    this.selectClauses[joinDepth] += colsel;
+
                     comma = ", ";
                     checkSet.add(f);
                 }
@@ -1913,7 +1921,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                         curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, new Date(result.rows[i][cpos[j]]), true));
                     } else {
-                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName,
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
                     }
                 }

@@ -904,8 +904,10 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
     if (fields) {
         let cmap = orm.getMetaData(modelObject.__model__).getColumnToFieldMap();
         let failed = false;
+
         for (let i = 0; i < columnNames.length; ++i) {
             let field = cmap.get(columnNames[i].name);
+
             if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(field.fieldName)) {
                 let rd = rowData[i];
                 if (util.isDefined(field.converter)) {
@@ -913,7 +915,6 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
                 }
     
                 let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
-    
                 if (util.isNotValidObject(fv)) {
                     fv = null;
                 }
