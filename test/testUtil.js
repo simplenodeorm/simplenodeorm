@@ -7,7 +7,7 @@ const logger = require('../main/Logger.js');
 
 module.exports.fillString = function(c, len) {
     let retval = '';
-    for (var i = 0; i < len; ++i) {
+    for (let i = 0; i < len; ++i) {
         retval += c;
     }
     
@@ -94,14 +94,14 @@ function getDataType(dbType) {
         } else if (dbType.includes('NUMBER')
             || dbType.includes('INT')
             || dbType.includes('YEAR')
-            || dbType.includes('DECIMAL')
-            || dbType.includes('FLOAT')) {
-            if (!dbType.includes('FLOAT') &&
-                (!dbType.includes('(') || dbType.endsWith(", 0)"))) {
+            || dbType.includes('DECIMAL')) {
+            if (!dbType.includes('(') || dbType.endsWith(", 0)")) {
                 retval = 'int';
             } else {
                 retval = 'float';
             }
+        } else if (dbType.includes('FLOAT') ||  dbType.includes('DOUBLE'))     {
+            retval = 'float';
         } else if (dbType.includes('BOOL')) {
             retval = 'boolean';
         }
@@ -115,7 +115,17 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     try {
         conn = await orm.getConnection(poolAlias);
-        let result = await conn.execute(buildExampleSelect(modelDef, maxRows));
+        let result = { rows: []};
+        let dbType = orm.getDbType(poolAlias);
+        switch(dbType) {
+            case 'oracle':
+                result = await conn.execute(buildExampleSelect(modelDef, dbType, maxRows));
+                break;
+            case 'mysql':
+                result.rows = await conn.query(buildExampleSelect(modelDef, dbType, maxRows));
+                break;
+        }
+        
         if (util.isUndefined(result.rows) || (result.rows.length === 0)) {
             return {nodata: true};
         } else {
@@ -129,7 +139,7 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     finally {
         if (conn) {
-            switch(conn.__mytype) {
+            switch(orm.getDbType(poolAlias)) {
                 case 'oracle':
                     await conn.close();
                     break;
@@ -141,8 +151,8 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
     }
 };
 
-function buildExampleSelect(modelDef, maxRows) {
-    var retval = "select ";
+function buildExampleSelect(modelDef, dbType, maxRows) {
+    let retval = "select ";
     if (util.isUndefined(modelDef)) { 
         util.throwError("UndefinedModelDefinition", 'Undefined model definition passed to method');
 
@@ -156,15 +166,25 @@ function buildExampleSelect(modelDef, maxRows) {
         maxRows++;
     }
 
-    var comma = "";
-    var fields = modelDef.getFields();
-    for (var i = 0; i < fields.length; ++i) {
+    let comma = "";
+    let fields = modelDef.getFields();
+    for (let i = 0; i < fields.length; ++i) {
         retval += (comma + fields[i].columnName);
         comma = ",";
     }
     
-    retval += (" from " + modelDef.getTableName() + " where rownum < " + maxRows);
-
+    retval += (" from " + modelDef.getTableName());
+    
+    switch(dbType) {
+        case 'oracle':
+            retval += (" where rownum < " + maxRows);
+            break;
+        case 'mysql':
+            retval += (" limit " + maxRows);
+            break;
+            
+    }
+logger.logInfo(retval);
     return retval;
 }
 
@@ -407,7 +427,7 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             finally {
                 await conn.rollback();
                 if (conn) {
-                    switch(conn.__mytype) {
+                    switch(orm.getDbType(alias)) {
                         case 'oracle':
                             await conn.close();
                             break;
@@ -815,7 +835,7 @@ module.exports.testDelete = async function(repository, testResults) {
     
     finally {
         if (conn) {
-            switch(conn.__mytype) {
+            switch(orm.getDbType(repository.getPoolAlias())) {
                 case 'oracle':
                     await conn.close();
                     break;
@@ -1059,12 +1079,12 @@ async function runQuery(poolAlias, sql, parameters, options) {
 
         conn = await orm.getConnection(poolAlias);
         let result;
-        switch(conn.__mytype) {
+        switch(orm.getDbType(poolAlias)) {
             case 'oracle':
                 result = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                result = await conn.query(sql, parameters, options);
+               result = await conn.query(sql, parameters, options);
                 break;
         }
     
@@ -1077,7 +1097,7 @@ async function runQuery(poolAlias, sql, parameters, options) {
 
     finally {
         if (conn) {
-            switch(conn.__mytype) {
+            switch(orm.getDbType(poolAlias)) {
                 case 'oracle':
                     await conn.close();
                     break;

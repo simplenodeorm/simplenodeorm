@@ -1099,10 +1099,10 @@ module.exports = class Repository {
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
             }
-
+    
             let result = await this.executeDatabaseSpecificQuery(conn, sql, parameters, options);
-            
-            
+    
+    
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("result: " + util.toString(result));
             }
@@ -1130,7 +1130,7 @@ module.exports = class Repository {
     }
     
     async closeDatabaseConnection(conn) {
-        switch(conn.__mytype) {
+        switch(orm.getDbType(this.poolAlias)) {
             case 'oracle':
                 await conn.close();
                 break;
@@ -1142,12 +1142,12 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
         let retval;
-        switch(conn.__mytype) {
+        switch(orm.getDbType(this.poolAlias)) {
             case 'oracle':
                 retval = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                retval = await conn.query(sql.replace(/\"/g, "`") , parameters, options);
+                retval = await conn.query(sql.replace(/\"/g, "`"), parameters);
                 break;
         }
         
@@ -1157,12 +1157,12 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificSql(conn, sql, parameters, options) {
         let retval;
-        switch (conn.__mytype) {
+        switch (orm.getDbType(this.poolAlias)) {
             case 'oracle':
                 retval = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                retval =  await conn.query(sql.replace(/\"/g, "`"), parameters, options);
+                retval =  await conn.query(sql.replace(/\"/g, "`"), parameters);
                 break;
         }
         

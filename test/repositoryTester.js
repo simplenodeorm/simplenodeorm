@@ -21,15 +21,15 @@ module.exports.test = async function( repository) {
         testDelete];
 
     if (util.isUndefined(repository)) {
-        testResults.push(require('../../testStatus.js')(util.ERROR, 'no repository found for ' + metaData.objectName, 'test.run'));
+        testResults.push(require('./testStatus.js')(util.ERROR, 'no repository found for ' + metaData.objectName, 'test.run'));
     } else {
         let metaData = repository.getMetaData();
         if (util.isUndefined(metaData)) {
-            testResults.push(require('../../testStatus.js')(util.ERROR, 'no meta data definition found for ' + metaData.objectName, 'test.run'));
+            testResults.push(require('./testStatus.js')(util.ERROR, 'no meta data definition found for ' + metaData.objectName, 'test.run'));
         }
 
         if (util.isUndefined(repository.getPoolAlias())) {
-            testResults.push(require('../../testStatus.js')(util.ERROR, 'no pool alias found in ' +  metaData.objectName + 'Repository', 'test.run'));
+            testResults.push(require('./testStatus.js')(util.ERROR, 'no pool alias found in ' +  metaData.objectName + 'Repository', 'test.run'));
         }
 
         // test relationship field/column handling
@@ -81,11 +81,11 @@ async function testRelationshipHandling(repository, metaData) {
 
 async function testFindOne(repository,  testResults) {
     await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData()).then(async function(result) {
-        if (util.isDefined(result.error)) {
-            testResults.push(require('../../testStatus.js')(util.ERROR, util.toString(result.error), util.FIND_ONE));
+       if (util.isDefined(result.error)) {
+            testResults.push(require('./testStatus.js')(util.ERROR, util.toString(result.error), util.FIND_ONE));
             return true;
         } else if (result.nodata) {
-            testResults.push(require('../../testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.FIND_ONE));
+            testResults.push(require('./testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.FIND_ONE));
             return false;
         } else if (util.isDefined(result.result)) {
             let pkfields = repository.getMetaData().getPrimaryKeyFields();
@@ -103,13 +103,13 @@ async function testFindOne(repository,  testResults) {
 async function testFind(repository, testResults) {
     await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData(), 10).then(async function(result) {
         if (util.isDefined(result.error)) {
-            testResults.push(require('../../testStatus.js')(util.ERROR, util.toString(result.error), util.FIND));
+            testResults.push(require('./testStatus.js')(util.ERROR, util.toString(result.error), util.FIND));
         } else if (result.nodata) {
-            testResults.push(require('../../testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table' + repository.getMetaData().tableName, util.FIND));
+            testResults.push(require('./testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table' + repository.getMetaData().tableName, util.FIND));
         } else if (util.isDefined(result.result)) {
             let whereList = testUtil.getFindTestWhereLists(repository, result.result);
             if (whereList.length === 0) {
-                testResults.push(require('../../testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.FIND));
+                testResults.push(require('./testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.FIND));
             } else {
                  for (let i = 0; i < whereList.length; ++i) {
                     await testUtil.verifyRepositoryTestResult(repository, util.FIND, whereList[i], await repository.find(whereList[i]), testResults);
@@ -129,16 +129,16 @@ async function testGetAll(repository, testResults) {
         await testUtil.verifyRepositoryTestResult(repository, util.GET_ALL, {}, await repository.getAll(), testResults);
         await testUtil.verifyRepositoryTestResult(repository, util.GET_ALL, {}, repository.getAllSync(), testResults);
     } else {
-        testResults.push(require('../../testStatus.js')(util.WARN,  'not performing getAll() test on ' + repository.getMetaData().objectName, util.GET_ALL));
+        testResults.push(require('./testStatus.js')(util.WARN,  'not performing getAll() test on ' + repository.getMetaData().objectName, util.GET_ALL));
     }
 }
 
 async function testExists(repository,testResults) {
     return await testUtil.findExampleData(repository.getPoolAlias(), repository.getMetaData()).then(async function(result) {
         if (util.isDefined(result.error)) {
-            testResults.push(require('../../testStatus.js')(util.ERROR, util.toString(result.error), util.EXISTS));
+            testResults.push(require('./testStatus.js')(util.ERROR, util.toString(result.error), util.EXISTS));
         } else if (result.nodata) {
-            testResults.push(require('../../testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.EXISTS));
+            testResults.push(require('./testStatus.js')(util.WARN,  repository.getMetaData().objectName + 'Repository: no test data found in table ' + repository.getMetaData().tableName, util.EXISTS));
         } else if (util.isDefined(result.result)) {
             let pkfields = repository.getMetaData().getPrimaryKeyFields();
             let model = orm.newModelInstance(repository.getMetaData());
@@ -147,7 +147,7 @@ async function testExists(repository,testResults) {
                 let val = result.result.rows[0][i];
 
                 if (util.isUndefined(val)) {
-                    testResults.push(require('../../testStatus.js')(util.ERROR, 'no primary key value found for field ' + pkfields[i].fieldName, util.EXISTS));
+                    testResults.push(require('./testStatus.js')(util.ERROR, 'no primary key value found for field ' + pkfields[i].fieldName, util.EXISTS));
                     foundpk = false;
                     break;
                 } else {

@@ -17,9 +17,9 @@
 	{
 		"dbtype": "mysql",
 		"host": "localhost",
-		"user": "root",
+		"user": "tester",
 		"poolAlias": "sakila",
-		"password": "root",
+		"password": "tester",
 		"database": "sakila",
 		"supportBigNumbers": true,
 		"waitForConnections": true,

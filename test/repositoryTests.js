@@ -1,8 +1,6 @@
 "use strict";
 
-const util = require("../main/util.js");
 const testUtil = require('./testUtil.js');
-const fs = require('fs');
 const repositoryTester = require('./repositoryTester.js');
 
 module.exports.run = async function(orm) {

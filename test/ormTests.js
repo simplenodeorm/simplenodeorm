@@ -39,7 +39,7 @@ module.exports.run = async function(orm) {
 
         finally {
             if (conn) {
-                switch(conn.__mytype) {
+                switch(orm.getDbType(alias)) {
                     case 'oracle':
                         await conn.close();
                         break;

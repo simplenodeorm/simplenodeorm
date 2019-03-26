@@ -89,24 +89,11 @@ module.exports.getModelList = function () {
 };
 
 module.exports.getConnection = async function(poolAlias) {
-    let retval = await dbTypeMap.get(poolAlias + '.pool').getConnection();
-    retval.mytype =  dbTypeMap.get(poolAlias);
+    return  await dbTypeMap.get(poolAlias + '.pool').getConnection();
+};
 
-/*
-    switch(dbTypeMap.get(poolAlias)) {
-        case 'oracle':
-            retval = await oracledb.getConnection(poolAlias);
-            retval.__mytype = 'oracle';
-            break;
-        case 'mysql':
-            // little hack to pull the mysql pool
-            retval = await dbTypeMap.get(poolAlias + '.pool').getConnection();
-            retval.__mytype = 'mysql';
-            break;
-    }
-    */
-    
-    return retval;
+module.exports.getDbType = function(poolAlias) {
+    return dbTypeMap.get(poolAlias);
 };
 
 function getModelNameFromPath(path) {
