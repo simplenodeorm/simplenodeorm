@@ -243,7 +243,7 @@ function startRestServer() {
 
     server.post(REST_URL_BASE + '/design/generatesql', async function (req, res) {
         try {
-            res.status(200).send(buildQueryDocumentSql(req.body));
+            res.status(200).send(buildQueryDocumentSql(req.body, true));
         } catch (e) {
             logger.logError('error occured while building sql from query document', e);
             res.status(500).send('error occured while building sql from query document');
@@ -1025,7 +1025,7 @@ function getUniqueKey() {
     return uuidv1();
 }
 
-function buildQueryDocumentSql(queryDocument) {
+function buildQueryDocumentSql(queryDocument, forDisplay) {
     let relationshipTree = loadRelationshipTree(queryDocument.document);
     let joins = [];
     let joinset = new Set();
@@ -1043,14 +1043,17 @@ function buildQueryDocumentSql(queryDocument) {
         let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
         let alias;
         let colName;
+        let repo;
         if (pos < 0) {
             alias = 't0';
-            let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
+            repo = repositoryMap.get(queryDocument.document.rootModel.toLowerCase());
+            let md = repo.getMetaData();
             colName = md.getField(queryDocument.document.selectedColumns[i].path).columnName;
             queryDocument.document.selectedColumns[i].model = queryDocument.document.rootModel;
         } else {
             let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
-            let md = repositoryMap.get(info.model.toLowerCase()).getMetaData();
+            repo = repositoryMap.get(info.model.toLowerCase());
+            let md = repo.getMetaData();
             queryDocument.document.selectedColumns[i].model = info.model;
             colName = md.getField(queryDocument.document.selectedColumns[i].path.substring(pos + 1)).columnName;
             alias = info.alias;
@@ -1070,6 +1073,8 @@ function buildQueryDocumentSql(queryDocument) {
 
         if (queryDocument.document.selectedColumns[i].label) {
             sql += (' as "' + queryDocument.document.selectedColumns[i].label + '" ');
+        } else if (!forDisplay && (dbTypeMap.get(repo.poolAlias) === 'mysql')) {
+            sql += (' as ' + alias + '_' + colName)
         }
         comma = ', ';
     }
