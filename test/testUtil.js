@@ -447,7 +447,12 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
     let md = repository.getMetaData();
     let pkfields = md.getPrimaryKeyFields();
     let pkset = new Set();
-
+    let dbType = orm.getDbType(repository.getPoolAlias());
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+    
     for (let i = 0; i < rows.length; ++i) {
         let params = [];
         let key = '';
@@ -544,6 +549,12 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 module.exports.testInsert = async function (repository, conn, testResults) {
     let md = repository.getMetaData();
     let modelTestData = loadModelInsertData(md);
+    let dbType = orm.getDbType(repository.getPoolAlias());
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
@@ -551,9 +562,9 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
-        
+    
         let res = await repository.save(models, {conn: conn, returnValues: true});
-        
+    
         if (res.error) {
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
@@ -568,8 +579,9 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             }
         }
         
-        conn.rollback();
         models = [];
+        modelTestData = loadModelInsertData(md);
+    
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
@@ -590,6 +602,8 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             }
         }
     }
+
+    await conn.rollback();
 };
 
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
@@ -789,6 +803,12 @@ module.exports.testDelete = async function(repository, testResults) {
         if (util.isNotValidObject(modelTestData)) {
             testResults.push(require('./testStatus.js')(util.WARN, 'not insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
+            let dbType = orm.getDbType(repository.getPoolAlias());
+    
+            if (dbType === 'mysql') {
+                conn.beginTransaction();
+            }
+    
             let models = [];
             for (let i = 0; i < modelTestData.length; ++i) {
                 models.push(modelTestData[i]);

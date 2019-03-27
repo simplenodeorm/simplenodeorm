@@ -16,7 +16,7 @@ class StaffMetaData extends MetaData {
                     columnName: "staff_id",
                     required: true,
                     primaryKey: true,
-                    autoincrementGenerator: "LAST_INSERT_ID()"
+                    autoIncrementGenerator: "LAST_INSERT_ID()"
                 },
                 { // 1
                     fieldName: "firstName",

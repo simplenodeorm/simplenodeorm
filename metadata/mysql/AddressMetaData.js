@@ -16,7 +16,7 @@ class AddressMetaData extends MetaData {
                     columnName: "address_id",
                     required: true,
                     primaryKey: true,
-                    autoincrementGenerator: "LAST_INSERT_ID()"
+                    autoIncrementGenerator: "LAST_INSERT_ID()"
                 },
                 { // 1
                     fieldName: "address",

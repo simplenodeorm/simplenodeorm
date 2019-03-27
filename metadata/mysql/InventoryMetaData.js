@@ -16,7 +16,7 @@ class InventoryMetaData extends MetaData {
                     columnName: "inventory_id",
                     required: true,
                     primaryKey: true,
-                    autoincrementGenerator: "LAST_INSERT_ID()"
+                    autoIncrementGenerator: "LAST_INSERT_ID()"
                 },
                 { // 1
                     fieldName: "filmId",
