@@ -717,9 +717,10 @@ module.exports = class Repository {
             } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                 val = new Date(val);
                 model.setFieldValue(fields[i].fieldName, val);
-            } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
+            } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
+                && util.isDefined(val)) {
                 val = 'POINT(' + val.x + ' ' + val.y + ')';
-            } else if (val && (typeof val === "object")
+            } else if (val && (typeof val === "object") // handle blobs in mysql
                 && val.type && val.data
                 && (val.type.toLowerCase() === 'buffer')) {
                 val = val.toString();
