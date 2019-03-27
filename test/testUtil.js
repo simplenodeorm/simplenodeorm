@@ -86,6 +86,7 @@ function getDataType(dbType) {
             || dbType.includes('CLOB')
             || dbType.includes('ENUM')
             || dbType.includes('SET')
+            || dbType.includes('GEOMETRY')
             || dbType.includes('BLOB')) {
             retval = "string";
         } else if (dbType.includes('DATE')
@@ -579,6 +580,8 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             }
         }
         
+        conn.rollback();
+        
         models = [];
         modelTestData = loadModelInsertData(md);
     
@@ -619,17 +622,19 @@ function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) 
             let mismatch = ((util.isValidObject(val1) && util.isNotValidObject(val2)) || (util.isValidObject(val2) && util.isNotValidObject(val1)));
 
             if (!mismatch) {
-                if (util.isValidObject(val1) && util.isValidObject(val2)) {
-                    if (val1 instanceof Date) {
-                        val1 = val1.getTime();
-                        val2 = val2.getTime();
-                    } else if (val1 instanceof Object) {
-                        val1 = util.toString(val1);
-                        val2 = util.toString(val2);
-                    }
-
-                    if (val1 !== val2) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, 'column value msimath on ' + md.getObjectName() + '.' + fields[i].fieldName + ' expected ' + val1 + ' but found ' + val2, util.SAVE + '[insert]'));
+                if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(fields[i].fieldName)) {
+                    if (util.isValidObject(val1) && util.isValidObject(val2)) {
+                        if (val1 instanceof Date) {
+                            val1 = val1.getTime();
+                            val2 = val2.getTime();
+                        } else if (val1 instanceof Object) {
+                            val1 = util.toString(val1);
+                            val2 = util.toString(val2);
+                        }
+        
+                        if (val1 !== val2) {
+                            testResults.push(require('./testStatus.js')(util.ERROR, 'column value mismatch on ' + md.getObjectName() + '.' + fields[i].fieldName + ' expected ' + val1 + ' but found ' + val2, util.SAVE + '[insert]'));
+                        }
                     }
                 }
             }

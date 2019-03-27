@@ -55,9 +55,17 @@ class CustomerMetaData extends MetaData {
                     type: "BOOLEAN",
                     columnName: "active",
                     required: true,
-                    defaultValue: "TRUE"
+                    defaultValue: "true",
+                    converter: "ZeroOneToBoolean"
                 },
                 { // 7
+                    fieldName: "createDate",
+                    type: "DATETIME",
+                    columnName: "create_date",
+                    required: true,
+                    defaultValue: "CURRENT_TIMESTAMP"
+                },
+                { // 8
                     fieldName: "lastUpdate",
                     type: "TIMESTAMP",
                     columnName: "last_update",

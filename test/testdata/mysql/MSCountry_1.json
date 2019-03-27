@@ -1,1 +1,1 @@
-{"__model__":"MSCountry","modified":false,"newModel":false,"constraintsEnabled":false,"data":{"countryId":1,"country":"Afghanistan","lastUpdate":"2006-02-15T11:44:00.000Z"}}
+{"__model__":"MSCountry","modified":true,"newModel":true,"constraintsEnabled":false,"data":{"countryId":null,"country":"Test Country","lastUpdate":"2019-02-15T11:44:00.000Z"}}

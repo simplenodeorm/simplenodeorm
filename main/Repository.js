@@ -681,41 +681,51 @@ module.exports = class Repository {
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName, true), false);
-
+    
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
                     if (dbType === 'oracle') {
                         val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                         model.setFieldValue(fields[i].fieldName, val);
                     }
-               } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
+                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
                     val = fields[i].defaultValue;
                     if (this.isDateType(fields[i])) {
-                        val = new Date(val);
-                    } 
-                    
+                        let dv = fields[i].defaultValue.toUpperCase();
+                        if (dv.includes('SYSDATE')
+                            || dv.includes('NOW')
+                            || dv.includes('CURRENT_TIMESTAMP')) {
+                            val = new Date();
+                        } else {
+                            val = new Date(val);
+                        }
+                    }
+            
                     model.setFieldValue(fields[i].fieldName, val);
-               } else if (fields[i].versionColumn) {
-                   if (this.isDateType(fields[i])) {
-                       val = new Date();
-                   } else {
-                       val = 1;
-                   }
-                   model.setFieldValue(fields[i].fieldName, val);
-               } if (this.isDateType(fields[i]) && util.isDefined(val)) {
-                   val = new Date(val);
-                   model.setFieldValue(fields[i].fieldName, val);
-               }
+                } else if (fields[i].versionColumn) {
+                    if (this.isDateType(fields[i])) {
+                        val = new Date();
+                    } else {
+                        val = 1;
+                    }
+                    model.setFieldValue(fields[i].fieldName, val);
+                }
+                if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                    val = new Date(val);
+                    model.setFieldValue(fields[i].fieldName, val);
+                }
             } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                 val = new Date(val);
                 model.setFieldValue(fields[i].fieldName, val);
+            } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
+                val = 'POINT(' + val.x + ' ' + val.y + ')';
             }
-           
-           if (util.isNotValidObject(val)) {
-               val = null;
-           }
-           
-           retval.push(val);
+    
+            if (util.isNotValidObject(val)) {
+                val = null;
+            }
+    
+            retval.push(val);
         }
         
         return retval;
@@ -746,11 +756,13 @@ module.exports = class Repository {
                         retval.push(curver+1);
                         
                     }
+                } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
+                    val = 'POINT(' + val.x + ' ' + val.y + ')';
                 } else {
-                    retval.push(val);
+                        retval.push(val);
+                    }
                 }
             }
-        }
         
         for (let i = 0; i < pkparams.length; ++i) {
             retval.push(pkparams[i]);
@@ -826,7 +838,11 @@ module.exports = class Repository {
                         retval += (comma + ' :' + (fields[i].fieldName));
                         break;
                     case 'mysql':
-                        retval += (comma + ' ?');
+                        if (this.isGeometryType(fields[i])) {
+                            retval += (comma + ' ST_GeomFromText(?)');
+                        } else {
+                            retval += (comma + ' ?');
+                        }
                         break;
                 }
                 comma = ',';
@@ -870,10 +886,15 @@ module.exports = class Repository {
                 } else {
                     switch(dbType) {
                         case 'oracle':
-                            retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
+                            retval += (comma + 'set ' + fields[i].columnName + ' = :' + fields[i].fieldName);
                             break;
                         case 'mysql':
-                            retval += (comma + set + fields[i].columnName + ' = ?');
+                            if (this.isGeometryType(fields[i])) {
+                                retval += (comma + 'set ' + fields[i].columnName + ' = ST_GeomFromText(?)');
+                            } else {
+                                retval += (comma + 'set ' + fields[i].columnName + ' = ?');
+                            }
+    
                             break;
                     }
                     comma = ', ';
@@ -1080,6 +1101,17 @@ module.exports = class Repository {
         
         return retval;
     }
+    
+    isGeometryType(field) {
+        let retval = false;
+        if (util.isDefined(field)) {
+            let type = field.type.toUpperCase();
+            retval = type.includes('GEOMETRY');
+        }
+        
+        return retval;
+    }
+    
     
     currentDateFunctionName() {
         let retval;
