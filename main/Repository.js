@@ -1206,7 +1206,7 @@ module.exports = class Repository {
                 retval = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/\"/g, "`"), parameters));
+                retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
                 break;
         }
         
@@ -1221,7 +1221,7 @@ module.exports = class Repository {
                 retval = await conn.execute(sql, parameters, options);
                 break;
             case 'mysql':
-                retval =  await conn.query(sql.replace(/\"/g, "`"), parameters);
+                retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
                 break;
         }
         

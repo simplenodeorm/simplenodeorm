@@ -1,0 +1,1 @@
+{"__model__":"City","modified":false,"newModel":false,"constraintsEnabled":false,"data":{"country":{"__model__":"MSCountry","modified":false,"newModel":false,"constraintsEnabled":false,"data":{"countryId":87,"country":"Spain","lastUpdate":"2006-02-15T11:44:00.000Z"}},"cityId":1,"city":"A Corua (La Corua)","countryId":87,"lastUpdate":"2006-02-15T11:45:25.000Z"}}
