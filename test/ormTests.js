@@ -11,7 +11,7 @@ module.exports.run = async function(orm) {
     let repo;
     
     if (models.length > 0) {
-        repo = orm.getRepository(models[0]);
+        repo = orm.getRepository(models[0].name);
         assert(util.isDefined(repo), 'failed to load repositoryMap');
         assert(util.isDefined(repo.getMetaData()), 'failed to load metaDataMap');
     } else {
@@ -20,13 +20,13 @@ module.exports.run = async function(orm) {
     
     let poolSet = new Set();
     for (let i = 0; i < models.length; ++i) {
-        repo = orm.getRepository(models[i]);
-        assert(util.isDefined(repo), 'failed to load ' + models[i] + 'Repository');
+        repo = orm.getRepository(models[i].name);
+        assert(util.isDefined(repo), 'failed to load ' + models[i].name + 'Repository');
         let md = repo.getMetaData();
-        assert(util.isDefined(md), 'failed to load ' + models[i] + 'MetaData');
-        assert(util.isDefined(orm.newModelInstance(md)), 'failed to load ' + models[i]);
+        assert(util.isDefined(md), 'failed to load ' + models[i].name + 'MetaData');
+        assert(util.isDefined(orm.newModelInstance(md)), 'failed to load ' + models[i].name);
         poolSet.add(repo.getPoolAlias());
-        assert(util.isDefined(orm.getMetaData(models[i])), 'failed to load ' + models[i] + 'MetaData');
+        assert(util.isDefined(orm.getMetaData(models[i].name)), 'failed to load ' + models[i].name + 'MetaData');
     }
     
     

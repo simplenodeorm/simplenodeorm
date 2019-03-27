@@ -58,7 +58,11 @@ function loadOrm() {
     logger.logInfo("loading " + APP_NAME + "...");
     loadOrmDefinitions();
 
-    modelList.sort();
+    modelList.sort(function(a, b) {
+        let s1 = (a.poolAlias + '.' + a.name);
+        let s2 = (b.poolAlias + '.' + b.name);
+        return (s1 < s2)
+    });
 
     // ensure no changes after load
     Object.freeze(modelList);
@@ -119,8 +123,8 @@ function loadOrmDefinitions() {
         
         let md = new (require(modelFiles[i].replace('./model', './metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
-            modelList.push(modelName);
             let repo = require(modelFiles[i].replace('./model', './repository').replace('.js', 'Repository.js'))(md);
+            modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
             repositoryMap.set(modelName.toLowerCase(), repo);
             if (md.getOneToOneDefinitions()) {
                 for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
