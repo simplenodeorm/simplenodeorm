@@ -413,7 +413,13 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             
             try {
 
-                 conn = await orm.getConnection(alias, {autoCommit: false});
+                conn = await orm.getConnection(alias, {autoCommit: false});
+                
+                let dbType = orm.getDbType(repository.poolAlias);
+                
+                if (dbType === 'mysql') {
+                    await conn.beginTransaction();
+                }
                 if (!insertOnly) {
                     await updateFunction(repository, result.result.rows, conn, testResults);
                 } else {
@@ -512,7 +518,13 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
             }
         }
     }
-
+    
+    await conn.rollback();
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+    
     if (testList.length > 0) {
         for (let i = 0; i < testList.length; ++i) {
             updateModelForTest(md, testList[i]);
@@ -580,15 +592,18 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             }
         }
         
-        conn.rollback();
-        
+        await conn.rollback();
+    
+        if (dbType === 'mysql') {
+            await conn.beginTransaction();
+        }
+    
         models = [];
         modelTestData = loadModelInsertData(md);
     
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
-        
         res = repository.saveSync(models, {conn: conn, returnValues: true});
         
         if (res.error) {
@@ -604,6 +619,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
                 }
             }
         }
+        
     }
 
     await conn.rollback();
@@ -811,7 +827,7 @@ module.exports.testDelete = async function(repository, testResults) {
             let dbType = orm.getDbType(repository.getPoolAlias());
     
             if (dbType === 'mysql') {
-                conn.beginTransaction();
+                await conn.beginTransaction();
             }
     
             let models = [];

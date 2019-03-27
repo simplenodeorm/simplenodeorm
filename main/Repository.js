@@ -719,6 +719,10 @@ module.exports = class Repository {
                 model.setFieldValue(fields[i].fieldName, val);
             } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
                 val = 'POINT(' + val.x + ' ' + val.y + ')';
+            } else if (val && (typeof val === "object")
+                && val.type && val.data
+                && (val.type.toLowerCase() === 'buffer')) {
+                val = val.toString();
             }
     
             if (util.isNotValidObject(val)) {

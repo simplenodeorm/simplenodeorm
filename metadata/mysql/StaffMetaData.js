@@ -57,27 +57,28 @@ class StaffMetaData extends MetaData {
                     columnName: "store_id",
                     required: true
                 },
-                { // 6
+                { // 7
                     fieldName: "active",
                     type: "BOOLEAN",
                     columnName: "active",
                     required: true,
-                    defaultValue: "TRUE"
+                    defaultValue: "true",
+                    converter: "ZeroOneToBoolean"
                 },
-                { // 5
+                { // 8
                     fieldName: "username",
                     type: "VARCHAR",
                     length: 16,
                     columnName: "username",
                     required: true
                 },
-                { // 5
+                { // 9
                     fieldName: "password",
                     type: "VARCHAR",
                     length: 40,
                     columnName: "password"
                 },
-                { // 7
+                { // 10
                     fieldName: "lastUpdate",
                     type: "TIMESTAMP",
                     columnName: "last_update",
