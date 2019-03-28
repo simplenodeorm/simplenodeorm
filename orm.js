@@ -93,7 +93,7 @@ module.exports.getModelList = function () {
 };
 
 module.exports.getConnection = async function(poolAlias) {
-    return  await dbTypeMap.get(poolAlias + '.pool').getConnection();
+    return await dbTypeMap.get(poolAlias + '.pool').getConnection();
 };
 
 module.exports.getDbType = function(poolAlias) {

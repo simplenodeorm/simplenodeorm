@@ -119,10 +119,10 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
         let result = {};
         let dbType = orm.getDbType(poolAlias);
         switch(dbType) {
-            case 'oracle':
+            case util.ORACLE:
                 result = await conn.execute(buildExampleSelect(modelDef, dbType, maxRows));
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 result = util.convertObjectArrayToResultSet(await conn.query(buildExampleSelect(modelDef, dbType, maxRows)));
                 break;
         }
@@ -141,10 +141,10 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
     finally {
         if (conn) {
             switch(orm.getDbType(poolAlias)) {
-                case 'oracle':
+                case util.ORACLE:
                     await conn.close();
                     break;
-                case 'mysql':
+                case util.MYSQL:
                     await conn.release();
                     break;
             }
@@ -177,10 +177,10 @@ function buildExampleSelect(modelDef, dbType, maxRows) {
     retval += (" from " + modelDef.getTableName());
     
     switch(dbType) {
-        case 'oracle':
+        case util.ORACLE:
             retval += (" where rownum < " + maxRows);
             break;
-        case 'mysql':
+        case util.MYSQL:
             retval += (" limit " + maxRows);
             break;
             
@@ -435,10 +435,10 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
                 await conn.rollback();
                 if (conn) {
                     switch(orm.getDbType(alias)) {
-                        case 'oracle':
+                        case util.ORACLE:
                             await conn.close();
                             break;
-                        case 'mysql':
+                        case util.MYSQL:
                             await conn.release();
                             break;
                     }
@@ -878,10 +878,10 @@ module.exports.testDelete = async function(repository, testResults) {
     finally {
         if (conn) {
             switch(orm.getDbType(repository.getPoolAlias())) {
-                case 'oracle':
+                case util.ORACLE:
                     await conn.close();
                     break;
-                case 'mysql':
+                case util.MYSQL:
                     await conn.release();
                     break;
             }
@@ -1124,10 +1124,10 @@ async function runQuery(poolAlias, sql, parameters, options) {
         conn = await orm.getConnection(poolAlias);
         let result;
         switch(orm.getDbType(poolAlias)) {
-            case 'oracle':
+            case util.ORACLE:
                 result = await conn.execute(sql, parameters, options);
                 break;
-            case 'mysql':
+            case util.MYSQL:
                result = await conn.query(sql, parameters, options);
                 break;
         }
@@ -1142,10 +1142,10 @@ async function runQuery(poolAlias, sql, parameters, options) {
     finally {
         if (conn) {
             switch(orm.getDbType(poolAlias)) {
-                case 'oracle':
+                case util.ORACLE:
                     await conn.close();
                     break;
-                case 'mysql':
+                case util.MYSQL:
                     await conn.release();
                     break;
             }

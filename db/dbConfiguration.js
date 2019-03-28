@@ -23,11 +23,11 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
     for (let i = 0; i < pdefs.pools.length; ++i) {
         let pool;
         switch(pdefs.pools[i].dbtype) {
-            case 'oracle':
+            case util.ORACLE:
                 pool = await oracledb.createPool(pdefs.pools[i]);
                 haveOracle = true;
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 pool = mysqldb.createPool(pdefs.pools[i]);
                 break;
         }

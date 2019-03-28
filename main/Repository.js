@@ -62,7 +62,7 @@ module.exports = class Repository {
         let showMessage = true;
         let dbType = orm.getDbType(this.poolAlias);
         
-        if (dbType === 'oracle') {
+        if (dbType === util.ORACLE) {
             for (let i = 0; i < fields.length; ++i) {
                 if (util.isDefined(fields[i].autoIncrementGenerator)) {
                     if (showMessage) {
@@ -684,7 +684,7 @@ module.exports = class Repository {
     
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                    if (dbType === 'oracle') {
+                    if (dbType === util.ORACLE) {
                         val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                         model.setFieldValue(fields[i].fieldName, val);
                     }
@@ -798,7 +798,7 @@ module.exports = class Repository {
         let res;
         
         switch(dbType) {
-            case 'oracle':
+            case util.ORACLE:
                 res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);
                 break;
         }
@@ -839,10 +839,10 @@ module.exports = class Repository {
             comma = '';
             for (let i = 0; i < fields.length; ++i) {
                 switch(dbType) {
-                    case 'oracle':
+                    case util.ORACLE:
                         retval += (comma + ' :' + (fields[i].fieldName));
                         break;
-                    case 'mysql':
+                    case util.MYSQL:
                         if (this.isGeometryType(fields[i])) {
                             retval += (comma + ' ST_GeomFromText(?)');
                         } else {
@@ -880,20 +880,20 @@ module.exports = class Repository {
             for (let i = 0; i < fields.length; ++i) {
                 if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
                     switch(dbType) {
-                        case 'oracle':
+                        case util.ORACLE:
                             where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
                             break;
-                        case 'mysql':
+                        case util.MYSQL:
                             where += (and + fields[i].columnName + ' = ?');
                             break;
                     }
                     and = ' and ';
                 } else {
                     switch(dbType) {
-                        case 'oracle':
+                        case util.ORACLE:
                             retval += (comma + 'set ' + fields[i].columnName + ' = :' + fields[i].fieldName);
                             break;
-                        case 'mysql':
+                        case util.MYSQL:
                             if (this.isGeometryType(fields[i])) {
                                 retval += (comma + 'set ' + fields[i].columnName + ' = ST_GeomFromText(?)');
                             } else {
@@ -1121,10 +1121,10 @@ module.exports = class Repository {
     currentDateFunctionName() {
         let retval;
         switch(orm.getDbType(this.poolAlias)) {
-            case 'oracle':
+            case util.ORACLE:
                 retval = 'sysdate';
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 retval = 'NOW()';
                 break;
         }
@@ -1227,10 +1227,10 @@ module.exports = class Repository {
     
     async closeDatabaseConnection(conn) {
         switch(orm.getDbType(this.poolAlias)) {
-            case 'oracle':
+            case util.ORACLE:
                 await conn.close();
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 await conn.release();
                 break;
         }
@@ -1239,10 +1239,10 @@ module.exports = class Repository {
     async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
         let retval;
         switch(orm.getDbType(this.poolAlias)) {
-            case 'oracle':
+            case util.ORACLE:
                 retval = await conn.execute(sql, parameters, options);
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
                 break;
         }
@@ -1254,10 +1254,10 @@ module.exports = class Repository {
     async executeDatabaseSpecificSql(conn, sql, parameters, options) {
         let retval;
         switch (orm.getDbType(this.poolAlias)) {
-            case 'oracle':
+            case util.ORACLE:
                 retval = await conn.execute(sql, parameters, options);
                 break;
-            case 'mysql':
+            case util.MYSQL:
                 retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
                 break;
         }
@@ -1853,10 +1853,10 @@ module.exports = class Repository {
             where += (' ' + whereComparisons[i].getComparisonOperator() + ' ');
             if (whereComparisons[i].getUseBindParams()) {
                 switch(dbType) {
-                    case 'oracle':
+                    case util.ORACLE:
                         where += (':p' + (i+1));
                         break;
-                    case 'mysql':
+                    case util.MYSQL:
                         where += ' ?';
                         break;
                 }
@@ -1889,10 +1889,10 @@ module.exports = class Repository {
             sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
             
             switch(dbType) {
-                case 'oracle':
+                case util.ORACLE:
                     sql += (':' + pkfields[i].fieldName);
                     break;
-                case 'mysql':
+                case util.MYSQL:
                     sql += ' ?';
                     break;
                 
@@ -1931,10 +1931,10 @@ module.exports = class Repository {
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
             switch(dbType) {
-                case 'oracle':
+                case util.ORACLE:
                     sql += (':' + pkfields[i].fieldName);
                     break;
-                case 'mysql':
+                case util.MYSQL:
                     sql += ' ?';
                     break;
         

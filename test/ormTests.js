@@ -40,10 +40,10 @@ module.exports.run = async function(orm) {
         finally {
             if (conn) {
                 switch(orm.getDbType(alias)) {
-                    case 'oracle':
+                    case util.ORACLE:
                         await conn.close();
                         break;
-                    case 'mysql':
+                    case util.MYSQL:
                         await conn.release();
                         break;
                 }
