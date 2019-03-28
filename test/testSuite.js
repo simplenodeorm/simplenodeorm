@@ -1,11 +1,9 @@
 "use strict";
 
-const util = require("../main/util.js");
 const testUtil = require("./testUtil.js");
 const ormTests = module.require("./ormTests.js");
 const modelTests = module.require("./modelTests.js");
 const repositoryTests = module.require("./repositoryTests.js");
-const assert = require('chai').assert;
 const orm = require("../orm.js");
 
 module.exports.run = async function() {

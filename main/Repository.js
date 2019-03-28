@@ -5,7 +5,6 @@ const util = require('./util.js');
 const insertSqlMap = new Map();
 const updateSqlMap = new Map();
 const logger = require('./Logger.js');
-const dbConfig = require('../db/dbConfiguration.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
 
@@ -59,18 +58,22 @@ module.exports = class Repository {
     }
 
     async createAutoIncrementGeneratorIfRequired() {
-       let fields = this.getMetaData().fields;
+        let fields = this.getMetaData().fields;
         let showMessage = true;
-        for (let i = 0; i < fields.length; ++i) {
-            if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                if (showMessage) {
-                    logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
-                    showMessage = false;
-                }
-                
-                let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
-                if (util.isDefined(result.error)) {
-                    util.throwError("SQLError", result.error);
+        let dbType = orm.getDbType(this.poolAlias);
+        
+        if (dbType === util.ORACLE) {
+            for (let i = 0; i < fields.length; ++i) {
+                if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                    if (showMessage) {
+                        logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
+                        showMessage = false;
+                    }
+            
+                    let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
+                    if (util.isDefined(result.error)) {
+                        util.throwError("SQLError", result.error);
+                    }
                 }
             }
         }
@@ -194,11 +197,10 @@ module.exports = class Repository {
     async findOne(primaryKey, options) {
         options = checkOptions(options);
         let res =  await this.executeNamedDbOperation(util.FIND_ONE, primaryKey, options);
-        
         if (util.isDefined(res.result)) {
-            if (res.result.length > 0) {
-                return {result: res.result[0] };
-            } 
+            if (res.result && res.result.length > 0) {
+                return {result: res.result[0]};
+            }
         } else if (util.isDefined(res.error)) {
             return res;
         } 
@@ -208,9 +210,12 @@ module.exports = class Repository {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
         (async function() {
-            let result = await repo.findOne(primaryKey, options);
-            resultWrapper.result = result.result;
-            resultWrapper.error = result.error;
+            try {
+                let result = await repo.findOne(primaryKey, options);
+                
+                resultWrapper.result = result.result;
+                resultWrapper.error = result.error;
+            } catch (e) { resultWrapper.error = e;}
         })(resultWrapper, repo, primaryKey, options);
         
         let startTime = Date.now();
@@ -493,6 +498,7 @@ module.exports = class Repository {
         
         let result = {rowsAffected: 0};
         if (model.isNew() || !(await this.exists(model, options))) {
+            model.setNew(true);
             result = await this.executeSql(sql, params, options);
         } else if (model.isModified()) {
             if (model.getMetaData().isVersioned()) {
@@ -524,14 +530,16 @@ module.exports = class Repository {
             }
         }
         
+        let insertId;
         if (util.isDefined(result.error)) {
             return {error: result.error};
         } else {
+            insertId = result.insertId;
             if (util.isDefined(result.rowsAffected)) {
                 rowsAffected += result.rowsAffected;
             }
-            
-            // do this to prevent returning child objects 
+
+            // do this to prevent returning child objects
             // if return values true
             let childOptions = Object.assign(options);
             childOptions.returnValues = false;
@@ -574,7 +582,18 @@ module.exports = class Repository {
             }
         }
 
-        return {rowsAffected: rowsAffected};
+        
+        return {rowsAffected: rowsAffected, insertId: insertId};
+    }
+    
+    setAutoIncrementIdIfRequired(model, id) {
+        let fields = model.getMetaData().fields;
+        for (let i = 0; i < fields.length; ++i) {
+            if (fields[i].autoIncrementGenerator) {
+                model.data[fields[i].fieldName] = id;
+                break;
+            }
+        }
     }
     
     getVersionField(model) {
@@ -659,41 +678,59 @@ module.exports = class Repository {
         options = checkOptions(options);
         let retval = [];
         let fields = orm.getMetaData(model.getObjectName()).getFields();
+        let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName, true), false);
-
+    
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                   val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
-                   model.setFieldValue(fields[i].fieldName, val);
-               } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
+                    if (dbType === util.ORACLE) {
+                        val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
+                        model.setFieldValue(fields[i].fieldName, val);
+                    }
+                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
                     val = fields[i].defaultValue;
                     if (this.isDateType(fields[i])) {
-                        val = new Date(val);
-                    } 
-                    
+                        let dv = fields[i].defaultValue.toUpperCase();
+                        if (dv.includes('SYSDATE')
+                            || dv.includes('NOW')
+                            || dv.includes('CURRENT_TIMESTAMP')) {
+                            val = new Date();
+                        } else {
+                            val = new Date(val);
+                        }
+                    }
+            
                     model.setFieldValue(fields[i].fieldName, val);
-               } else if (fields[i].versionColumn) {
-                   if (this.isDateType(fields[i])) {
-                       val = new Date();
-                   } else {
-                       val = 1;
-                   }
-                   model.setFieldValue(fields[i].fieldName, val);
-               } if (this.isDateType(fields[i]) && util.isDefined(val)) {
-                   val = new Date(val);
-                   model.setFieldValue(fields[i].fieldName, val);
-               }
+                } else if (fields[i].versionColumn) {
+                    if (this.isDateType(fields[i])) {
+                        val = new Date();
+                    } else {
+                        val = 1;
+                    }
+                    model.setFieldValue(fields[i].fieldName, val);
+                }
+                if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                    val = new Date(val);
+                    model.setFieldValue(fields[i].fieldName, val);
+                }
             } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                 val = new Date(val);
                 model.setFieldValue(fields[i].fieldName, val);
+            } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
+                && util.isDefined(val)) {
+                val = 'POINT(' + val.x + ' ' + val.y + ')';
+            } else if (val && (typeof val === "object") // handle blobs in mysql
+                && val.type && val.data
+                && (val.type.toLowerCase() === 'buffer')) {
+                val = val.toString();
             }
-           
-           if (util.isNotValidObject(val)) {
-               val = null;
-           }
-           
-           retval.push(val);
+    
+            if (util.isNotValidObject(val)) {
+                val = null;
+            }
+    
+            retval.push(val);
         }
         
         return retval;
@@ -724,11 +761,13 @@ module.exports = class Repository {
                         retval.push(curver+1);
                         
                     }
+                } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
+                    val = 'POINT(' + val.x + ' ' + val.y + ')';
                 } else {
-                    retval.push(val);
+                        retval.push(val);
+                    }
                 }
             }
-        }
         
         for (let i = 0; i < pkparams.length; ++i) {
             retval.push(pkparams[i]);
@@ -755,7 +794,15 @@ module.exports = class Repository {
         let mr = options.maxRows;
         options.maxRows = 1;
         
-        let res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);  
+        let dbType  = orm.getDbType(this.poolAlias);
+        let res;
+        
+        switch(dbType) {
+            case util.ORACLE:
+                res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);
+                break;
+        }
+        
         if (util.isDefined(res)) {
             if (util.isDefined(mr)) {
                 options.maxRows = mr;
@@ -765,7 +812,7 @@ module.exports = class Repository {
             
             retval = res.result.rows[0][0];
         }
-        
+    
         return retval;
     }
     
@@ -788,9 +835,21 @@ module.exports = class Repository {
 
             retval += ') values (';
 
+            let dbType = orm.getDbType(this.poolAlias);
             comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                retval += (comma + ' :' + (fields[i].fieldName));
+                switch(dbType) {
+                    case util.ORACLE:
+                        retval += (comma + ' :' + (fields[i].fieldName));
+                        break;
+                    case util.MYSQL:
+                        if (this.isGeometryType(fields[i])) {
+                            retval += (comma + ' ST_GeomFromText(?)');
+                        } else {
+                            retval += (comma + ' ?');
+                        }
+                        break;
+                }
                 comma = ',';
             }
 
@@ -817,12 +876,32 @@ module.exports = class Repository {
             let comma = '';
             let and = '';
             let set = ' set ';
+            let dbType = orm.getDbType(this.poolAlias);
             for (let i = 0; i < fields.length; ++i) {
                 if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
-                    where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
+                    switch(dbType) {
+                        case util.ORACLE:
+                            where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
+                            break;
+                        case util.MYSQL:
+                            where += (and + fields[i].columnName + ' = ?');
+                            break;
+                    }
                     and = ' and ';
                 } else {
-                    retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
+                    switch(dbType) {
+                        case util.ORACLE:
+                            retval += (comma + 'set ' + fields[i].columnName + ' = :' + fields[i].fieldName);
+                            break;
+                        case util.MYSQL:
+                            if (this.isGeometryType(fields[i])) {
+                                retval += (comma + 'set ' + fields[i].columnName + ' = ST_GeomFromText(?)');
+                            } else {
+                                retval += (comma + 'set ' + fields[i].columnName + ' = ?');
+                            }
+    
+                            break;
+                    }
                     comma = ', ';
                     set = '';
                 }
@@ -858,23 +937,28 @@ module.exports = class Repository {
         }
         
         let wantReturnValues = options.returnValues;
-        
         for (let i = 0; i < l.length; ++i) {
             let res;
+            let newModel = false;
             if (l[i].isNew()) {
+                newModel = true;
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
+    
             if (util.isDefined(res.error)) {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
+                
+                if (newModel && res.insertId) {
+                    this.setAutoIncrementIdIfRequired(l[i], res.insertId)
+                }
             }
-            
+    
             if (wantReturnValues) {
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
-
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
                 }
@@ -1016,15 +1100,27 @@ module.exports = class Repository {
     isDateType(field) {
         let retval = false;
         if (util.isDefined(field)) {
-            retval = (util.DATE_TYPE === field.type);
+            let type = field.type.toUpperCase();
+            retval = (type.includes('DATE') || type.includes('TIME'));
         }
         
         return retval;
     }
     
+    isGeometryType(field) {
+        let retval = false;
+        if (util.isDefined(field)) {
+            let type = field.type.toUpperCase();
+            retval = type.includes('GEOMETRY');
+        }
+        
+        return retval;
+    }
+    
+    
     currentDateFunctionName() {
         let retval;
-        switch(dbConfig.getDbType(this.poolAlias)) {
+        switch(orm.getDbType(this.poolAlias)) {
             case util.ORACLE:
                 retval = 'sysdate';
                 break;
@@ -1099,9 +1195,10 @@ module.exports = class Repository {
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
             }
-
-            let result = await conn.execute(sql, parameters, options);
-
+    
+            let result = await this.executeDatabaseSpecificQuery(conn, sql, parameters, options);
+    
+    
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("result: " + util.toString(result));
             }
@@ -1123,11 +1220,51 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await conn.close();
+                this.closeDatabaseConnection(conn);
             }
         }
     }
     
+    async closeDatabaseConnection(conn) {
+        switch(orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                await conn.close();
+                break;
+            case util.MYSQL:
+                await conn.release();
+                break;
+        }
+    }
+    
+    async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
+        let retval;
+        switch(orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                retval = await conn.execute(sql, parameters, options);
+                break;
+            case util.MYSQL:
+                retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
+                break;
+        }
+        
+        return retval;
+    
+    }
+    
+    async executeDatabaseSpecificSql(conn, sql, parameters, options) {
+        let retval;
+        switch (orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                retval = await conn.execute(sql, parameters, options);
+                break;
+            case util.MYSQL:
+                retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
+                break;
+        }
+        
+        return retval;
+    }
+
     executeSqlQuerySync(sql, parameters, options) {
         let resultWrapper = {result: undefined, error: undefined};
         let repo = this;
@@ -1162,11 +1299,9 @@ module.exports = class Repository {
         if (util.isDefined(options.distinct) && options.distinct) {
             sql = 'select distinct ' + sql.substring(7);
         }
-        
-        let res = await this.executeSqlQuery(sql, parameters, options);   
+        let res = await this.executeSqlQuery(sql, parameters, options);
         if (util.isUndefined(res.error)) {
             let retval = [];
-
             // load column positions by alias if needed
             if (this.columnPositions[options.joinDepth].size === 0) {
                 for (let i = 0; i < this.selectedColumnFieldInfo[options.joinDepth].length; ++i) {
@@ -1247,10 +1382,16 @@ module.exports = class Repository {
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
             }
-
-            let res = await conn.execute(sql, parameters, options);
+    
+            let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
+    
+            let rowsAffected = res.rowsAffected;
+            if (!rowsAffected) {
+                rowsAffected = res.affectedRows;
+            }
+ 
             
-            return {rowsAffected: res.rowsAffected};
+            return {rowsAffected: rowsAffected, insertId: res.insertId};
         }
 
         catch (err) {
@@ -1267,26 +1408,9 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await conn.close();
+                this.closeDatabaseConnection(conn);
             }
         }
-    }
-
-    executeSqlSync(sql, parameters, options) {
-        let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            resultWrapper.result = await repo.executeSql(sql, parameters, options);
-            })(resultWrapper, repo, sql, parameters);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.rowsAffected) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper.result;
     }
 
     /**
@@ -1447,6 +1571,7 @@ module.exports = class Repository {
     buildSelectClause(parentMetaData, tableAlias, currentDepth, joinDepth, checkSet) {
         // special case for depth 0 - just pull columns for table - no
         // joins
+        let dbType = orm.getDbType(this.poolAlias);
         if (joinDepth === 0) {
             let pfields = parentMetaData.getFields();
             let comma = "";
@@ -1454,6 +1579,7 @@ module.exports = class Repository {
                 this.selectClauses[joinDepth] += comma;
                 this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
                 this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+                
                 comma = ", ";
             }
         } else {
@@ -1471,7 +1597,15 @@ module.exports = class Repository {
                 if (!checkSet.has(f)) {
                     this.selectClauses[joinDepth] += comma;
                     this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
-                    this.selectClauses[joinDepth] += (tableAlias + "." + pfields[i].columnName);
+    
+                    let colsel = (tableAlias + "." + pfields[i].columnName);
+                    if (dbType === 'mysql') {
+                        colsel += (' as ' + tableAlias + "_" + pfields[i].columnName);
+                    }
+    
+    
+                    this.selectClauses[joinDepth] += colsel;
+
                     comma = ", ";
                     checkSet.add(f);
                 }
@@ -1703,6 +1837,7 @@ module.exports = class Repository {
     buildWhereClause(whereComparisons) {
         let where = '';
         
+        let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < whereComparisons.length; ++i) {
             if (i > 0) {
                 where += (' ' + whereComparisons[i].getLogicalOperator() + ' ');
@@ -1717,13 +1852,20 @@ module.exports = class Repository {
             where += this.getColumnNameFromFieldName(fieldName);
             where += (' ' + whereComparisons[i].getComparisonOperator() + ' ');
             if (whereComparisons[i].getUseBindParams()) {
-                where += (':p' + (i+1));
+                switch(dbType) {
+                    case util.ORACLE:
+                        where += (':p' + (i+1));
+                        break;
+                    case util.MYSQL:
+                        where += ' ?';
+                        break;
+                }
             } else {
                 where += whereComparisons[i].getComparisonValue();
             }
             where += whereComparisons[i].getCloseParen();
         }
-        
+
         return where;
     }
     
@@ -1738,13 +1880,24 @@ module.exports = class Repository {
         } else {
             onm = this.metaData.getObjectName();
         }
-        let sql = ("select " + onm + " o from " + onm + " where ");
+        let sql = ('select ' + onm + ' o from ' + onm + ' where ');
 
-        let and = "";
+        let dbType = orm.getDbType(this.poolAlias);
+        let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + "o." +  pkfields[i].fieldName + " = :" + pkfields[i].fieldName);
-            and = " and ";
+            sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
+            
+            switch(dbType) {
+                case util.ORACLE:
+                    sql += (':' + pkfields[i].fieldName);
+                    break;
+                case util.MYSQL:
+                    sql += ' ?';
+                    break;
+                
+            }
+            and = ' and ';
         }
 
         return sql;
@@ -1756,13 +1909,13 @@ module.exports = class Repository {
      */
     buildGetAllNamedOperation() {
         let onm = this.metaData.getObjectName();
-        let sql = ("select " + onm + " o from " + onm + " order by  ");
+        let sql = ('select ' + onm + ' o from ' + onm + ' order by  ');
 
-        let comma = "";
+        let comma = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (comma + "o." +  pkfields[i].fieldName);
-            comma = ",";
+            sql += (comma + 'o.' +  pkfields[i].fieldName);
+            comma = ',';
         }
 
         return sql;
@@ -1772,10 +1925,20 @@ module.exports = class Repository {
         let onm = this.metaData.getObjectName();
         let sql = ('delete from ' + onm + ' o where  ');
 
+        let dbType = orm.getDbType(this.poolAlias);
         let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + 'o.' +  pkfields[i].fieldName + ' = :' + pkfields[i].fieldName);
+            sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
+            switch(dbType) {
+                case util.ORACLE:
+                    sql += (':' + pkfields[i].fieldName);
+                    break;
+                case util.MYSQL:
+                    sql += ' ?';
+                    break;
+        
+            }
             and = ' and ';
         }
 
@@ -1858,7 +2021,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                         curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, new Date(result.rows[i][cpos[j]]), true));
                     } else {
-                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName,
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
                     }
                 }
@@ -1925,7 +2088,6 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 }
 
                                 if (pk) {
-                                    let ta;
                                     let r = orm.getRepository(otodefs[j].targetModelName);
                                     let nm = r.getMetaData().getObjectName();
                                     let key = (nm + '-' + a + '-' + pk);

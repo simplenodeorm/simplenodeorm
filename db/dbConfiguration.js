@@ -1,32 +1,47 @@
 "use strict";
 
 const oracledb = require('oracledb');
+const mysqldb = require('promise-mysql');
 const util = require("../main/util.js");
 const fs = require('fs');
 const logger = require('../main/Logger.js');
-const dbType = new Map();
 
-module.exports = function(poolCreatedEmitter, appConfiguration, testConfiguration) {
+module.exports = function(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap) {
     if (appConfiguration.testMode) {
-        initPool(testConfiguration.testDbConfiguration, poolCreatedEmitter);
+        initPool(testConfiguration.testDbConfiguration, poolCreatedEmitter, dbTypeMap);
     } else {
-        initPool(appConfiguration.dbConfiguration, poolCreatedEmitter);
+        initPool(appConfiguration.dbConfiguration, poolCreatedEmitter, dbTypeMap);
     }
 };
 
-async function initPool(securityPath, poolCreatedEmitter) {
+async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
     logger.logInfo("creating connection pools...");
     
     // read db connection info
     let pdefs = JSON.parse(fs.readFileSync(securityPath));
-    
+    let haveOracle = false;
     for (let i = 0; i < pdefs.pools.length; ++i) {
-        await oracledb.createPool(pdefs.pools[i]).then(function(pool) {
-            logger.logInfo("    " + pool.poolAlias + " connection pool created");
-            dbType.set(pool.poolAlias, pool.tdbType);
-        });
-    }
+        let pool;
+        switch(pdefs.pools[i].dbtype) {
+            case util.ORACLE:
+                pool = await oracledb.createPool(pdefs.pools[i]);
+                haveOracle = true;
+                break;
+            case util.MYSQL:
+                pool = mysqldb.createPool(pdefs.pools[i]);
+                break;
+        }
 
+
+        if (pool) {
+            logger.logInfo("    " + pdefs.pools[i].poolAlias + " connection pool created");
+            dbTypeMap.set(pdefs.pools[i].poolAlias, pdefs.pools[i].dbtype);
+            dbTypeMap.set(pdefs.pools[i].poolAlias + '.pool', pool);
+        } else {
+            logger.logWarning('invalid dbtype: ' + pdefs.pools[i].dbtype)
+        }
+    }
+    
     if (util.isDefined(oracledb)) {
         // fetch CLOBS as string
         oracledb.fetchAsString = [ oracledb.CLOB ];

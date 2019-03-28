@@ -242,5 +242,31 @@ module.exports.designJSONReplacer = function(key, value) {
 };
 
 module.exports.isQuoteRequired = function(field) {
-    return !field.type.includes('NUMBER');
+    let ft = field.type.toUpperCase();
+    return (!ft.includes('NUMBER')
+        && !ft.includes('INT')
+        && !ft.includes('DOUBLE')
+        && !ft.includes('DECIMAL')
+        && !ft.includes('BOOLEAN')
+        && !ft.includes( 'YEAR'));
+};
+
+module.exports.convertObjectArrayToResultSet = function(results) {
+    let retval = {metaData: [], rows: []};
+    
+    if (results && (results.length > 0)) {
+        for (let name in results[0]) {
+            retval.metaData.push({name: name});
+        }
+    
+        for (let i = 0; i < results.length; ++i) {
+            retval.rows.push([]);
+            for (let j = 0; j < retval.metaData.length; ++j) {
+                retval.rows[i].push(results[i][retval.metaData[j].name]);
+            }
+        }
+    }
+    
+    
+    return retval;
 };

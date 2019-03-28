@@ -3,13 +3,11 @@
 const fs = require('fs');
 const util = require("../main/util.js");
 const orm = require("../orm.js");
-const oracledb = require('oracledb');
-const assert = require('chai').assert;
 const logger = require('../main/Logger.js');
 
 module.exports.fillString = function(c, len) {
     let retval = '';
-    for (var i = 0; i < len; ++i) {
+    for (let i = 0; i < len; ++i) {
         retval += c;
     }
     
@@ -27,7 +25,7 @@ module.exports.getSetFunctionName = function(field) {
 
 function getTestValue(field) {
     let testData;
-    let dbType = getDataType(field.type);
+    let dbType = getDataType(field.type.toUpperCase());
     switch(dbType) {
         case 'string':
             testData = 'N';
@@ -38,6 +36,9 @@ function getTestValue(field) {
             break;
         case 'date':
             testData = new Date();
+            break;
+        case 'boolean':
+            testData = true;
             break;
     }
 
@@ -79,19 +80,31 @@ module.exports.isLogInfoEnabled = function() {
 function getDataType(dbType) {
     let retval;
     if (util.isValidObject(dbType)) {
-        if (dbType.includes('VARCHAR') 
-            || dbType.includes('CHAR') 
+        if (dbType.includes('VARCHAR')
+            || dbType.includes('TEXT')
+            || dbType.includes('CHAR')
             || dbType.includes('CLOB')
+            || dbType.includes('ENUM')
+            || dbType.includes('SET')
+            || dbType.includes('GEOMETRY')
             || dbType.includes('BLOB')) {
             retval = "string";
-        } else if (dbType.includes('DATE')) {
+        } else if (dbType.includes('DATE')
+            || dbType.includes('TIME')) {
             retval = 'date';
-        } else if (dbType.includes('NUMBER')) {
-            if (dbType.endsWith(", 0)")) {
+        } else if (dbType.includes('NUMBER')
+            || dbType.includes('INT')
+            || dbType.includes('YEAR')
+            || dbType.includes('DECIMAL')) {
+            if (!dbType.includes('(') || dbType.endsWith(", 0)")) {
                 retval = 'int';
             } else {
                 retval = 'float';
             }
+        } else if (dbType.includes('FLOAT') ||  dbType.includes('DOUBLE'))     {
+            retval = 'float';
+        } else if (dbType.includes('BOOL')) {
+            retval = 'boolean';
         }
     }
     
@@ -103,7 +116,17 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     try {
         conn = await orm.getConnection(poolAlias);
-        let result = await conn.execute(buildExampleSelect(modelDef, maxRows));
+        let result = {};
+        let dbType = orm.getDbType(poolAlias);
+        switch(dbType) {
+            case util.ORACLE:
+                result = await conn.execute(buildExampleSelect(modelDef, dbType, maxRows));
+                break;
+            case util.MYSQL:
+                result = util.convertObjectArrayToResultSet(await conn.query(buildExampleSelect(modelDef, dbType, maxRows)));
+                break;
+        }
+        
         if (util.isUndefined(result.rows) || (result.rows.length === 0)) {
             return {nodata: true};
         } else {
@@ -117,13 +140,20 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
     finally {
         if (conn) {
-            await conn.close();
+            switch(orm.getDbType(poolAlias)) {
+                case util.ORACLE:
+                    await conn.close();
+                    break;
+                case util.MYSQL:
+                    await conn.release();
+                    break;
+            }
         }
     }
 };
 
-function buildExampleSelect(modelDef, maxRows) {
-    var retval = "select ";
+function buildExampleSelect(modelDef, dbType, maxRows) {
+    let retval = "select ";
     if (util.isUndefined(modelDef)) { 
         util.throwError("UndefinedModelDefinition", 'Undefined model definition passed to method');
 
@@ -137,14 +167,24 @@ function buildExampleSelect(modelDef, maxRows) {
         maxRows++;
     }
 
-    var comma = "";
-    var fields = modelDef.getFields();
-    for (var i = 0; i < fields.length; ++i) {
+    let comma = "";
+    let fields = modelDef.getFields();
+    for (let i = 0; i < fields.length; ++i) {
         retval += (comma + fields[i].columnName);
         comma = ",";
     }
     
-    retval += (" from " + modelDef.getTableName() + " where rownum < " + maxRows);
+    retval += (" from " + modelDef.getTableName());
+    
+    switch(dbType) {
+        case util.ORACLE:
+            retval += (" where rownum < " + maxRows);
+            break;
+        case util.MYSQL:
+            retval += (" limit " + maxRows);
+            break;
+            
+    }
 
     return retval;
 }
@@ -373,7 +413,13 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             
             try {
 
-                 conn = await orm.getConnection(alias, {autoCommit: false});
+                conn = await orm.getConnection(alias, {autoCommit: false});
+                
+                let dbType = orm.getDbType(repository.poolAlias);
+                
+                if (dbType === 'mysql') {
+                    await conn.beginTransaction();
+                }
                 if (!insertOnly) {
                     await updateFunction(repository, result.result.rows, conn, testResults);
                 } else {
@@ -388,7 +434,14 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             finally {
                 await conn.rollback();
                 if (conn) {
-                    await conn.close();
+                    switch(orm.getDbType(alias)) {
+                        case util.ORACLE:
+                            await conn.close();
+                            break;
+                        case util.MYSQL:
+                            await conn.release();
+                            break;
+                    }
                 }
             }
         }
@@ -401,7 +454,12 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
     let md = repository.getMetaData();
     let pkfields = md.getPrimaryKeyFields();
     let pkset = new Set();
-
+    let dbType = orm.getDbType(repository.getPoolAlias());
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+    
     for (let i = 0; i < rows.length; ++i) {
         let params = [];
         let key = '';
@@ -460,7 +518,13 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
             }
         }
     }
-
+    
+    await conn.rollback();
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+    
     if (testList.length > 0) {
         for (let i = 0; i < testList.length; ++i) {
             updateModelForTest(md, testList[i]);
@@ -498,6 +562,12 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 module.exports.testInsert = async function (repository, conn, testResults) {
     let md = repository.getMetaData();
     let modelTestData = loadModelInsertData(md);
+    let dbType = orm.getDbType(repository.getPoolAlias());
+    
+    if (dbType === 'mysql') {
+        await conn.beginTransaction();
+    }
+
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
@@ -505,9 +575,9 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
-        
+    
         let res = await repository.save(models, {conn: conn, returnValues: true});
-        
+    
         if (res.error) {
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
@@ -522,12 +592,18 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             }
         }
         
-        conn.rollback();
+        await conn.rollback();
+    
+        if (dbType === 'mysql') {
+            await conn.beginTransaction();
+        }
+    
         models = [];
+        modelTestData = loadModelInsertData(md);
+    
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
-        
         res = repository.saveSync(models, {conn: conn, returnValues: true});
         
         if (res.error) {
@@ -543,7 +619,10 @@ module.exports.testInsert = async function (repository, conn, testResults) {
                 }
             }
         }
+        
     }
+
+    await conn.rollback();
 };
 
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
@@ -559,17 +638,19 @@ function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) 
             let mismatch = ((util.isValidObject(val1) && util.isNotValidObject(val2)) || (util.isValidObject(val2) && util.isNotValidObject(val1)));
 
             if (!mismatch) {
-                if (util.isValidObject(val1) && util.isValidObject(val2)) {
-                    if (val1 instanceof Date) {
-                        val1 = val1.getTime();
-                        val2 = val2.getTime();
-                    } else if (val1 instanceof Object) {
-                        val1 = util.toString(val1);
-                        val2 = util.toString(val2);
-                    }
-
-                    if (val1 !== val2) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, 'column value msimath on ' + md.getObjectName() + '.' + fields[i].fieldName + ' expected ' + val1 + ' but found ' + val2, util.SAVE + '[insert]'));
+                if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(fields[i].fieldName)) {
+                    if (util.isValidObject(val1) && util.isValidObject(val2)) {
+                        if (val1 instanceof Date) {
+                            val1 = val1.getTime();
+                            val2 = val2.getTime();
+                        } else if (val1 instanceof Object) {
+                            val1 = util.toString(val1);
+                            val2 = util.toString(val2);
+                        }
+        
+                        if (val1 !== val2) {
+                            testResults.push(require('./testStatus.js')(util.ERROR, 'column value mismatch on ' + md.getObjectName() + '.' + fields[i].fieldName + ' expected ' + val1 + ' but found ' + val2, util.SAVE + '[insert]'));
+                        }
                     }
                 }
             }
@@ -636,12 +717,13 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
 
 function loadModelInsertData(metaData) {
     let retval = [];
-    let flist = fs.readdirSync("./test/testdata");
+    let modelPath = metaData.module.substring(0, metaData.module.lastIndexOf('/'));
+    let flist = fs.readdirSync(modelPath.replace('model', 'test/testdata/'));
     for (let i = 0; i < flist.length; ++i) {
         if (flist[i].endsWith('.json')) {
             let pos = flist[i].indexOf('_');
             if ((pos > -1) && (metaData.objectName === flist[i].substring(0, pos))) {
-                retval.push(util.jsonToModel(fs.readFileSync('./test/testdata/' + flist[i]), orm));
+                retval.push(util.jsonToModel(fs.readFileSync(modelPath.replace('model', 'test/testdata') + '/' + flist[i]), orm));
             }
         }
     }
@@ -742,6 +824,12 @@ module.exports.testDelete = async function(repository, testResults) {
         if (util.isNotValidObject(modelTestData)) {
             testResults.push(require('./testStatus.js')(util.WARN, 'not insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
+            let dbType = orm.getDbType(repository.getPoolAlias());
+    
+            if (dbType === 'mysql') {
+                await conn.beginTransaction();
+            }
+    
             let models = [];
             for (let i = 0; i < modelTestData.length; ++i) {
                 models.push(modelTestData[i]);
@@ -789,7 +877,14 @@ module.exports.testDelete = async function(repository, testResults) {
     
     finally {
         if (conn) {
-            await conn.close();
+            switch(orm.getDbType(repository.getPoolAlias())) {
+                case util.ORACLE:
+                    await conn.close();
+                    break;
+                case util.MYSQL:
+                    await conn.release();
+                    break;
+            }
         }
     }
 };
@@ -849,42 +944,44 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
     let retval = false;
     let fields = modelObject.getFields();
     if (fields) {
-        let cmap = modelObject.getMetaData().getColumnToFieldMap();
-    
+        let cmap = orm.getMetaData(modelObject.__model__).getColumnToFieldMap();
         let failed = false;
+
         for (let i = 0; i < columnNames.length; ++i) {
             let field = cmap.get(columnNames[i].name);
-            let rd = rowData[i];
-            if (util.isDefined(field.converter)) {
-                rd = require('../converters/' + field.converter + '.js')(field, rd, true);
-            }
-            
-            let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
 
-            if (util.isNotValidObject(fv)) {
-                fv = null;
-            }
-
-            if (rd) {
-                if (rd instanceof Date) {
-                    rd = rd.getTime();
-                } else if (rd instanceof Object) { 
-                    rd = util.toString(rd);
+            if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(field.fieldName)) {
+                let rd = rowData[i];
+                if (util.isDefined(field.converter)) {
+                    rd = require('../converters/' + field.converter + '.js')(field, rd, true);
                 }
-            }
-            
-            if (fv) {
-                if (fv instanceof Date) {
-                    fv = fv.getTime();
-                } else if (fv instanceof Object) {
-                    fv = util.toString(fv);
+    
+                let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
+                if (util.isNotValidObject(fv)) {
+                    fv = null;
                 }
-            }
-            
-            if (rd !== fv) {
-                failed = true;
-                testResults.push(require('./testStatus.js')(util.ERROR, '[' + columnNames[i].name + ']: ' + fv + ' != ' + rd, parentFunction + '.rowToModelMatch'));
-                break;
+    
+                if (rd) {
+                    if (rd instanceof Date) {
+                        rd = rd.getTime();
+                    } else if (rd instanceof Object) {
+                        rd = util.toString(rd);
+                    }
+                }
+    
+                if (fv) {
+                    if (fv instanceof Date) {
+                        fv = fv.getTime();
+                    } else if (fv instanceof Object) {
+                        fv = util.toString(fv);
+                    }
+                }
+    
+                if (rd !== fv) {
+                    failed = true;
+                    testResults.push(require('./testStatus.js')(util.ERROR, '[' + columnNames[i].name + ']: ' + fv + ' != ' + rd, parentFunction + '.rowToModelMatch'));
+                    break;
+                }
             }
         }
         
@@ -1025,7 +1122,16 @@ async function runQuery(poolAlias, sql, parameters, options) {
         }
 
         conn = await orm.getConnection(poolAlias);
-        let result = await conn.execute(sql, parameters, options);
+        let result;
+        switch(orm.getDbType(poolAlias)) {
+            case util.ORACLE:
+                result = await conn.execute(sql, parameters, options);
+                break;
+            case util.MYSQL:
+               result = await conn.query(sql, parameters, options);
+                break;
+        }
+    
         return {result: result};
     }
 
@@ -1035,7 +1141,14 @@ async function runQuery(poolAlias, sql, parameters, options) {
 
     finally {
         if (conn) {
-            await conn.close();
+            switch(orm.getDbType(poolAlias)) {
+                case util.ORACLE:
+                    await conn.close();
+                    break;
+                case util.MYSQL:
+                    await conn.release();
+                    break;
+            }
         }
     }
 }
