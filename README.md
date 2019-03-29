@@ -1,12 +1,9 @@
 Simple ORM framework for Node.js that supports MySQL and Oracle.
 
-Documentation:
-http://simplenodeorm.org/wp-content/uploads/2019/03/simplenodeorm.pdf
-
 Source:
 https://github.com/rbtucker/simplenodeorm
 
-Website:
+Website (demo and documentation):
 http://simplenodeorm.org
 
 Requirements:
