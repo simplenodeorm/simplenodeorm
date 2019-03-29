@@ -28,7 +28,7 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
                 haveOracle = true;
                 break;
             case util.MYSQL:
-                pool = mysqldb.createPool(pdefs.pools[i]);
+                pool = await mysqldb.createPool(pdefs.pools[i]);
                 break;
         }
 
