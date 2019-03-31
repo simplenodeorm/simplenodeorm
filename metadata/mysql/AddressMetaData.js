@@ -59,12 +59,6 @@ class AddressMetaData extends MetaData {
                     required: true
                 },
                 { // 7
-                    fieldName: "location",
-                    type: "GEOMETRY",
-                    columnName: "location",
-                    required: true
-                },
-                { // 8
                     fieldName: "lastUpdate",
                     type: "TIMESTAMP",
                     columnName: "last_update",

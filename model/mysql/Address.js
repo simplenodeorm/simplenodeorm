@@ -28,9 +28,6 @@ class Address extends Model {
     getPhone() { return this.getFieldValue("phone"); }
     setPhone(value) { this.setFieldValue("phone", value); }
     
-    getLocation() { return this.getFieldValue("location"); }
-    setLocation(value) { this.setFieldValue("location", value); }
-
     getLastUpdate() { return this.getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
     
