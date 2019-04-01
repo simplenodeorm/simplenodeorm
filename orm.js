@@ -1128,7 +1128,14 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
                 if (queryDocument.document.whereComparisons[i].comparisonValue) {
                     if (repo.isDateType(field)) {
-                        sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') ';
+                        switch(dbTypeMap.get(repo.poolAlias)) {
+                            case util.ORACLE:
+                                sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') ';
+                                break;
+                            case util.MYSQL:
+                                sql += (' \'' + queryDocument.document.whereComparisons[i].comparisonValue + '\'');
+                                break;
+                        }
                     } else if (util.isQuoteRequired(field)) {
                         if (queryDocument.document.whereComparisons[i].comparisonOperator === 'in') {
                             let vals = queryDocument.document.whereComparisons[i].comparisonValue.split(',');
