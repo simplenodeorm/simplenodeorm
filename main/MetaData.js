@@ -1,6 +1,6 @@
 "use strict";
 
-const util = require("../main/util.js");
+const util = require("./util.js");
 
 /**
  * this is the base class for defing the sql to object mapping definitions
@@ -215,7 +215,6 @@ class MetaData {
     findRelationshipByName(nm) {
         let retval;
         let def = this.getOneToOneDefinitions();
-    
         if (util.isValidObject(def)) {
             for (let i = 0; i < def.length; ++i) {
                 if (nm === def[i].fieldName) {
@@ -248,7 +247,8 @@ class MetaData {
                 }
             }
         }
-
+    
+        logger.logInfo('-------------------->4=' + retval);
         return retval;
     }
 }
