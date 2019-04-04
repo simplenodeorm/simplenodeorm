@@ -1083,6 +1083,26 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
         comma = ', ';
     }
 
+    // SIM-4 - add any missing primary key values if object graph result
+    // need the primary keys to build object graph correctly
+    let requiredPkColumns;
+
+    if (queryDocument.resultFormat === 'object') {
+        requiredPkColumns = getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap);
+        if (requiredPkColumns && (requiredPkColumns.length > 0)) {
+            for (let i = 0; i < requiredPkColumns.length; ++i) {
+                sql += (',' + requiredPkColumns[i].alias + '.' + requiredPkColumns[i].columnName);
+    
+                if (!forDisplay && (dbTypeMap.get(requiredPkColumns[i].poolAlias) === util.MYSQL)) {
+                    sql += (' as ' + requiredPkColumns[i].alias + '_' + requiredPkColumns[i].columnName)
+                }
+    
+                queryDocument.document.selectedColumns.push(requiredPkColumns[i]);
+            }
+        }
+    }
+    
+    
     let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
     sql += (' from ' + md.tableName + ' t0 ');
 
@@ -1239,6 +1259,80 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
     }
 
     return sql;
+}
+
+function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
+    let retval = [];
+    let tset = new Set();
+
+    for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
+        let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
+        let alias;
+        let repo;
+        if (pos < 0) {
+            repo = repositoryMap.get(queryDocument.document.rootModel.toLowerCase());
+            alias = 't0';
+        } else {
+            let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
+            alias = info.alias;
+            repo = repositoryMap.get(info.model.toLowerCase());
+        }
+    
+        // evaluate missing primary keys for model
+        if (!tset.has(alias)) {
+            tset.add(alias);
+            let pkkeys = repo.getMetaData().getPrimaryKeyFields();
+            let model = repo.getMetaData().objectName;
+            let pkmap = new Map();
+            for (let j = 0; j < pkkeys.length; ++j) {
+                pkmap.set(pkkeys[j].fieldName, pkkeys[j]);
+            }
+            
+            let parentPath = '@#$';
+            let fieldName = queryDocument.document.selectedColumns[i].path;
+            if (pos > -1) {
+                parentPath = queryDocument.document.selectedColumns[i].path.substring(0, pos);
+                fieldName = queryDocument.document.selectedColumns[i].path.substring(pos+1);
+            }
+            
+            for (let j = 0; j < queryDocument.document.selectedColumns.length; ++j) {
+                let pos2 = queryDocument.document.selectedColumns[j].path.lastIndexOf('.');
+                let curParentPath = '@#$';
+                if (pos2 > -1) {
+                    curParentPath = queryDocument.document.selectedColumns[j].path.substring(0, pos2);
+                }
+                
+                if (parentPath === curParentPath) {
+                    if (pkmap.has(fieldName)) {
+                        pkmap.delete(fieldName);
+                    }
+                }
+                
+                if (pkmap.size === 0) {
+                    break;
+                }
+            }
+            
+            if (pkmap.size > 0) {
+                for (let [k, v] of pkmap) {
+                    let sc = {};
+                    sc.alias = alias;
+                    sc.poolAlias = repo.poolAlias;
+                    sc.model = model;
+                    sc.columnName = v.columnName;
+                    if (parentPath !== '@#$') {
+                        sc.path = parentPath + '.' + k;
+                    } else {
+                        sc.path = k;
+                    }
+                    
+                    retval.push(sc);
+                }
+            }
+        }
+    }
+    
+    return retval;
 }
 
 function getOrderByColumns(selectedColumns) {
@@ -1566,14 +1660,14 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
     for (let i = 0; i < resultRows.length; ++i) {
         let key = '';
         let keypos = keyColumnMap.get('t0');
-        let lastKey = lastKeyMap.get('t0');
+        let lastKey = (lastKeyMap.get('t0') + '-' + i);
 
         for (let j = 0; j < keypos.length; ++j) {
             key += (resultRows[i][keypos[j]] + '.');
         }
 
         if (!lastKey || (lastKey !== key)) {
-            lastKeyMap.set('t0', key);
+            lastKeyMap.set('t0', key + '-' + i);
             let model = {};
             model.__model__ = doc.document.rootModel;
             retval.push(model);
@@ -1590,8 +1684,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
             if (aliasList[j] !== 't0') {
                 key = '';
                 keypos = keyColumnMap.get(aliasList[j]);
-                lastKey = lastKeyMap.get(aliasList[j]);
-                
+                lastKey = (lastKeyMap.get(aliasList[j]) + '-' + i);
                 let allNull = true;
                 for (let k = 0; k < keypos.length; ++k) {
                     key += (resultRows[i][keypos[k]] + '.');
@@ -1604,14 +1697,15 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
                 if (allNull) {
                     break;
                 }
-                
+    
                 if (!lastKey || (lastKey !== key)) {
-                    lastKeyMap.set(aliasList[j], key);
+                    lastKeyMap.set(aliasList[j], key + '-' + i);
                     let curmodel = retval[retval.length-1];
                     
                     let pos = doc.document.selectedColumns[keypos[0]].path.lastIndexOf('.');
                     let rootpath =  doc.document.selectedColumns[keypos[0]].path.substring(0, pos);
                     let pathParts = rootpath.split('.');
+                    
                     // walk down relationship path
                     for (let k = 0; k < pathParts.length; ++k) {
                         let modelName = curmodel.__model__;
@@ -1697,6 +1791,9 @@ function isUnaryOperator(op) {
 
 async function generateReport(report, query, parameters) {
     let retval = '';
+    
+    // SIM-4 all reports will run from object graphs
+    query.document.resultFormat = 'object';
     let sql = buildQueryDocumentSql(query);
     
     if (logger.isLogDebugEnabled()) {
