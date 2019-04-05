@@ -100,7 +100,7 @@ class StaffMetaData extends MetaData {
                     }
                 },
                 { // 1
-                    fieldName: "addess",
+                    fieldName: "address",
                     type: 1,
                     targetModelName: "Address",
                     targetModule: "../model/mysql/Address.js",
