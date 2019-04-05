@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require('fs');
 const assert = require('chai').assert;
 const util = require('../main/util.js');
 const testUtil = require("./testUtil.js");
@@ -50,7 +51,20 @@ module.exports.run = async function(orm) {
             }
         }
     }
+    
+    await runQueryDesigerQueryTests(orm, models);
 
     testUtil.logInfo("    - orm tests complete [SUCCESS]");
 };
 
+async function runQueryDesigerQueryTests(orm, models) {
+    testUtil.logInfo("    - starting query designer query tests...");
+    let flist = fs.readdirSync('./test/testdata/querydesigner');
+    
+    for (let i = 0; i < flist.length; ++i) {
+        if (flist[i].startsWith("test_query")) {
+            testUtil.logInfo("    - test query " + flist[i] + '...');
+        }
+    }
+    
+}
