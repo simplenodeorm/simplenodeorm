@@ -247,8 +247,7 @@ class MetaData {
                 }
             }
         }
-    
-        logger.logInfo('-------------------->4=' + retval);
+
         return retval;
     }
 }

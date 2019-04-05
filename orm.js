@@ -1657,82 +1657,57 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
         }
     }
     
-    aliasList.sort(function (a1, a2) {
-        let positions1 = positionMap.get(a1);
-        let positions2 = positionMap.get(a2);
-        
-        
-        let pos1 = doc.document.selectedColumns[positions1[0]].path.lastIndexOf('.');
-        let pos2 = doc.document.selectedColumns[positions2[0]].path.lastIndexOf('.');
-        let path1 = doc.document.selectedColumns[positions1[0]].path.substring(0, pos1);
-        let path2 = doc.document.selectedColumns[positions2[0]].path.substring(0, pos2);
-        
-        return (path2 < path1);
-    });
+    aliasList.sort();
     
+    // object references by key
+    let objectMap = new Map();
+    //object references by alias fr current branch
+    let parentObjectMap = new Map();
 
-    let lastKey = '';
-    let lastRoot = '';
-    
     for (let i = 0; i < resultRows.length; ++i) {
         let key = '';
         for (let j = 0; j < aliasList.length; ++j) {
             let alias = aliasList[j];
             let keypos = keyColumnMap.get(alias);
     
-            if (alias === 't0') {
-                lastKey = '';
+            let pkey = buildObjectKeyFromRowPositions(resultRows[i], keypos);
+
+            if (pkey) {
+                key += ('.' + pkey);
             }
             
-            let nullObject = true;
-            let dot = '';
-            for (let j = 0; j < keypos.length; ++j) {
-                if (resultRows[i][keypos[j]]) {
-                    nullObject = false;
-                }
-                key += (dot + resultRows[i][keypos[j]]);
-                dot = '.'
-            }
-    
-            if (!nullObject && (!lastKey || (lastKey !== key))) {
-                let model;
-                if (alias === 't0') {
-                    lastRoot = {};
-                    lastRoot.__model__ = doc.document.rootModel;
-                    retval.push(lastRoot);
-                    model = lastRoot;
-                } else {
-                    let pos = doc.document.selectedColumns[keypos[0]].path.lastIndexOf('.');
-                    let pathParts = doc.document.selectedColumns[keypos[0]].path.substring(0, pos).split('.');
-                    let pobj = lastRoot;
-                    for (let j = 0; j < pathParts.length; ++j) {
-                        let curobj = pobj[pathParts[j]];
-                        
-                        if (!curobj) {
-                            let ref = repositoryMap.get(pobj.__model__.toLowerCase()).getMetaData().findRelationshipByName(pathParts[j]);
-    
-                            curobj = {};
-                            curobj.__model__ = ref.targetModelName;
-                            switch (ref.type) {
-                                case 1:
-                                    pobj[pathParts[j]] = curobj;
-                                    break;
-                                case 2:
-                                case 3:
-                                    pobj[pathParts[j]] = [];
-                                    pobj[pathParts[j]].push(curobj);
-                                    break;
+            if (pkey) {
+                let model = objectMap.get(key);
+                let newModel = false;
+                if (!model) {
+                    newModel = true;
+                    model = {};
+                    if (alias === 't0') {
+                        model.__model__ = doc.document.rootModel;
+                        retval.push(model);
+                        parentObjectMap = new Map();
+                        parentObjectMap.set(alias, model);
+                    } else {
+                        let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
+                        let pos = doc.document.selectedColumns[keypos[0]].path.lastIndexOf('.');
+                        let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
+                        let ref = repositoryMap.get(parentModel.__model__.toLowerCase()).getMetaData().findRelationshipByName(fieldName);
+                        model.__model__ = ref.targetModelName;
+                        if (ref.type === 1) {
+                            parentModel[fieldName] = model;
+                        } else {
+                            if (!parentModel[fieldName]) {
+                                parentModel[fieldName] = [];
                             }
-                        } else if (Array.isArray(curobj) && (curobj.length > 0)) {
-                            curobj = curobj[curobj.length - 1];
+            
+                            parentModel[fieldName].push(model);
                         }
-                        pobj = curobj;
+                        parentObjectMap.set(alias, model);
                     }
-                    
-                    model = pobj;
+                    objectMap.set(key, model);
                 }
-    
-                if (model) {
+                
+                if (newModel) {
                     let colpos = positionMap.get(alias);
                     for (let l = 0; l < colpos.length; ++l) {
                         let pos = doc.document.selectedColumns[colpos[l]].path.lastIndexOf('.');
@@ -1741,8 +1716,6 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
                     }
                 }
             }
-            
-            lastKey = key;
         }
     }
     
@@ -1755,6 +1728,30 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
     } else {
         return retval;
     }
+}
+
+function getParentFieldNameFromPath(path) {
+    let parts = path.split('.');
+    return parts[parts.length-2];
+}
+
+function buildObjectKeyFromRowPositions(row, keypos) {
+    let retval = '';
+    let dot = '';
+    let allNull = true;
+    for (let j = 0; j < keypos.length; ++j) {
+        if (row[keypos[j]]) {
+            allNull = false;
+        }
+        retval += (dot + row[keypos[j]]);
+        dot = '.'
+    }
+    
+    if (allNull) {
+        retval = '';
+    }
+    
+    return retval;
 }
 
 function findField(metaData, fieldPath) {
