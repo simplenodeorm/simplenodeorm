@@ -1029,7 +1029,7 @@ function getUniqueKey() {
     return uuidv1();
 }
 
-function buildQueryDocumentSql(queryDocument, forDisplay) {
+module.exports.buildQueryDocumentSql = function(queryDocument, forDisplay) {
     let relationshipTree = loadRelationshipTree(queryDocument.document);
     let joins = [];
     let joinset = new Set();
@@ -1261,7 +1261,7 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
     }
 
     return sql;
-}
+};
 
 function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
     let retval = [];
@@ -1611,7 +1611,7 @@ function loadGroupMap(curGroup, groupMap) {
 }
 
 
-function buildResultObjectGraph(doc, resultRows, asObject) {
+module.exports.buildResultObjectGraph = function (doc, resultRows, asObject) {
     let retval = [];
     let positionMap = new Map();
     let keyColumnMap = new Map();
@@ -1728,7 +1728,7 @@ function buildResultObjectGraph(doc, resultRows, asObject) {
     } else {
         return retval;
     }
-}
+};
 
 function getParentFieldNameFromPath(path) {
     let parts = path.split('.');

@@ -23,6 +23,9 @@ module.exports.getSetFunctionName = function(field) {
     return ('set' + field.fieldName.substring(0, 1).toUpperCase() + field.fieldName.substring(1));
 };
 
+module.exports.verifyQueryDesignerQueryResults = function(repo, doc, resultSet, objectGraph, testResults) {
+};
+
 function getTestValue(field) {
     let testData;
     let dbType = getDataType(field.type.toUpperCase());
