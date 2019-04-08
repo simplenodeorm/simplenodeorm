@@ -24,7 +24,94 @@ module.exports.getSetFunctionName = function(field) {
 };
 
 module.exports.verifyQueryDesignerQueryResults = function(repo, doc, resultSet, objectGraph, testResults) {
+    let columnPosMap = new Map();
+    let fieldPosMap = new Map();
+
+    for (let i = 0; i < doc.document.selectedColumns.length; ++i) {
+        columnPosMap.set(doc.document.selectedColumns[i].path, i);
+    }
+    
+    if (!Array.isArray(objectGraph)) {
+        let tmp = objectGraph;
+        objectGraph = [];
+        objectGraph.push(tmp);
+    }
+    
+    let md = repo.getMetaData();
+    
+    for (let i = 0; i < md.fields.length; ++i) {
+        let pos = columnPosMap.get(md.fields[i].columnName);
+        if (pos) {
+            fieldPosMap.set(md.fields[i].fieldName, pos);
+        }
+    }
+    
+    let pkkeys = md.getPrimaryKeyFields();
+    
+    
+    
+    let topLevelKeyset = new Set();
+    
+    for (let i = 0; i < resultSet.result.rows.length; ++i) {
+        let dot = '';
+        let key = '';
+        for ( let j = 0; j < pkkeys.length; ++j) {
+            key += (dot + resultSet.result.rows[i][columnPosMap.get(pkkeys[j].fieldName)]);
+            dot = '.';
+        }
+        topLevelKeyset.add(key);
+    }
+    
+    if (objectGraph.length !== topLevelKeyset.size) {
+        testResults.push(require('./testStatus.js')(util.ERROR,
+            'result set unique top level object count['
+            +  topLevelKeyset.size
+            + '] does not match object graph count['
+            + objectGraph.length + '] for model ' + md.modelName, 'verifyQueryDesignerQueryResults'));
+    } else {
+        for (let i = 0; i < objectGraph.length; ++i) {
+            let dot = '';
+            let key = '';
+            for (let j = 0; j < pkkeys.length; ++j) {
+                key += (dot + objectGraph[i][pkkeys[j].fieldName]);
+                dot = '.'
+            }
+            if (!topLevelKeyset.has(key)) {
+                testResults.push(require('./testStatus.js')(util.ERROR, 'object graph key [' + key + '] not found in results set keys', 'verifyQueryDesignerQueryResults'));
+            }
+            
+            let objresults = getResultSetRowsForModelInstance(objectGraph[i], pkkeys, resultSet, columnPosMap);
+        }
+    }
+    
 };
+
+function getResultSetRowsForModelInstance(modelInstance, pkkeys, resultSet, columnPosMap) {
+    let retval = [];
+    let keyValues = [];
+    for (let j = 0; j < pkkeys.length; ++j) {
+        keyValues.push(modelInstance[pkkeys[j].fieldName]);
+    }
+    
+    for (let i = 0; i < resultSet.result.rows.length; ++i) {
+        let match = true;
+        
+        for (let j = 0; j < pkkeys.length; j++) {
+            let val = resultSet.result.rows[i][columnPosMap.get(pkkeys[j].fieldName)];
+            
+            if (val !== keyValues[j]) {
+                match = false;
+                break;
+            }
+        }
+        
+        if (match) {
+            retval.push(resultSet.result.rows[i]);
+        }
+    }
+    
+    return retval;
+}
 
 function getTestValue(field) {
     let testData;

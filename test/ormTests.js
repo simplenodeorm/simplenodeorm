@@ -90,12 +90,12 @@ async function runQueryDesignerQueryTests(orm) {
                             'failed to build object graph from query document ' + flist[i] + ' result set',
                             'ormTests.runQueryDesignerQueryTests'));
                     } else {
-                        await testUtil.verifyQueryDesignerQueryResults(repo, doc, resultSet, objectGraph, testResults);
+                        await testUtil.verifyQueryDesignerQueryResults(repo, doc, resultSet, JSON.parse(objectGraph), testResults);
                     }
                 
                 } catch (e) {
                     testResults.push(require('./testStatus.js')(util.ERROR,
-                        'An unexcpeted exception was thrown - ' + e, 'ormTests.runQueryDesignerQueryTests'));
+                        'An unexpected exception was thrown - ' + e, 'ormTests.runQueryDesignerQueryTests'));
                 }
             
             }
