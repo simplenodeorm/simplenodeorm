@@ -49,7 +49,6 @@ module.exports.verifyQueryDesignerQueryResults = function(repo, doc, resultSet, 
     let pkkeys = md.getPrimaryKeyFields();
     
     
-    
     let topLevelKeyset = new Set();
     
     for (let i = 0; i < resultSet.result.rows.length; ++i) {
@@ -79,12 +78,131 @@ module.exports.verifyQueryDesignerQueryResults = function(repo, doc, resultSet, 
             if (!topLevelKeyset.has(key)) {
                 testResults.push(require('./testStatus.js')(util.ERROR, 'object graph key [' + key + '] not found in results set keys', 'verifyQueryDesignerQueryResults'));
             }
+        }
+    
+        verifyModelInstancesToResultSet(doc, objectGraph, resultSet, columnPosMap, testResults);
+    }
+};
+
+function verifyModelInstancesToResultSet(doc, objectGraph, resultSet, columnPosMap, testResults) {
+    
+    for (let i = 0; i < objectGraph.length; ++i) {
+        let verifyMap = new Map();
+        let pkkeys = orm.getRepository(objectGraph[i].__model__).getMetaData().getPrimaryKeyFields();
+        let results = getResultSetRowsForModelInstance(objectGraph[i], pkkeys, resultSet, columnPosMap);
+        
+        // set up verification table - will use this to ensure all results are
+        // accounted for in object graph
+        for (let j = 0; j < results.length; ++j) {
+            for (let k = 0; k < doc.document.selectedColumns.length; ++k) {
+                verifyMap.set(j + ":" + doc.document.selectedColumns[k].path, false);
+            }
+        }
+    
+        // match all row values in our current object
+        for (let j = 0; j < results.length; ++j) {
+            for (let k = 0; k < doc.document.selectedColumns.length; ++k) {
+                let vkey = j + ":" + doc.document.selectedColumns[k].path;
+                let resval = results[j][k];
+                let mval = findModelObjectValueFomPath(orm, objectGraph[i], results[j], doc.document.selectedColumns[k].path, columnPosMap);
+                
+                if (mval && resval) {
+                    if (!isNaN(Date.parse(resval))) {
+                        mval = Date.parse(mval);
+                        resval = Date.parse(resval);
+                    }
+                }
+                
+                if ((mval === resval) || (!mval && !resval)) {
+                    verifyMap.set(vkey, true);
+                } else {
+                    testResults.push(require('./testStatus.js')(util.ERROR,
+                        'object graph value for path '
+                        +  doc.document.selectedColumns[k].path
+                        + ' ' + mval
+                        + ' not equal to result set value ' + resval, 'verifyQueryDesignerQueryResults'));
+                }
+            }
+        }
+    
+        for (const [k, v] of verifyMap) {
+            if (!v) {
+                testResults.push(require('./testStatus.js')(util.ERROR,
+                    'did not find matching model object value for result set path '
+                    +  k,
+                    'verifyQueryDesignerQueryResults'));
+                
+            }
+        }
+    }
+}
+
+function findModelObjectValueFomPath(orm, model, resultRow, path, columnPosMap) {
+    let retval;
+    let pathParts = path.split('.');
+    let curmodel = model;
+    let lastPath = '';
+    let dot = '';
+    for (let i = 0; i < pathParts.length; ++i) {
+        if (i === 0) {
+            lastPath = '';
+            dot = '';
+        }
+        
+        if (i < (pathParts.length - 1)) {
+            curmodel = curmodel[pathParts[i]];
+            if (!curmodel) {
+                break;
+            } else {
+                let pkkeys;
+                
+                if (Array.isArray(curmodel)) {
+                    pkkeys = orm.getRepository(curmodel[0].__model__).getMetaData().getPrimaryKeyFields();
+                } else {
+                    pkkeys = orm.getRepository(curmodel.__model__).getMetaData().getPrimaryKeyFields();
+                }
+    
+                let pkvalues = [];
+                for (let j = 0; j < pkkeys.length; ++j) {
+                    pkvalues.push(resultRow[columnPosMap.get(lastPath + pkkeys[j].fieldName)]);
+                }
+        
+                if (Array.isArray(curmodel)) {
+                    let m;
+                    for (let j = 0; j < curmodel.length; ++j) {
+                        let match = true;
+                        for (let k = 0; k < pkkeys.length; ++k) {
+                            if (curmodel[pkkeys.fieldName] !== pkvalues[k]) {
+                                match = false;
+                                break;
+                            }
+                        }
+                
+                        if (match) {
+                            m = curmodel[j];
+                            break;
+                        }
+                    }
             
-            let objresults = getResultSetRowsForModelInstance(objectGraph[i], pkkeys, resultSet, columnPosMap);
+                    if (!m) {
+                        break;
+                    } else {
+                        curmodel = m;
+                    }
+                } else {
+                    retval = curmodel[path.substring(path.lastIndexOf('.') + 1)];
+                }
+            }
+            
+            lastPath += (dot + pathParts[i]);
+            dot = '.';
+        } else {
+            retval = curmodel[path.substring(path.lastIndexOf('.') + 1)];
         }
     }
     
-};
+    return retval;
+}
 
 function getResultSetRowsForModelInstance(modelInstance, pkkeys, resultSet, columnPosMap) {
     let retval = [];
