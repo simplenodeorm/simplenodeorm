@@ -1029,7 +1029,9 @@ function getUniqueKey() {
     return uuidv1();
 }
 
-module.exports.buildQueryDocumentSql = function(queryDocument, forDisplay) {
+module.exports.buildQueryDocumentSql = buildQueryDocumentSql;
+
+function buildQueryDocumentSql(queryDocument, forDisplay) {
     let relationshipTree = loadRelationshipTree(queryDocument.document);
     let joins = [];
     let joinset = new Set();
@@ -1261,7 +1263,7 @@ module.exports.buildQueryDocumentSql = function(queryDocument, forDisplay) {
     }
 
     return sql;
-};
+}
 
 function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
     let retval = [];
@@ -1610,8 +1612,8 @@ function loadGroupMap(curGroup, groupMap) {
     }
 }
 
-
-module.exports.buildResultObjectGraph = function (doc, resultRows, asObject) {
+module.exports.buildResultObjectGraph = buildResultObjectGraph;
+function buildResultObjectGraph (doc, resultRows, asObject) {
     let retval = [];
     let positionMap = new Map();
     let keyColumnMap = new Map();
@@ -1712,6 +1714,7 @@ module.exports.buildResultObjectGraph = function (doc, resultRows, asObject) {
                     for (let l = 0; l < colpos.length; ++l) {
                         let pos = doc.document.selectedColumns[colpos[l]].path.lastIndexOf('.');
                         let fieldName = doc.document.selectedColumns[colpos[l]].path.substring(pos + 1);
+                        
                         model[fieldName] = resultRows[i][colpos[l]];
                     }
                 }
@@ -1728,7 +1731,7 @@ module.exports.buildResultObjectGraph = function (doc, resultRows, asObject) {
     } else {
         return retval;
     }
-};
+}
 
 function getParentFieldNameFromPath(path) {
     let parts = path.split('.');

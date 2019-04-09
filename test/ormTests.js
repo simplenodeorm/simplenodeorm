@@ -71,7 +71,7 @@ async function runQueryDesignerQueryTests(orm) {
                 try {
                     let doc = JSON.parse(fs.readFileSync('./test/testdata/querydesigner/' + flist[i]));
                     let sql = orm.buildQueryDocumentSql(doc);
-                    let repo = orm.getRepository(doc.document.rootModel.toLowerCase());
+                    let repo = orm.getRepository(doc.document.rootModel);
                     if (!repo) {
                         testResults.push(require('./testStatus.js')(util.ERROR,
                             'failed to find repository query document root model' + doc.document.rootModel,
