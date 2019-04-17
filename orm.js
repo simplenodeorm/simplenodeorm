@@ -455,7 +455,9 @@ function startRestServer() {
                 if (!label) {
                     label = fld.fieldName;
                 }
-                qcinfo.push({path: qdoc.document.selectedColumns[i].path, name: label, type: fld.type, length: fld.length});
+                
+                // SIM-3 add function
+                qcinfo.push({path: qdoc.document.selectedColumns[i].path, name: label, type: fld.type, function: qdoc.document.selectedColumns[i].function, length: fld.length});
             }
             res.status(200).send(qcinfo);
         } catch (e) {
