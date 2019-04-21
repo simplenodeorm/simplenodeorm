@@ -460,7 +460,13 @@ function startRestServer() {
                 }
                 
                 // SIM-3 add function
-                qcinfo.push({path: qdoc.document.selectedColumns[i].path, name: label, type: fld.type, function: qdoc.document.selectedColumns[i].function, length: fld.length});
+                qcinfo.push({
+                    path: qdoc.document.selectedColumns[i].path,
+                    name: label,
+                    type: fld.type,
+                    function: qdoc.document.selectedColumns[i].function,
+                    customInput: qdoc.document.selectedColumns[i].customInput,
+                    length: fld.length});
             }
             res.status(200).send(qcinfo);
         } catch (e) {
@@ -1225,7 +1231,12 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
                     alias = info.alias;
                 }
 
-                sql += (comma + ' ' + alias + '.' + colName);
+                if (queryDocument.document.selectedColumns[i].customInput) {
+                    sql += (comma + ' ' + queryDocument.document.selectedColumns[i].customInput.replace('?', (alias + '.' + colName)));
+                } else {
+                    sql += (comma + ' ' + alias + '.' + colName);
+                }
+                
                 comma = ',';
             }
         }
@@ -1255,9 +1266,11 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
 
             if (orderByColumns[i].function) {
                 sql += (comma + orderByColumns[i].function + '(' + alias + '.' + colName + ')');
+            } else if (orderByColumns[i].customInput) {
+                sql += (comma + ' ' + orderByColumns[i].customInput.replace('?', (alias + '.' + colName)));
             } else {
-                sql += (comma + alias + '.' + colName);
-            }
+                 sql += (comma + ' ' + alias + '.' + colName);
+             }
 
             if (orderByColumns[i].sortDescending) {
                 sql += ' desc';
@@ -1272,70 +1285,72 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
 
 function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
     let retval = [];
-    let tset = new Set();
-
-    for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
-        let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
-        let alias;
-        let repo;
-        if (pos < 0) {
-            repo = repositoryMap.get(queryDocument.document.rootModel.toLowerCase());
-            alias = 't0';
-        } else {
-            let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
-            alias = info.alias;
-            repo = repositoryMap.get(info.model.toLowerCase());
-        }
+    if (!requiresGroupBy(queryDocument.document.selectedColumns)) {
+        let tset = new Set();
     
-        // evaluate missing primary keys for model
-        if (!tset.has(alias)) {
-            tset.add(alias);
-            let pkkeys = repo.getMetaData().getPrimaryKeyFields();
-            let model = repo.getMetaData().objectName;
-            let pkmap = new Map();
-            for (let j = 0; j < pkkeys.length; ++j) {
-                pkmap.set(pkkeys[j].fieldName, pkkeys[j]);
+        for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
+            let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
+            let alias;
+            let repo;
+            if (pos < 0) {
+                repo = repositoryMap.get(queryDocument.document.rootModel.toLowerCase());
+                alias = 't0';
+            } else {
+                let info = aliasMap.get(queryDocument.document.selectedColumns[i].path.substring(0, pos));
+                alias = info.alias;
+                repo = repositoryMap.get(info.model.toLowerCase());
             }
-            
-            let parentPath = '@#$';
-            let fieldName = queryDocument.document.selectedColumns[i].path;
-            if (pos > -1) {
-                parentPath = queryDocument.document.selectedColumns[i].path.substring(0, pos);
-                fieldName = queryDocument.document.selectedColumns[i].path.substring(pos+1);
-            }
-            
-            for (let j = 0; j < queryDocument.document.selectedColumns.length; ++j) {
-                let pos2 = queryDocument.document.selectedColumns[j].path.lastIndexOf('.');
-                let curParentPath = '@#$';
-                if (pos2 > -1) {
-                    curParentPath = queryDocument.document.selectedColumns[j].path.substring(0, pos2);
+        
+            // evaluate missing primary keys for model
+            if (!tset.has(alias)) {
+                tset.add(alias);
+                let pkkeys = repo.getMetaData().getPrimaryKeyFields();
+                let model = repo.getMetaData().objectName;
+                let pkmap = new Map();
+                for (let j = 0; j < pkkeys.length; ++j) {
+                    pkmap.set(pkkeys[j].fieldName, pkkeys[j]);
                 }
+            
+                let parentPath = '@#$';
+                let fieldName = queryDocument.document.selectedColumns[i].path;
+                if (pos > -1) {
+                    parentPath = queryDocument.document.selectedColumns[i].path.substring(0, pos);
+                    fieldName = queryDocument.document.selectedColumns[i].path.substring(pos + 1);
+                }
+            
+                for (let j = 0; j < queryDocument.document.selectedColumns.length; ++j) {
+                    let pos2 = queryDocument.document.selectedColumns[j].path.lastIndexOf('.');
+                    let curParentPath = '@#$';
+                    if (pos2 > -1) {
+                        curParentPath = queryDocument.document.selectedColumns[j].path.substring(0, pos2);
+                    }
                 
-                if (parentPath === curParentPath) {
-                    if (pkmap.has(fieldName)) {
-                        pkmap.delete(fieldName);
+                    if (parentPath === curParentPath) {
+                        if (pkmap.has(fieldName)) {
+                            pkmap.delete(fieldName);
+                        }
+                    }
+                
+                    if (pkmap.size === 0) {
+                        break;
                     }
                 }
-                
-                if (pkmap.size === 0) {
-                    break;
-                }
-            }
             
-            if (pkmap.size > 0) {
-                for (let [k, v] of pkmap) {
-                    let sc = {};
-                    sc.alias = alias;
-                    sc.poolAlias = repo.poolAlias;
-                    sc.model = model;
-                    sc.columnName = v.columnName;
-                    if (parentPath !== '@#$') {
-                        sc.path = parentPath + '.' + k;
-                    } else {
-                        sc.path = k;
-                    }
+                if (pkmap.size > 0) {
+                    for (let [k, v] of pkmap) {
+                        let sc = {};
+                        sc.alias = alias;
+                        sc.poolAlias = repo.poolAlias;
+                        sc.model = model;
+                        sc.columnName = v.columnName;
+                        if (parentPath !== '@#$') {
+                            sc.path = parentPath + '.' + k;
+                        } else {
+                            sc.path = k;
+                        }
                     
-                    retval.push(sc);
+                        retval.push(sc);
+                    }
                 }
             }
         }
@@ -1343,6 +1358,8 @@ function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
     
     return retval;
 }
+
+
 
 function getOrderByColumns(selectedColumns) {
     let retval = [];
@@ -2479,14 +2496,18 @@ function getChartDatasets(reportObject, rowInfo) {
     for (let i = 0; i < rowInfo.dataRows.length; ++i) {
         for (let j = 0; j < retval.length; j++) {
             let pos = posMap.get(rowInfo.dataRows[i][rowInfo.categoryPosition]);
-            if (pos) {
+            if (pos > -1) {
                 let val = rowInfo.dataRows[i][dataAxes[j].dataPosition];
-                
+    
                 if (!val) {
                     val = 0;
                 }
                 
-                retval[j].data[pos] =  val.toFixed(3);
+                if (reportObject.reportColumns[j].precision) {
+                    retval[j].data[pos] = val.toFixed(reportObject.reportColumns[j].precision);
+                } else {
+                    retval[j].data[pos] = val.toFixed(2);
+                }
             }
             
             switch(reportObject.chartType) {
@@ -2602,10 +2623,10 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
             for (let j = 0; j < rowInfo.queryColumns.length; ++j) {
                 if (rowInfo.queryColumns[j].path === reportObject.reportColumns[i].path) {
                     reportObject.reportColumns[i].dataPosition = j;
+                    retval.push(reportObject.reportColumns[i]);
                     break;
                 }
             }
-            retval.push(reportObject.reportColumns[i]);
         }
     }
     
