@@ -17,6 +17,9 @@ const saveAuthorizer = new (require(appConfiguration.saveAuthorizer))();
 const deleteAuthorizer = new (require(appConfiguration.deleteAuthorizer))();
 const reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
 const queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
+const randomColor = require('randomcolor');
+const tinycolor = require('tinycolor2');
+
 
 // REST API stuff
 const express = require('express');
@@ -1816,7 +1819,7 @@ async function generateReport(report, query, parameters) {
         let height = report.document.documentHeight/ppi;
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
-        
+        let jsurl;
         let style = '@media print {body {width: '
             + width
             + 'in;} } @page {page-size: '
@@ -1841,8 +1844,12 @@ async function generateReport(report, query, parameters) {
             }
         }
         
+        let chartJSRequired = false;
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
+            if (report.document.reportObjects[i].objectType === 'chart') {
+                chartJSRequired = true;
+            }
             if (report.document.reportObjects[i].style) {
                 if (!mySet.has(report.document.reportObjects[i].style)) {
                     mySet.add(report.document.reportObjects[i].style);
@@ -1882,6 +1889,12 @@ async function generateReport(report, query, parameters) {
             pageBreakRequired: false,
             forcePageBreak: false
         };
+    
+        if (chartJSRequired) {
+            jsurl = appConfiguration.chartjsurl;
+            rowInfo.dataRows = result.result.rows;
+            rowInfo.queryColumns = query.document.selectedColumns;
+        }
         
         do {
             rowInfo.pageBreakRequired = false;
@@ -1938,7 +1951,7 @@ async function generateReport(report, query, parameters) {
             pagenum++;
         } while (!done);
         
-        retval = {"style": style, "html": html};
+        retval = {"style": style, "html": html, "js": jsurl};
     }
     
     return retval;
@@ -1976,6 +1989,9 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             break;
         case 'shape':
             retval = getShapeHtml(yOffset, reportObject, rowInfo);
+            break;
+        case 'chart':
+            retval = getChartHtml(yOffset, reportObject, rowInfo);
             break;
     }
     
@@ -2352,6 +2368,197 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
     if ((Number(reportObject.displayFormat) === 4)
         && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
+    }
+    
+    return retval;
+}
+
+function getChartHtml(yOffset, reportObject, rowInfo) {
+    let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
+        + '-' + reportObject.id;
+    
+    let retval = '<div style="'
+        + getReportObjectStyle(yOffset, reportObject, rowInfo)
+        + '" class="' + cname + '">'
+        + '<canvas style="width: 100%; height: 100%" id="'
+        + cname
+        + '"></canvas>';
+    
+    loadChartLabels(reportObject, rowInfo);
+    let ds = getChartDatasets(reportObject, rowInfo);
+    let options = getChartOptions(reportObject, rowInfo);
+    let chartdata = {
+        type: reportObject.chartType,
+        data: {
+            labels: rowInfo.chartLabels,
+            datasets: ds
+        },
+        options: options
+    };
+    
+    retval += '<script>\n'
+        + 'new Chart(document.getElementById("'
+        + cname
+        + '").getContext("2d"),'
+        + JSON.stringify(chartdata)
+        + ');\n</script>'
+
+    return retval
+}
+
+function loadChartLabels(reportObject, rowInfo) {
+    let labels = [];
+    let categorySet = new Set();
+    rowInfo.categoryPosition = -1;
+    for (let i = 0; ((rowInfo.categoryPosition === -1) && (i < reportObject.reportColumns.length)); ++i) {
+        if (reportObject.reportColumns[i].axis === 'category') {
+            for (let j = 0; j < rowInfo.queryColumns.length; ++j) {
+                if (rowInfo.queryColumns[j].path === reportObject.reportColumns[i].path) {
+                    rowInfo.categoryPosition = j;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (rowInfo.categoryPosition > -1) {
+        for (let i = 0; i < rowInfo.dataRows.length; ++i) {
+            let cat = rowInfo.dataRows[i][rowInfo.categoryPosition];
+            if (cat && !categorySet.has(cat)) {
+                labels.push(cat);
+                categorySet.add(cat);
+            }
+        }
+    }
+    
+    rowInfo.chartLabels = labels;
+}
+
+function getChartDatasets(reportObject, rowInfo) {
+    let retval = [];
+    let posMap = new Map();
+    for (let i = 0; i < rowInfo.chartLabels.length; ++i) {
+        posMap.set(rowInfo.chartLabels[i], i);
+    }
+    
+    let dataAxes = getChartDataAxisDefs(reportObject, rowInfo);
+    for (let i = 0; i < dataAxes.length; ++i) {
+        let ds = {};
+        ds.id = ('ds' + i);
+        if (dataAxes[i].label) {
+            ds.label = dataAxes[i].label;
+        }
+    
+        if (dataAxes[i].color) {
+            switch (reportObject.chartType) {
+                case 'bar':
+                    ds.backgroundColor = dataAxes[i].color;
+                    ds.borderColor = dataAxes[i].color;
+                    ds.borderWidth = 1;
+                    ds.hoverBackgroundColor = tinycolor(ds.backgroundColor).darken(15).toString();
+                    break;
+                case 'line':
+                    ds.borderColor = dataAxes[i].color;
+                    ds.borderWidth = dataAxes[i].borderWidth;
+                    if (reportObject.showBackground) {
+                        ds.backgroundColor = tinycolor(ds.borderColor).lighten(40).desaturate(20).toString();
+                        ds.hoverBackgroundColor = tinycolor(ds.borderColor).darken(20).toString();
+                    } else {
+                        ds.backgroundColor = 'transparent';
+                        ds.hoverBackgroundColor = 'transparent';
+                    }
+                    ds.pointStyle = config.pointStyle;
+                    ds.pointRadius = config.pointRadius;
+                    break;
+            }
+        }
+        ds.data = [];
+        retval.push(ds);
+    }
+    
+    for (let i = 0; i < rowInfo.dataRows.length; ++i) {
+        for (let j = 0; j < retval.length; j++) {
+            let pos = posMap.get(rowInfo.dataRows[i][rowInfo.categoryPosition]);
+            if (pos) {
+                let val = rowInfo.dataRows[i][dataAxes[j].dataPosition];
+                
+                if (!val) {
+                    val = 0;
+                }
+                
+                retval[j].data[pos] =  val.toFixed(3);
+            }
+            
+            switch(reportObject.chartType) {
+                case 'pie':
+                case 'doughnut':
+                    if (!retval[j].backgroundColor) {
+                        retval[j].backgroundColor = [];
+                    }
+    
+                    retval[j].backgroundColor.push(randomColor({luminosity: 'dark'}));
+                    break;
+            }
+        }
+    }
+    
+    
+    return retval;
+}
+
+function getChartOptions(reportObject) {
+    let tstyle = 'normal';
+    
+    if (reportObject.titleFontSettings.italic) {
+        tstyle = 'italic';
+    }
+    
+    let lstyle = 'normal';
+    
+    if (reportObject.legendFontSettings.italic) {
+        lstyle = 'italic';
+    }
+    
+    return {
+        responsive: reportObject.responsive,
+        maintainAspectRatio: reportObject.maintainAspect,
+        title: {
+            display: reportObject.titleFontSettings.display,
+            position: reportObject.titleFontSettings.position,
+            fontSize: reportObject.titleFontSettings.fontSize,
+            fontColor: reportObject.titleFontSettings.fontColor,
+            fontFamily: reportObject.titleFontSettings.font,
+            fontStyle: tstyle,
+            text: reportObject.title
+        },
+        legend: {
+            display: reportObject.legendFontSettings.display,
+            position: reportObject.legendFontSettings.position,
+            labels: {
+                boxWidth: 10,
+                boxHeight: 2,
+                fontColor: reportObject.legendFontSettings.fontColor,
+                fontSize: reportObject.legendFontSettings.fontSize,
+                fontFamily: reportObject.legendFontSettings.font,
+                fontStyle: lstyle
+            }
+        }
+    }
+}
+
+function getChartDataAxisDefs(reportObject, rowInfo) {
+    let retval = [];
+    
+    for (let i = 0; i < reportObject.reportColumns.length; ++i) {
+        if (reportObject.reportColumns[i].axis === 'data') {
+            for (let j = 0; j < rowInfo.queryColumns.length; ++j) {
+                if (rowInfo.queryColumns[j].path === reportObject.reportColumns[i].path) {
+                    reportObject.reportColumns[i].dataPosition = j;
+                    break;
+                }
+            }
+            retval.push(reportObject.reportColumns[i]);
+        }
     }
     
     return retval;
