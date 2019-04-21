@@ -2401,7 +2401,7 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
         + cname
         + '").getContext("2d"),'
         + JSON.stringify(chartdata)
-        + ');\n</script>'
+        + ');\n</script>';
 
     return retval
 }
@@ -2507,6 +2507,7 @@ function getChartDatasets(reportObject, rowInfo) {
 }
 
 function getChartOptions(reportObject) {
+    let retval = {};
     let tstyle = 'normal';
     
     if (reportObject.titleFontSettings.italic) {
@@ -2519,31 +2520,78 @@ function getChartOptions(reportObject) {
         lstyle = 'italic';
     }
     
-    return {
-        responsive: reportObject.responsive,
-        maintainAspectRatio: reportObject.maintainAspect,
-        title: {
-            display: reportObject.titleFontSettings.display,
-            position: reportObject.titleFontSettings.position,
-            fontSize: reportObject.titleFontSettings.fontSize,
-            fontColor: reportObject.titleFontSettings.fontColor,
-            fontFamily: reportObject.titleFontSettings.font,
-            fontStyle: tstyle,
-            text: reportObject.title
-        },
-        legend: {
-            display: reportObject.legendFontSettings.display,
-            position: reportObject.legendFontSettings.position,
-            labels: {
-                boxWidth: 10,
-                boxHeight: 2,
-                fontColor: reportObject.legendFontSettings.fontColor,
-                fontSize: reportObject.legendFontSettings.fontSize,
-                fontFamily: reportObject.legendFontSettings.font,
-                fontStyle: lstyle
+    
+    if (reportObject.responsive) {
+        retval.responsive = reportObject.responsive;
+    }
+    
+    if (reportObject.maintainAspect) {
+        retval.maintainAspect = reportObject.maintainAspect;
+    }
+    
+    retval.title = {};
+    retval.title.display = reportObject.titleFontSettings.display;
+    
+    if (retval.title.display) {
+        if (reportObject.titleFontSettings.position) {
+            retval.title.position = reportObject.titleFontSettings.position;
+        }
+        
+        if (reportObject.titleFontSettings.fontSize) {
+            retval.title.fontSize = reportObject.titleFontSettings.fontSize;
+        }
+        
+        if (reportObject.titleFontSettings.fontColor) {
+            retval.title.fontColor = reportObject.titleFontSettings.fontColor
+        }
+        
+        if (reportObject.titleFontSettings.font) {
+            retval.title.fontFamily = reportObject.titleFontSettings.font;
+            retval.title.fonstStyle = tstyle;
+            retval.title.text = reportObject.title;
+        }
+    }
+    
+    
+    retval.legend = {};
+    retval.title.display = reportObject.titleFontSettings.display;
+    
+    if (reportObject.legendFontSettings.display) {
+        if (reportObject.legendFontSettings.position) {
+            retval.legend.position = reportObject.legendFontSettings.position;
+            retval.legend.labels = {};
+    
+            if (reportObject.legendFontSettings.fontSize) {
+                retval.legend.labels.fontSize = reportObject.legendFontSettings.fontSize;
+            }
+    
+            if (reportObject.legendFontSettings.fontColor) {
+                retval.legend.labels.fontColor = reportObject.legendFontSettings.fontColor
+            }
+    
+            if (reportObject.legendFontSettings.font) {
+                retval.legend.labels.boxWidth = 10;
+                retval.legend.labels.boxHeight = 2;
+                retval.legend.labels.fontFamily = reportObject.legendFontSettings.font;
+                retval.legend.labels.fontStyle = lstyle;
             }
         }
     }
+    
+    if (reportObject.yAxes || reportObject.xAxes) {
+        retval.scales = {};
+        if (reportObject.yAxes && reportObject.yAxes.label) {
+            retval.scales.yAxes = [];
+            retval.scales.yAxes.push({scaleLabel: {display: true, labelString: reportObject.yAxes.label}});
+        }
+    
+        if (reportObject.xAxes && reportObject.xAxes.label) {
+            retval.scales.xAxes = [];
+            retval.scales.xAxes.push({scaleLabel: {display: true, labelString: reportObject.xAxes.label}});
+        }
+    }
+    
+    return retval;
 }
 
 function getChartDataAxisDefs(reportObject, rowInfo) {
