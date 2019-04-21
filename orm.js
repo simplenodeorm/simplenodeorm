@@ -2467,8 +2467,8 @@ function getChartDatasets(reportObject, rowInfo) {
                         ds.backgroundColor = 'transparent';
                         ds.hoverBackgroundColor = 'transparent';
                     }
-                    ds.pointStyle = config.pointStyle;
-                    ds.pointRadius = config.pointRadius;
+                    ds.pointStyle = reportObject.pointStyle;
+                    ds.pointRadius = reportObject.pointRadius;
                     break;
             }
         }
