@@ -1912,6 +1912,7 @@ async function generateReport(report, query, parameters) {
             rowInfo.dataRows = result.result.rows;
             rowInfo.queryColumns = query.document.selectedColumns;
             rowInfo.chartData = chartData;
+            rowInfo.chartData.charts = [];
         }
         
         do {
@@ -2398,8 +2399,6 @@ function getDbColumnHtml(yOffset, reportObject, rowInfo) {
 function getChartHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
-    rowInfo.chartData.charts = [];
     
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
