@@ -1713,7 +1713,6 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
                         parentObjectMap.set(alias, model);
                     } else {
                         let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
-                        let pos = doc.document.selectedColumns[keypos[0]].path.lastIndexOf('.');
                         let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
                         let ref = repositoryMap.get(parentModel.__model__.toLowerCase()).getMetaData().findRelationshipByName(fieldName);
                         model.__model__ = ref.targetModelName;
@@ -1824,6 +1823,7 @@ async function generateReport(report, query, parameters) {
     if (result.error) {
         throw new Error(result.error);
     } else {
+        let haveCharts = false;
         let resultSet = buildResultObjectGraph(query, result.result.rows, true);
         
         // expect to work with array of results so
@@ -1836,7 +1836,7 @@ async function generateReport(report, query, parameters) {
         let height = report.document.documentHeight/ppi;
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
-        let jsurl;
+        let chartData = {};
         let style = '@media print {body {width: '
             + width
             + 'in;} } @page {page-size: '
@@ -1861,11 +1861,12 @@ async function generateReport(report, query, parameters) {
             }
         }
         
-        let chartJSRequired = false;
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
             if (report.document.reportObjects[i].objectType === 'chart') {
-                chartJSRequired = true;
+                haveCharts = true;
+                chartData = {};
+                chartData.chartjsurl = appConfiguration.chartjsurl;
             }
             if (report.document.reportObjects[i].style) {
                 if (!mySet.has(report.document.reportObjects[i].style)) {
@@ -1907,10 +1908,10 @@ async function generateReport(report, query, parameters) {
             forcePageBreak: false
         };
     
-        if (chartJSRequired) {
-            jsurl = appConfiguration.chartjsurl;
+        if (haveCharts) {
             rowInfo.dataRows = result.result.rows;
             rowInfo.queryColumns = query.document.selectedColumns;
+            rowInfo.chartData = chartData;
         }
         
         do {
@@ -1968,7 +1969,11 @@ async function generateReport(report, query, parameters) {
             pagenum++;
         } while (!done);
         
-        retval = {"style": style, "html": html, "js": jsurl};
+        if (haveCharts) {
+            retval = {"style": style, "html": html, chartData: chartData};
+        } else {
+            retval = {"style": style, "html": html};
+        }
     }
     
     return retval;
@@ -2394,32 +2399,30 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
     
+    rowInfo.chartData.charts = [];
+    
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">'
         + '<canvas style="width: 100%; height: 100%" id="'
         + cname
-        + '"></canvas>';
+        + '"></canvas></div>';
     
     loadChartLabels(reportObject, rowInfo);
     let ds = getChartDatasets(reportObject, rowInfo);
     let options = getChartOptions(reportObject, rowInfo);
-    let chartdata = {
+    
+    rowInfo.chartData.charts.push({
+        canvasId: cname,
         type: reportObject.chartType,
         data: {
             labels: rowInfo.chartLabels,
             datasets: ds
         },
         options: options
-    };
+    });
     
-    retval += '<script>'
-        + 'new Chart(document.getElementById("'
-        + cname
-        + '").getContext("2d"),'
-        + JSON.stringify(chartdata)
-        + ');</script></div>';
-
+ 
     return retval
 }
 
