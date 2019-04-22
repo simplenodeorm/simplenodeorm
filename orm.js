@@ -2413,12 +2413,12 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
         options: options
     };
     
-    retval += '<script>\n'
+    retval += '<script>'
         + 'new Chart(document.getElementById("'
         + cname
         + '").getContext("2d"),'
         + JSON.stringify(chartdata)
-        + ');\n</script>';
+        + ');</script></div>';
 
     return retval
 }
