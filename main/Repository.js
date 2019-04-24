@@ -1125,6 +1125,7 @@ module.exports = class Repository {
                 retval = 'sysdate';
                 break;
             case util.MYSQL:
+            case util.POSTGRES:
                 retval = 'NOW()';
                 break;
         }
@@ -1231,6 +1232,7 @@ module.exports = class Repository {
                 await conn.close();
                 break;
             case util.MYSQL:
+            case util.POSTGRES:
                 await conn.release();
                 break;
         }

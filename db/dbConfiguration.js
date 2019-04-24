@@ -2,6 +2,7 @@
 
 const oracledb = require('oracledb');
 const mysqldb = require('promise-mysql');
+const postgresdb = require('pg-pool');
 const util = require("../main/util.js");
 const fs = require('fs');
 const logger = require('../main/Logger.js');
@@ -29,6 +30,9 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
                 break;
             case util.MYSQL:
                 pool = await mysqldb.createPool(pdefs.pools[i]);
+                break;
+            case util.POSTGRES:
+                pool = new postgresdb (pdefs.pools[i]);
                 break;
         }
 

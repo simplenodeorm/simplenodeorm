@@ -24,6 +24,18 @@
 		"supportBigNumbers": true,
 		"waitForConnections": true,
 		"connectionLimit": 20
+	},
+	{
+		"dbtype": "postgres",
+		"database": "postgres",
+		"user": "tester",
+		"password": "tester",
+		"port": 5432,
+		"ssl": false,
+		"max": 20,
+		"min": 4,
+		"idleTimeoutMillis": 1000,
+		"connectionTimeoutMillis": 5000
 	}
 	]
 }

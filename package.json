@@ -23,6 +23,8 @@
     "jsonpath-plus": "^0.18.0",
     "mysql": "^2.16.0",
     "oracledb": "^3.1.2",
+    "pg": "^7.10.0",
+    "pg-pool": "^2.0.6",
     "promise-mysql": "^3.3.1",
     "properties-reader": ">=0.0.16",
     "randomcolor": "^0.5.4",

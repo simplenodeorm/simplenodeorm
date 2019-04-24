@@ -47,6 +47,8 @@ const DEBUG = 'debug';
 
 const ORACLE = 'oracle';
 const MYSQL = 'mysql';
+const POSTGRES = 'postgres';
+
 const ONE_TO_ONE_REF_TYPE = 1;
 const ONE_TO_MANY_REF_TYPE = 2;
 const MANY_TO_ONE_REF_TYPE = 3;
@@ -99,6 +101,7 @@ module.exports.TIMESTAMP_TYPE = TIMESTAMP_TYPE;
 
 module.exports.ORACLE = ORACLE;
 module.exports.MYSQL = MYSQL;
+module.exports.POSTGRES = POSTGRES;
 
 module.exports.ONE_TO_ONE_REF_TYPE = ONE_TO_ONE_REF_TYPE;
 module.exports.ONE_TO_MANY_REF_TYPE = ONE_TO_MANY_REF_TYPE;

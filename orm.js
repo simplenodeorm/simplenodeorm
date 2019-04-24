@@ -96,7 +96,13 @@ module.exports.getModelList = function () {
 };
 
 module.exports.getConnection = async function(poolAlias) {
-    return await dbTypeMap.get(poolAlias + '.pool').getConnection();
+    let pool = dbTypeMap.get(poolAlias + '.pool');
+    switch(dbTypeMap.get(poolAlias)) {
+        case util.POSTGRES:
+            return await pool.connect();
+        default:
+            return await pool.getConnection();
+    }
 };
 
 module.exports.getDbType = function(poolAlias) {
