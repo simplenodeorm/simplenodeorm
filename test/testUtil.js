@@ -929,7 +929,7 @@ function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) 
                             val2 = util.toString(val2);
                         }
         
-                        if (val1 !== val2) {
+                        if (val1 != val2) {
                             testResults.push(require('./testStatus.js')(util.ERROR, 'column value mismatch on ' + md.getObjectName() + '.' + fields[i].fieldName + ' expected ' + val1 + ' but found ' + val2, util.SAVE + '[insert]'));
                         }
                     }
@@ -974,7 +974,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
                     }
                 }
             } else {
-                if (val1 !== val2) {
+                if (val1 != val2) {
                     testResults.push(require('./testStatus.js')(util.ERROR, 'column value mismatch on ' + onm + '.' + fields[i].fieldName + ' - expected ' + val1 + ' but found ' + val2, util.SAVE + '[update]'));
                 }
             }

@@ -819,7 +819,8 @@ module.exports = class Repository {
                 res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);
                 break;
             case util.POSTGRES:
-                res = await this.executeSqlQuery('select nextval(\'' + name + '\')');
+                let sql = "select nextval('" + name + "')";
+                res = await this.executeSqlQuery(sql, []);
                 break;
         }
         
