@@ -29,6 +29,7 @@
 		"dbtype": "postgres",
 		"database": "postgres",
 		"user": "tester",
+		"poolAlias": "dvdrent",
 		"password": "tester",
 		"port": 5432,
 		"ssl": false,
