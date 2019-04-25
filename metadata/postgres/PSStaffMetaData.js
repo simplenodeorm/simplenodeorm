@@ -6,7 +6,7 @@ class PSStaffMetaData extends MetaData {
     constructor() {
         super(
             'PSStaff', // object name,
-            'model/postgres/Staff.js', // relative module path,
+            'model/postgres/PSStaff.js', // relative module path,
             'staff', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first

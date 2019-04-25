@@ -62,20 +62,37 @@ module.exports = class Repository {
         let showMessage = true;
         let dbType = orm.getDbType(this.poolAlias);
         
-        if (dbType === util.ORACLE) {
-            for (let i = 0; i < fields.length; ++i) {
-                if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                    if (showMessage) {
-                        logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
-                        showMessage = false;
-                    }
-            
-                    let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
-                    if (util.isDefined(result.error)) {
-                        util.throwError("SQLError", result.error);
+        switch(dbType) {
+            case util.ORACLE:
+                for (let i = 0; i < fields.length; ++i) {
+                    if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                        if (showMessage) {
+                            logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
+                            showMessage = false;
+                        }
+                
+                        let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
+                        if (util.isDefined(result.error)) {
+                            util.throwError("SQLError", result.error);
+                        }
                     }
                 }
-            }
+                break;
+            case util.POSTGRES:
+                for (let i = 0; i < fields.length; ++i) {
+                    if (util.isDefined(fields[i].autoIncrementGenerator)) {
+                        if (showMessage) {
+                            logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
+                            showMessage = false;
+                        }
+                
+                        let result = this.query('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator);
+                        if (util.isDefined(result.error)) {
+                            util.throwError("SQLError", result.error);
+                        }
+                    }
+                }
+                break;
         }
     }
 
@@ -684,7 +701,7 @@ module.exports = class Repository {
     
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                    if (dbType === util.ORACLE) {
+                    if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
                         val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                         model.setFieldValue(fields[i].fieldName, val);
                     }
@@ -801,6 +818,9 @@ module.exports = class Repository {
             case util.ORACLE:
                 res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);
                 break;
+            case util.POSTGRES:
+                res = await this.executeSqlQuery('select nextval(\'' + name + '\')');
+                break;
         }
         
         if (util.isDefined(res)) {
@@ -849,6 +869,9 @@ module.exports = class Repository {
                             retval += (comma + ' ?');
                         }
                         break;
+                    case util.POSTGRES:
+                        retval += (comma + ' $' + (i+1));
+                        break
                 }
                 comma = ',';
             }
@@ -886,6 +909,9 @@ module.exports = class Repository {
                         case util.MYSQL:
                             where += (and + fields[i].columnName + ' = ?');
                             break;
+                        case util.POSTGRES:
+                            where += (and + fields[i].columnName + ' = $' + (i+1));
+                            break;
                     }
                     and = ' and ';
                 } else {
@@ -899,7 +925,9 @@ module.exports = class Repository {
                             } else {
                                 retval += (comma + 'set ' + fields[i].columnName + ' = ?');
                             }
-    
+                            break;
+                        case util.POSTGRES:
+                            retval += (comma + 'set ' + fields[i].columnName + ' = $' + (i+1));
                             break;
                     }
                     comma = ', ';
@@ -1247,6 +1275,10 @@ module.exports = class Repository {
             case util.MYSQL:
                 retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
                 break;
+            case util.POSTGRES:
+                retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
+                retval.metaData = util.toColumnMetaData(retval.fields)
+                break;
         }
         
         return retval;
@@ -1261,6 +1293,9 @@ module.exports = class Repository {
                 break;
             case util.MYSQL:
                 retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
+                break;
+            case util.POSTGRES:
+                retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
                 break;
         }
         
@@ -1840,6 +1875,7 @@ module.exports = class Repository {
         let where = '';
         
         let dbType = orm.getDbType(this.poolAlias);
+        let bindex = 1;
         for (let i = 0; i < whereComparisons.length; ++i) {
             if (i > 0) {
                 where += (' ' + whereComparisons[i].getLogicalOperator() + ' ');
@@ -1860,6 +1896,10 @@ module.exports = class Repository {
                         break;
                     case util.MYSQL:
                         where += ' ?';
+                        break;
+                    case util.POSTGRES:
+                        where += ' $' + bindex;
+                        bindex++;
                         break;
                 }
             } else {
@@ -1897,7 +1937,10 @@ module.exports = class Repository {
                 case util.MYSQL:
                     sql += ' ?';
                     break;
-                
+                case util.POSTGRES:
+                    sql += (' $' + (i+1));
+                    break;
+    
             }
             and = ' and ';
         }
@@ -1939,7 +1982,10 @@ module.exports = class Repository {
                 case util.MYSQL:
                     sql += ' ?';
                     break;
-        
+                case util.POSTGRES:
+                    sql += (' $' + (i+1));
+                    break;
+    
             }
             and = ' and ';
         }

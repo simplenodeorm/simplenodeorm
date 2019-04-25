@@ -6,7 +6,7 @@ class PSPaymentMetaData extends MetaData {
     constructor() {
         super(
             'PSPayment', // object name,
-            'model/posrgres/PSPayment.js', // relative module path,
+            'model/postgres/PSPayment.js', // relative module path,
             'payment', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first

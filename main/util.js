@@ -273,3 +273,16 @@ module.exports.convertObjectArrayToResultSet = function(results) {
     
     return retval;
 };
+
+module.exports.toColumnMetaData = function(infoArray) {
+    let retval = [];
+    
+    if (infoArray) {
+        for (let i = 0; i < infoArray.length; ++i) {
+            retval.push({name: infoArray[i].name});
+        }
+    }
+    
+    return retval;
+};
+

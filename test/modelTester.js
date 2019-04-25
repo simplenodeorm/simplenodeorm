@@ -26,12 +26,12 @@ function testFieldConstraints(model, metaData, field) {
         try {
             let nm = testUtil.getSetFunctionName(field);
             model[nm]();
-            assert.fail('No Exception', 'Exception', 'expected Account.setSubFundGrpCd() to fail NotNullConstraint and throw Exception but it did not');
+            assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.setSubFundGrpCd() to fail NotNullConstraint and throw Exception but it did not');
         }
         
         catch (e) {
            if (e.name !== 'NotNullConstraint') {
-               throw e;
+               assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
            }
        }
     }
@@ -46,7 +46,7 @@ function testFieldConstraints(model, metaData, field) {
 
         catch (e) {
             if (e.name !== 'LengthConstraint') {
-                throw e;
+                assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
             }
         }
     }
@@ -56,9 +56,14 @@ function testFieldConstraints(model, metaData, field) {
 function testFieldDataHandling(model, metaData, field) {
     let testData = testUtil.getTestValue(field);
     let nm = testUtil.getSetFunctionName(field);
-    model[nm](testData);
-    nm = testUtil.getGetFunctionName(field);
-    let result = model[nm]();
-    assert(testData === result, metaData.objectName + '.' + testUtil.getSetFunctionName(field) + 'expected to be ' + testData + ' but was ' + result);
-  
+    try {
+        model[nm](testData);
+        nm = testUtil.getGetFunctionName(field);
+        let result = model[nm]();
+        assert(testData === result, metaData.objectName + '.' + testUtil.getSetFunctionName(field) + 'expected to be ' + testData + ' but was ' + result);
+    }
+    
+    catch (e) {
+        assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
+    }
 }

@@ -37,7 +37,7 @@ class PSFilmCategoryMetaData extends MetaData {
                     fieldName: "category",
                     type: 1,
                     targetModelName: "PSCategory",
-                    targetModule: "../model/postgres/Category.js",
+                    targetModule: "../model/postgres/PSCategory.js",
                     targetTableName: "category",
                     status: "enabled",
                     required: true,

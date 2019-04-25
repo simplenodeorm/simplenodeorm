@@ -43,11 +43,6 @@ class PSFilmMetaData extends MetaData {
                     required: true
                 },
                 { // 5
-                    fieldName: "originalLanguageId",
-                    type: "smallint",
-                    columnName: "original_language_id"
-                },
-                { // 6
                     fieldName: "rentalDuration",
                     type: "smallint",
                     columnName: "rental_duration",
@@ -55,21 +50,21 @@ class PSFilmMetaData extends MetaData {
                     defaultValue: "3"
                     
                 },
-                { // 7
+                { // 6
                     fieldName: "rentalRate",
                     type: "numeric(4,2)",
                     columnName: "rental_rate",
                     required: true,
                     defaultValue: "4.99"
                 },
-                { // 8
+                { // 7
                     fieldName: "length",
                     type: "smallint",
                     columnName: "length",
                     required: true
         
                 },
-                { // 9
+                { // 8
                     fieldName: "replacementCost",
                     type: "numeric(5,2)",
                     columnName: "replacement_cost",
@@ -77,7 +72,7 @@ class PSFilmMetaData extends MetaData {
                     defaultValue: "19.99"
         
                 },
-                { // 10
+                { // 9
                     fieldName: "rating",
                     type: "mpaa_rating",
                     columnName: "rating",
@@ -85,19 +80,19 @@ class PSFilmMetaData extends MetaData {
                     defaultValue: "G"
         
                 },
-                { // 11
+                { // 10
                     fieldName: "specialFeatures",
                     type: "text[]",
                     columnName: "special_features"
         
                 },
-                { // 12
+                { // 11
                     fieldName: "text",
                     type: "tsvector",
                     columnName: "fulltext",
                     required: true
                 },
-                { // 13
+                { // 12
                     fieldName: "lastUpdate",
                     type: "timestamp without time zone",
                     columnName: "last_update",

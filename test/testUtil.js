@@ -306,6 +306,7 @@ function getDataType(dbType) {
             || dbType.includes('ENUM')
             || dbType.includes('SET')
             || dbType.includes('GEOMETRY')
+            || dbType.includes('BYTEA')
             || dbType.includes('BLOB')) {
             retval = "string";
         } else if (dbType.includes('DATE')
@@ -313,6 +314,7 @@ function getDataType(dbType) {
             retval = 'date';
         } else if (dbType.includes('NUMBER')
             || dbType.includes('INT')
+            || dbType.includes('NUMERIC')
             || dbType.includes('YEAR')
             || dbType.includes('DECIMAL')) {
             if (!dbType.includes('(') || dbType.endsWith(", 0)")) {
@@ -324,6 +326,9 @@ function getDataType(dbType) {
             retval = 'float';
         } else if (dbType.includes('BOOL')) {
             retval = 'boolean';
+        }  else {
+            retval = 'string';
+            logger.logWarning('unable to determine type for dbType=' + dbType + ' setting type to string');
         }
     }
     
@@ -343,6 +348,11 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
                 break;
             case util.MYSQL:
                 result = util.convertObjectArrayToResultSet(await conn.query(buildExampleSelect(modelDef, dbType, maxRows)));
+                break;
+            case util.POSTGRES:
+                let sql = buildExampleSelect(modelDef, dbType, maxRows);
+                result = await conn.query({text: sql, rowMode: 'array'});
+                result.metaData = util.toColumnMetaData(result.fields);
                 break;
         }
         
@@ -364,6 +374,7 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
                     await conn.close();
                     break;
                 case util.MYSQL:
+                case util.POSTGRES:
                     await conn.release();
                     break;
             }
@@ -401,6 +412,9 @@ function buildExampleSelect(modelDef, dbType, maxRows) {
             break;
         case util.MYSQL:
             retval += (" limit " + maxRows);
+            break;
+        case util.POSTGRES:
+            retval += (" LIMIT " + maxRows);
             break;
             
     }
@@ -636,9 +650,16 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
                 
                 let dbType = orm.getDbType(repository.poolAlias);
                 
-                if (dbType === 'mysql') {
-                    await conn.beginTransaction();
+                
+                switch (dbType) {
+                    case util.MYSQL:
+                        await conn.beginTransaction();
+                        break;
+                    case util.POSTGRES:
+                        await conn.query('BEGIN');
+                        break;
                 }
+                
                 if (!insertOnly) {
                     await updateFunction(repository, result.result.rows, conn, testResults);
                 } else {
@@ -651,13 +672,18 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
             }
             
             finally {
-                await conn.rollback();
                 if (conn) {
                     switch(orm.getDbType(alias)) {
                         case util.ORACLE:
+                            await conn.rollback();
                             await conn.close();
                             break;
                         case util.MYSQL:
+                            await conn.rollback();
+                            await conn.release();
+                            break;
+                        case util.POSTGRES:
+                            conn.query('ROLLBACK');
                             await conn.release();
                             break;
                     }
@@ -675,8 +701,13 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
     let pkset = new Set();
     let dbType = orm.getDbType(repository.getPoolAlias());
     
-    if (dbType === 'mysql') {
-        await conn.beginTransaction();
+    switch (dbType) {
+        case util.MYSQL:
+            await conn.beginTransaction();
+            break;
+        case util.POSTGRES:
+            await conn.query('BEGIN');
+            break;
     }
     
     for (let i = 0; i < rows.length; ++i) {
@@ -738,10 +769,25 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
         }
     }
     
-    await conn.rollback();
+    switch(dbType) {
+        case util.ORACLE:
+            await conn.rollback();
+            break;
+        case util.MYSQL:
+            await conn.rollback();
+            break;
+        case util.POSTGRES:
+            conn.query('ROLLBACK');
+            break;
+    }
     
-    if (dbType === 'mysql') {
-        await conn.beginTransaction();
+    switch (dbType) {
+        case util.MYSQL:
+            await conn.beginTransaction();
+            break;
+        case util.POSTGRES:
+            await conn.query('BEGIN');
+            break;
     }
     
     if (testList.length > 0) {
@@ -774,8 +820,6 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
         }
 
     }
-
-    await conn.rollback();
 };
 
 module.exports.testInsert = async function (repository, conn, testResults) {
@@ -783,10 +827,15 @@ module.exports.testInsert = async function (repository, conn, testResults) {
     let modelTestData = loadModelInsertData(md);
     let dbType = orm.getDbType(repository.getPoolAlias());
     
-    if (dbType === 'mysql') {
-        await conn.beginTransaction();
+    switch (dbType) {
+        case util.MYSQL:
+            await conn.beginTransaction();
+            break;
+        case util.POSTGRES:
+            await conn.query('BEGIN');
+            break;
     }
-
+    
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
@@ -810,11 +859,26 @@ module.exports.testInsert = async function (repository, conn, testResults) {
                 }
             }
         }
-        
-        await conn.rollback();
     
-        if (dbType === 'mysql') {
-            await conn.beginTransaction();
+        switch(dbType) {
+            case util.ORACLE:
+                await conn.rollback();
+                break;
+            case util.MYSQL:
+                await conn.rollback();
+                break;
+            case util.POSTGRES:
+                conn.query('ROLLBACK');
+                break;
+        }
+    
+        switch (dbType) {
+            case util.MYSQL:
+                await conn.beginTransaction();
+                break;
+            case util.POSTGRES:
+                await conn.query('BEGIN');
+                break;
         }
     
         models = [];
@@ -840,8 +904,6 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         }
         
     }
-
-    await conn.rollback();
 };
 
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
@@ -1028,6 +1090,10 @@ function findUpdateableFields(metaData) {
         }
     }
     
+    if (metaData.objectName.startsWith('PS')) {
+        logger.logInfo('-------------------->' + retval);
+    }
+    
     return retval;
 }
 
@@ -1045,8 +1111,13 @@ module.exports.testDelete = async function(repository, testResults) {
         } else {
             let dbType = orm.getDbType(repository.getPoolAlias());
     
-            if (dbType === 'mysql') {
-                await conn.beginTransaction();
+            switch (dbType) {
+                case util.MYSQL:
+                    await conn.beginTransaction();
+                    break;
+                case util.POSTGRES:
+                    await conn.query('BEGIN');
+                    break;
             }
     
             let models = [];
@@ -1086,8 +1157,21 @@ module.exports.testDelete = async function(repository, testResults) {
                 }
             }
         }
-        
-        await conn.rollback();
+    
+        switch(orm.getDbType(alias)) {
+            case util.ORACLE:
+                await conn.rollback();
+                await conn.close();
+                break;
+            case util.MYSQL:
+                await conn.rollback();
+                await conn.release();
+                break;
+            case util.POSTGRES:
+                conn.query('ROLLBACK');
+                await conn.release();
+                break;
+        }
     }
     
     catch (e) {
@@ -1101,6 +1185,7 @@ module.exports.testDelete = async function(repository, testResults) {
                     await conn.close();
                     break;
                 case util.MYSQL:
+                case util.POSTGRES:
                     await conn.release();
                     break;
             }
@@ -1347,6 +1432,7 @@ async function runQuery(poolAlias, sql, parameters, options) {
                 result = await conn.execute(sql, parameters, options);
                 break;
             case util.MYSQL:
+            case util.POSTGRES:
                result = await conn.query(sql, parameters, options);
                 break;
         }
@@ -1365,6 +1451,7 @@ async function runQuery(poolAlias, sql, parameters, options) {
                     await conn.close();
                     break;
                 case util.MYSQL:
+                case util.POSTGRES:
                     await conn.release();
                     break;
             }

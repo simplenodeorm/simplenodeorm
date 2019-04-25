@@ -27,6 +27,9 @@ class PSCustomer extends Model {
 
     getActive() { return this.getFieldValue("active"); }
     setActive(value) { this.setFieldValue("active", value); }
+    
+    getActivebool() { return this.getFieldValue("activebool"); }
+    setActivebool(value) { this.setFieldValue("activebool", value); }
 
     getCreateDate() { return this.getFieldValue("createDate"); }
     setCreateDate(value) { this.setFieldValue("createDate", value); }

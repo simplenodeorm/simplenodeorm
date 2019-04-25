@@ -44,6 +44,7 @@ module.exports.run = async function(orm) {
                         await conn.close();
                         break;
                     case util.MYSQL:
+                    case util.POSTGRES:
                         await conn.release();
                         break;
                 }
