@@ -1277,7 +1277,7 @@ module.exports = class Repository {
                 break;
             case util.POSTGRES:
                 retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
-                retval.metaData = util.toColumnMetaData(retval.fields)
+                retval.metaData = util.toColumnMetaData(retval.fields);
                 break;
         }
         
@@ -1295,7 +1295,8 @@ module.exports = class Repository {
                 retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
                 break;
             case util.POSTGRES:
-                retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
+                retval = await conn.query({text: sql, values: parameters});
+                retval.rowsAffected = retval.rowCount;
                 break;
         }
         
