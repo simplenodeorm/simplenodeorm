@@ -1,4 +1,4 @@
-Simple ORM framework for Node.js that supports MySQL and Oracle.
+Simple ORM framework for Node.js that supports MySQL, Oracle and PostgreSQL.
 
 Source:
 https://github.com/rbtucker/simplenodeorm
@@ -12,7 +12,7 @@ Requirements:
 3. if using oracle, ensure node-oracledb 2.2 and oracle client are installed and setup correctly 
    - https://github.com/oracle/node-oracledb/blob/master/INSTALL.md
 5. create database pool json for db connections
-6. make sure you specify dbtype in pool configuration - supported options['oracle', 'mysql']
+6. make sure you specify dbtype in pool configuration - supported options['oracle', 'mysql', 'postgres']
 7. modify appconfig.json as required
 
 

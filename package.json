@@ -1,7 +1,7 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.1.13",
-  "description": "A simple Node.js ORM for MySQL and Oracle",
+  "version": "1.2.0",
+  "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
     "type": "git",
@@ -41,13 +41,11 @@
   "keywords": [
     "oracle",
     "mysql",
-    "oracle orm",
-    "mysql orm",
+    "postgresql",
     "orm",
     "object relational mapping",
     "node orm",
-    "node-oracledb",
-    "simplenodedesigner"
+    "node-oracledb"
   ],
   "homepage": "https://github.com/rbtucker/simplenodeorm#readme"
 }
