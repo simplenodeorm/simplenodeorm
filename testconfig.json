@@ -3,5 +3,5 @@
     "testDbConfiguration" : "examples/exampledb.json",
     "maxRowsForGetAll" : 50,
     "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId"],
-    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate"]
+    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate"]
 }

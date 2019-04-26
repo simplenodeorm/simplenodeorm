@@ -1,0 +1,1 @@
+{"__model__":"PSCity","modified":true,"newModel":true,"constraintsEnabled":false,"data":{"country":{"__model__":"PSCountry","modified":false,"newModel":false,"constraintsEnabled":false,"data":{"countryId":87,"country":"Spain","lastUpdate":"2006-02-15T11:44:00.000Z"}},"cityId":null,"city":"Test City","countryId":87,"lastUpdate":"2019-02-15T11:45:25.000Z"}}

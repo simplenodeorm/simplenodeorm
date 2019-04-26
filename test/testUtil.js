@@ -106,26 +106,41 @@ function verifyModelInstancesToResultSet(doc, objectGraph, resultSet, columnPosM
                 let vkey = j + ":" + doc.document.selectedColumns[k].path;
                 let resval = results[j][k];
                 let mval = findModelObjectValueFomPath(orm, objectGraph[i], results[j], doc.document.selectedColumns[k].path, columnPosMap);
-                
+    
                 if (mval.value && resval && ('date' === mval.type)) {
                     if (!isNaN(Date.parse(resval))) {
                         mval.value = Date.parse(mval.value);
                         resval = Date.parse(resval);
                     }
                 }
-                
+    
                 if ((mval.value === resval) || (!mval.value && !resval)) {
                     verifyMap.set(vkey, true);
                 } else {
                     if (firstOne) {
                         firstOne = false;
                     }
- 
-                    testResults.push(require('./testStatus.js')(util.ERROR,
-                        'object graph value for path '
-                        +  doc.document.selectedColumns[k].path
-                        + ' ' + mval.value
-                        + ' not equal to result set value ' + resval, 'verifyQueryDesignerQueryResults'));
+    
+                    let pos = doc.document.selectedColumns[k].path.lastIndexOf('.');
+    
+                    let fname;
+    
+                    if (pos > -1) {
+                        fname = doc.document.selectedColumns[k].path.substring(pos+1);
+                    } else {
+                        fname = doc.document.selectedColumns[k].path;
+                    }
+                    
+                    
+                    if (!orm.testConfiguration.fieldsToIgnoreForRowToModelMatch.includes(fname)) {
+                        testResults.push(require('./testStatus.js')(util.ERROR,
+                            'object graph value for path '
+                            + doc.document.selectedColumns[k].path
+                            + ' ' + mval.value
+                            + ' not equal to result set value ' + resval, 'verifyQueryDesignerQueryResults'));
+                    } else {
+                        verifyMap.set(vkey, true);
+                    }
                 }
             }
         }
@@ -299,6 +314,7 @@ module.exports.isLogInfoEnabled = function() {
 function getDataType(dbType) {
     let retval;
     if (util.isValidObject(dbType)) {
+        dbType = dbType.toUpperCase();
         if (dbType.includes('VARCHAR')
             || dbType.includes('TEXT')
             || dbType.includes('CHAR')
