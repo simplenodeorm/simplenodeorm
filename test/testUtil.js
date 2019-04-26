@@ -924,9 +924,12 @@ function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) 
                         if (val1 instanceof Date) {
                             val1 = val1.getTime();
                             val2 = val2.getTime();
-                        } else if (val1 instanceof Object) {
-                            val1 = util.toString(val1);
-                            val2 = util.toString(val2);
+                        } else if (val1.trim && val2.trim) {
+                            val1 = val1.trim();
+                            val2 = val2.trim();
+                        } else if ((typeof val1 === "boolean") || (typeof val2 === "boolean")) {
+                            val1 = String(val1);
+                            val2 = String(val2);
                         }
         
                         if (val1 != val2) {
@@ -957,6 +960,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
                 val1 = val1.getTime();
             } else if (val1 instanceof Object) {
                 val1 = util.toString(val1);
+                val1 = val1.trim();
             }
 
             if (val2 instanceof Date) {
@@ -965,6 +969,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
                 val2 = val2.getTime();
             } else if (val2 instanceof Object) {
                 val2 = util.toString(val2);
+                val2 = val2.trim();
             }
 
             if (util.isValidObject(fields[i].versionColumn) && fields[i].versionColumn) {
@@ -974,7 +979,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
                     }
                 }
             } else {
-                if (val1 != val2) {
+                if (val1 !== val2) {
                     testResults.push(require('./testStatus.js')(util.ERROR, 'column value mismatch on ' + onm + '.' + fields[i].fieldName + ' - expected ' + val1 + ' but found ' + val2, util.SAVE + '[update]'));
                 }
             }

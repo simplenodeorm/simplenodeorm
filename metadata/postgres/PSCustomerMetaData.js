@@ -55,7 +55,7 @@ class PSCustomerMetaData extends MetaData {
                     type: "boolean",
                     columnName: "activebool",
                     required: true,
-                    defaultValue: "true",
+                    defaultValue: "true"
                 },
                 { // 7
                     fieldName: "active",

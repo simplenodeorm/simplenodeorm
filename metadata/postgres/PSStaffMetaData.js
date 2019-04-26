@@ -56,8 +56,7 @@ class PSStaffMetaData extends MetaData {
                     type: "BOOLEAN",
                     columnName: "active",
                     required: true,
-                    defaultValue: "true",
-                    converter: "ZeroOneToBoolean"
+                    defaultValue: "true"
                 },
                 { // 8
                     fieldName: "username",
