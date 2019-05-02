@@ -2477,12 +2477,15 @@ function getChartDatasets(reportObject, rowInfo) {
         if (dataAxes[i].color) {
             switch (reportObject.chartType) {
                 case 'bar':
+                case 'horizontalBar':
                     ds.backgroundColor = dataAxes[i].color;
                     ds.borderColor = dataAxes[i].color;
                     ds.borderWidth = 1;
                     ds.hoverBackgroundColor = tinycolor(ds.backgroundColor).darken(15).toString();
                     break;
                 case 'line':
+                case 'radar':
+                case 'scatter':
                     ds.borderColor = dataAxes[i].color;
                     ds.borderWidth = dataAxes[i].borderWidth;
                     if (reportObject.showBackground) {
@@ -2521,6 +2524,7 @@ function getChartDatasets(reportObject, rowInfo) {
             switch(reportObject.chartType) {
                 case 'pie':
                 case 'doughnut':
+                case 'polar':
                     if (!retval[j].backgroundColor) {
                         retval[j].backgroundColor = [];
                     }
