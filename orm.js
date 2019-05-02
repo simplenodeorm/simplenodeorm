@@ -1825,6 +1825,9 @@ async function generateReport(report, query, parameters) {
     }
     
     let repo = repositoryMap.get(query.document.rootModel.toLowerCase());
+    if (!parameters) {
+        parameters = [];
+    }
     let result = await repo.executeSqlQuery(sql, parameters);
     if (result.error) {
         throw new Error(result.error);
@@ -2001,8 +2004,6 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             break;
         case 'image':
             retval = getImageHtml(yOffset, reportObject, rowInfo);
-            break;
-        case 'graph':
             break;
         case 'label':
             retval = getLabelHtml(yOffset, reportObject, rowInfo);
@@ -2508,16 +2509,24 @@ function getChartDatasets(reportObject, rowInfo) {
         for (let j = 0; j < retval.length; j++) {
             let pos = posMap.get(rowInfo.dataRows[i][rowInfo.categoryPosition]);
             if (pos > -1) {
-                let val = rowInfo.dataRows[i][dataAxes[j].dataPosition];
-    
-                if (!val) {
-                    val = 0;
+                let yval = rowInfo.dataRows[i][dataAxes[j].dataPosition];
+                let xval =  rowInfo.dataRows[i][rowInfo.categoryPosition];
+                if (!yval) {
+                    yval = 0;
                 }
+    
+                yval = Number(yval);
                 
                 if (reportObject.reportColumns[j].precision) {
-                    retval[j].data[pos] = val.toFixed(reportObject.reportColumns[j].precision);
+                    yval = yval.toFixed(reportObject.reportColumns[j].precision);
+                } else if (yval) {
+                    yval = yval.toFixed(2);
+                }
+    
+                if (reportObject.chartType === 'scatter') {
+                    retval[j].data.push({x: xval, y: yval});
                 } else {
-                    retval[j].data[pos] = val.toFixed(2);
+                    retval[j].data[pos] = yval;
                 }
             }
             
