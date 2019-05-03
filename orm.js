@@ -2428,7 +2428,6 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
         options: options
     });
     
- 
     return retval
 }
 
@@ -2533,7 +2532,7 @@ function getChartDatasets(reportObject, rowInfo) {
             switch(reportObject.chartType) {
                 case 'pie':
                 case 'doughnut':
-                case 'polar':
+                case 'polarArea':
                     if (!retval[j].backgroundColor) {
                         retval[j].backgroundColor = [];
                     }
@@ -2543,7 +2542,6 @@ function getChartDatasets(reportObject, rowInfo) {
             }
         }
     }
-    
     
     return retval;
 }
