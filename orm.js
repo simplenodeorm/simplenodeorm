@@ -1924,22 +1924,26 @@ async function generateReport(report, query, parameters) {
             rowInfo.chartData.charts = [];
         }
         
+        let bodyStart = Number((report.document.headerHeight - 4)/rowInfo.ppi).toFixed(3);
+        let footerStart =  Number((report.document.documentHeight - report.document.footerHeight - 8)/rowInfo.ppi).toFixed(3);
+        let pageWidth = Number(report.document.documentWidth/rowInfo.ppi).toFixed(3);
+        let pageHeight = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
         do {
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
             rowInfo.incrementRowRequired = false;
             html += '<div style="top: 0;" class="page"><div style="position: absolute; overflow: hidden; left: 0; top: 0; width: '
-                + report.document.documentWidth/rowInfo.ppi
+                +  pageWidth
                 + 'in; height: '
-                + report.document.headerHeight/rowInfo.ppi
+                + pageHeight
                 + 'in;">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
             }
  
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
-                + report.document.headerHeight/rowInfo.ppi
+                + bodyStart
                 + 'in; width: '
                 + report.document.documentWidth/rowInfo.ppi
                 + 'in; height: '
@@ -1950,7 +1954,7 @@ async function generateReport(report, query, parameters) {
             }
     
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
-                + (report.document.documentHeight - report.document.footerHeight)/rowInfo.ppi
+                + footerStart
                 + 'in; width: '
                 + report.document.documentWidth/rowInfo.ppi
                 + 'in; height: '

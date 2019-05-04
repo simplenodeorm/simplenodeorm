@@ -1,11 +1,11 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rbtucker/simplenodeorm.git"
+    "url": "git+https://github.com/simplenodeorm/simplenodeorm.git"
   },
   "author": "Rob Tucker <rbtucker16@gmail.com>",
   "license": "ISC",
@@ -33,7 +33,7 @@
     "winston": ">=2.4"
   },
   "bugs": {
-    "url": "https://github.com/rbtucker/simplenodeorm/issues"
+    "url": "https://github.com/simplenodeorm/simplenodeorm/issues"
   },
   "engines": {
     "node": ">=10.5"
