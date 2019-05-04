@@ -1924,8 +1924,8 @@ async function generateReport(report, query, parameters) {
             rowInfo.chartData.charts = [];
         }
         
-        let bodyStart = Number((report.document.headerHeight - 4)/rowInfo.ppi).toFixed(3);
-        let footerStart =  Number((report.document.documentHeight - report.document.footerHeight - 8)/rowInfo.ppi).toFixed(3);
+        let bodyStart = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
+        let footerStart =  Number((report.document.documentHeight - report.document.footerHeight)/rowInfo.ppi).toFixed(3);
         let pageWidth = Number(report.document.documentWidth/rowInfo.ppi).toFixed(3);
         let pageHeight = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
         do {
@@ -2157,7 +2157,16 @@ function getDbDataByPath(path, rowData) {
 
 function getReportObjectStyle(yOffset, reportObject, rowInfo) {
     let left = rowInfo.marginLeft + Number(reportObject.rect.left / rowInfo.ppi);
-    let top = yOffset + (reportObject.rect.top / rowInfo.ppi);
+    let offset = 0;
+    switch(reportObject.section) {
+        case 'body':
+            offset = 5;
+            break;
+        case 'footer':
+            offset = 10;
+            break;
+    }
+    let top = yOffset + ((reportObject.rect.top - offset) / rowInfo.ppi);
     let width = reportObject.rect.width / rowInfo.ppi;
     let height = reportObject.rect.height / rowInfo.ppi;
     return 'left: '
