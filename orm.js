@@ -2419,8 +2419,7 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
     loadChartLabels(reportObject, rowInfo);
     let ds = getChartDatasets(reportObject, rowInfo);
     let options = getChartOptions(reportObject, rowInfo);
-    
-    rowInfo.chartData.charts.push({
+    let data = {
         canvasId: cname,
         type: reportObject.chartType,
         data: {
@@ -2428,7 +2427,9 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
             datasets: ds
         },
         options: options
-    });
+    };
+    
+    rowInfo.chartData.charts.push(data);
     
     return retval
 }
@@ -2491,7 +2492,7 @@ function getChartDatasets(reportObject, rowInfo) {
                     ds.borderColor = dataAxes[i].color;
                     ds.borderWidth = dataAxes[i].borderWidth;
                     if (reportObject.showBackground) {
-                        ds.backgroundColor = tinycolor(ds.borderColor).lighten(40).desaturate(20).toString();
+                        ds.backgroundColor = tinycolor(ds.borderColor).lighten(40).desaturate(20).setAlpha(0.3).toString();
                         ds.hoverBackgroundColor = tinycolor(ds.borderColor).darken(20).toString();
                     } else {
                         ds.backgroundColor = 'transparent';
@@ -2500,6 +2501,7 @@ function getChartDatasets(reportObject, rowInfo) {
                     ds.pointStyle = reportObject.pointStyle;
                     ds.pointRadius = reportObject.pointRadius;
                     break;
+                    
             }
         }
         ds.data = [];
@@ -2539,7 +2541,12 @@ function getChartDatasets(reportObject, rowInfo) {
                         retval[j].backgroundColor = [];
                     }
     
-                    retval[j].backgroundColor.push(randomColor({luminosity: 'dark'}));
+                    if (reportObject.chartType === 'polarArea') {
+                        retval[j].backgroundColor.push(randomColor({luminosity: 'dark', alpha: 0.3, format: 'rgba'}));
+                    } else {
+                        retval[j].backgroundColor.push(randomColor({luminosity: 'dark'}));
+                    }
+                    
                     break;
             }
         }
