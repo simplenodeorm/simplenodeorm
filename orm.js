@@ -1841,8 +1841,8 @@ async function generateReport(report, query, parameters) {
             resultSet = [resultSet];
         }
         let ppi = report.document.pixelsPerInch;
-        let width = report.document.documentWidth/ppi;
-        let height = report.document.documentHeight/ppi;
+        let width = Number(report.document.documentWidth/ppi).toFixed(3);
+        let height = Number(report.document.documentHeight/ppi).toFixed(3);
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
         let chartData = {};
@@ -1926,17 +1926,15 @@ async function generateReport(report, query, parameters) {
         
         let bodyStart = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
         let footerStart =  Number((report.document.documentHeight - report.document.footerHeight)/rowInfo.ppi).toFixed(3);
-        let pageWidth = Number(report.document.documentWidth/rowInfo.ppi).toFixed(3);
-        let pageHeight = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
         do {
             rowInfo.pageBreakRequired = false;
             rowInfo.pageNumber = (pagenum+1);
             rowInfo.startRow = rowInfo.currentRow;
             rowInfo.incrementRowRequired = false;
-            html += '<div style="top: 0;" class="page"><div style="position: absolute; overflow: hidden; left: 0; top: 0; width: '
-                +  pageWidth
+            html += '<div class="page"><div style="position: absolute; overflow: hidden; left: 0; top: 0; width: '
+                +  width
                 + 'in; height: '
-                + pageHeight
+                + bodyStart
                 + 'in;">';
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
@@ -1945,9 +1943,9 @@ async function generateReport(report, query, parameters) {
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
                 + bodyStart
                 + 'in; width: '
-                + report.document.documentWidth/rowInfo.ppi
+                + width
                 + 'in; height: '
-                + (report.document.documentHeight - (report.document.headerHeight + report.document.footerHeight))/rowInfo.ppi
+                + (footerStart - bodyStart)
                 + 'in;">';
             for (let i = 0; i < bodyObjects.length; ++i) {
                 html += getObjectHtml(0, bodyObjects[i], rowInfo);
@@ -1956,9 +1954,9 @@ async function generateReport(report, query, parameters) {
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
                 + footerStart
                 + 'in; width: '
-                + report.document.documentWidth/rowInfo.ppi
+                + width
                 + 'in; height: '
-                + report.document.footerHeight/rowInfo.ppi
+                + (height - footerStart)
                 + 'in;">';
             
             for (let i = 0; i < footerObjects.length; ++i) {
@@ -1977,7 +1975,7 @@ async function generateReport(report, query, parameters) {
                     || (rowInfo.currentRow >= rowInfo.rows.length))) {
                 done = true;
             } else {
-                html += '<br />';
+                html += '<span style="height: 1px"><br /><span>';
             }
             
             pagenum++;
@@ -2157,16 +2155,7 @@ function getDbDataByPath(path, rowData) {
 
 function getReportObjectStyle(yOffset, reportObject, rowInfo) {
     let left = rowInfo.marginLeft + Number(reportObject.rect.left / rowInfo.ppi);
-    let offset = 0;
-    switch(reportObject.section) {
-        case 'body':
-            offset = 5;
-            break;
-        case 'footer':
-            offset = 10;
-            break;
-    }
-    let top = yOffset + ((reportObject.rect.top - offset) / rowInfo.ppi);
+    let top = yOffset + (reportObject.rect.top / rowInfo.ppi);
     let width = reportObject.rect.width / rowInfo.ppi;
     let height = reportObject.rect.height / rowInfo.ppi;
     return 'left: '
