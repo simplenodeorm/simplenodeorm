@@ -1842,22 +1842,22 @@ async function generateReport(report, query, parameters) {
         }
         let ppi = report.document.pixelsPerInch;
         let width = Number(report.document.documentWidth/ppi).toFixed(3);
-        let height = Number(report.document.documentHeight/ppi).toFixed(3);
+        let height = Number((report.document.documentHeight -2)/ppi).toFixed(3);
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
         let chartData = {};
         let style = '@media print {body {width: '
             + width
-            + 'in;} } @page {page-size: '
+            + 'in;} @media screen .pb { display: block; height: 1px; page-break-before: always;}} @page {page-size: '
             + report.document.documentSize
             + '; orientation: '
             + report.document.orientation
-            + '; margin: 0;} '
+            + '; margin: 0;}'
             + '.page {position: relative; background-color: white; width: '
             + width
             + 'in; height: '
             + height
-            + 'in;}';
+            + 'in;} @media screen .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}';
        
         let headerObjects = [];
         let bodyObjects = [];
@@ -1975,7 +1975,7 @@ async function generateReport(report, query, parameters) {
                     || (rowInfo.currentRow >= rowInfo.rows.length))) {
                 done = true;
             } else {
-                html += '<span style="height: 1px"><br /><span>';
+                html += '<div class="pb">&nbsp;</div>';
             }
             
             pagenum++;
