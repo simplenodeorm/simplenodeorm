@@ -1,7 +1,7 @@
 Simple ORM framework for Node.js that supports MySQL, Oracle and PostgreSQL.
 
 Source:
-https://github.com/rbtucker/simplenodeorm
+https://github.com/simplnodeorm/simplenodeorm
 
 Website (demo and documentation):
 http://simplenodeorm.org
