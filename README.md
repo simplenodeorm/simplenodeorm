@@ -3,8 +3,6 @@ Simple ORM framework for Node.js that supports MySQL, Oracle and PostgreSQL.
 Source:
 https://github.com/simplenodeorm/simplenodeorm.git
 
-Website (demo and documentation):
-http://simplenodeorm.org
 
 Requirements:
 1. ensure node.js 10.5 or above installed
