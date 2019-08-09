@@ -330,6 +330,7 @@ function getDataType(dbType) {
             retval = 'date';
         } else if (dbType.includes('NUMBER')
             || dbType.includes('INT')
+            || dbType.includes('BIT')
             || dbType.includes('NUMERIC')
             || dbType.includes('YEAR')
             || dbType.includes('DECIMAL')) {
