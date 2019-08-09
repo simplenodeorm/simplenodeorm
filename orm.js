@@ -275,7 +275,7 @@ function startRestServer() {
                 try {
                     if (doc.documentName && !doc.interactive) {
                         let params = doc.parameters;
-                        doc = loadQueryDocument(doc.groupId + '.' + doc.documentName + '.json');
+                        doc = loadQuery(doc.groupId + '.' + doc.documentName + '.json');
                         doc.parameters = params;
                         
                     }
@@ -340,7 +340,7 @@ function startRestServer() {
 
     server.post(REST_URL_BASE + '/api/query/save', async function (req, res) {
         try {
-            saveQueryDocument(req.body);
+            saveQuery(req.body);
             res.status(200).send('success');
         } catch (e) {
             logger.logError('error occured while saving query document ' + req.body.documentName, e);
@@ -361,7 +361,7 @@ function startRestServer() {
     server.get(REST_URL_BASE + '/api/report/run/:docid', async function (req, res) {
         try {
             let report = loadReport(req.params.docid);
-            let query = loadQueryDocument(report.document.queryDocumentId);
+            let query = loadQuery(report.document.queryDocumentId);
             let authorizer;
             try {
                 logger.logInfo('authorizer: ' + report.authenticator);
@@ -393,7 +393,7 @@ function startRestServer() {
     server.post(REST_URL_BASE + '/api/report/run/:docid', async function (req, res) {
         try {
             let report = loadReport(req.params.docid);
-            let query = loadQueryDocument(report.document.queryDocumentId);
+            let query = loadQuery(report.document.queryDocumentId);
             res.status(200).send(await generateReport(report, query, req.body.parameters));
         } catch (e) {
             logger.logError('error occured while running report ' + req.params.docid, e);
@@ -404,7 +404,7 @@ function startRestServer() {
     server.post(REST_URL_BASE + '/api/report/runfordesign', async function (req, res) {
         try {
             let report = req.body.report;
-            let query = loadQueryDocument(report.document.queryDocumentId);
+            let query = loadQuery(report.document.queryDocumentId);
             res.status(200).send(await generateReport(report, query, req.body.parameters));
         } catch (e) {
             logger.logError('error occured while running report ' + req.body.report.reportName, e);
@@ -414,7 +414,7 @@ function startRestServer() {
 
     server.get(REST_URL_BASE + '/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
         try {
-            let query = loadQueryDocument(req.params.queryDocumentId);
+            let query = loadQuery(req.params.queryDocumentId);
             let requiredInputs = getRequiredInputFields(query.document);
             // see if we need user input
             if (requiredInputs.length > 0) {
@@ -431,7 +431,7 @@ function startRestServer() {
 
     server.get(REST_URL_BASE + '/api/query/delete/:docid', async function (req, res) {
         try {
-            deleteQueryDocument(req.params.docid);
+            deleteQuery(req.params.docid);
             res.status(200).send('success');
         } catch (e) {
             logger.logError('error occured while deleting query document ' + req.params.docid, e);
@@ -460,7 +460,7 @@ function startRestServer() {
 
     server.get(REST_URL_BASE + '/api/report/querycolumninfo/:qdocid', async function (req, res) {
         try {
-            let qdoc = loadQueryDocument(req.params.qdocid);
+            let qdoc = loadQuery(req.params.qdocid);
             let qcinfo = [];
 
             for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
@@ -488,7 +488,7 @@ function startRestServer() {
 
     server.get(REST_URL_BASE + '/api/query/load/:docid', async function (req, res) {
         try {
-            res.status(200).send(loadQueryDocument(req.params.docid));
+            res.status(200).send(loadQuery(req.params.docid));
         } catch (e) {
             logger.logError('error occured while loading document ' + req.params.docid, e);
             res.status(500).send('error occured while loading document ' + req.params.docid + ' - ' + e);
@@ -1500,8 +1500,8 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 function loadQueryDocuments() {
     let retval = {};
 
-    if (typeof loadQueryDocumentsCustom === "function") {
-        retval = loadQueryDocumentsCustom();
+    if (typeof customLoadQueryDocuments === "function") {
+        retval = customLoadQueryDocuments();
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
@@ -1533,8 +1533,8 @@ function loadQueryDocuments() {
 function loadReportDocuments() {
     let retval = {};
 
-    if (typeof loadReportDocumentsCustom === "function") {
-        retval = loadReportDocumentsCustom();
+    if (typeof customLoadReportDocuments === "function") {
+        retval = customLoadReportDocuments();
     } else {
         let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
@@ -1583,67 +1583,91 @@ function loadAuthorizers() {
 }
 
 
-function saveQueryDocument(doc) {
-    let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
-    fspath.writeFile(fname, JSON.stringify(doc), function(err){
-        if(err) {
-            throw err;
-        } else {
-            logger.logInfo('file created: ' + fname);
-        }
-    });
+function saveQuery(doc) {
+    if (typeof customSaveQuery === "function") {
+        customSaveQuery(doc);
+    } else {
+        let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
+        fspath.writeFile(fname, JSON.stringify(doc), function (err) {
+            if (err) {
+                throw err;
+            } else {
+                logger.logInfo('file created: ' + fname);
+            }
+        });
+    }
 }
 
 function saveReport(doc) {
-    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
-    fspath.writeFile(fname, JSON.stringify(doc), function(err){
-        if(err) {
-            throw err;
-        } else {
-            logger.logInfo('file created: ' + fname);
-        }
-    });
+    if (typeof customSaveReport === "function") {
+        customSaveReport(doc);
+    } else {
+        let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
+        fspath.writeFile(fname, JSON.stringify(doc), function (err) {
+            if (err) {
+                throw err;
+            } else {
+                logger.logInfo('file created: ' + fname);
+            }
+        });
+    }
 }
 
-function deleteQueryDocument(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let docName= docid.substring(pos+1);
-    
-    let fname = appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName;
-    fs.unlinkSync(fname);
+function deleteQuery(docid) {
+    if (typeof customDeleteQuery === "function") {
+        customDeleteQuery(docid);
+    } else {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let docName = docid.substring(pos + 1);
+
+        let fname = appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName;
+        fs.unlinkSync(fname);
+    }
 }
 
 function deleteReport(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let reportName= docid.substring(pos+1);
-    
-    let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName;
-    fs.unlinkSync(fname);
+    if (typeof customDeleteReport === "function") {
+        customDeleteReport(doc);
+    } else {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let reportName = docid.substring(pos + 1);
+
+        let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName;
+        fs.unlinkSync(fname);
+    }
 }
 
-function loadQueryDocument(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let docName= docid.substring(pos+1);
-    
-    let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
-    
-    return JSON.parse(fs.readFileSync(fname));
+function loadQuery(docid) {
+    if (typeof customLoadQuery === "function") {
+        return customLoadQuery(docid);
+    } else {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let docName = docid.substring(pos + 1);
+
+        let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+
+        return JSON.parse(fs.readFileSync(fname));
+    }
 }
 
 function loadReport(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let reportName= docid.substring(pos+1);
-    
-    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
-    
-    if (!fname.endsWith('.json')) {
-        fname += '.json';
+    if (typeof customLoadReport === "function") {
+        return customLoadReport(docid);
+    } else {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let reportName = docid.substring(pos + 1);
+
+        let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
+
+        if (!fname.endsWith('.json')) {
+            fname += '.json';
+        }
+        return JSON.parse(fs.readFileSync(fname));
     }
-    return JSON.parse(fs.readFileSync(fname));
 }
 
 function loadGroupMap(curGroup, groupMap) {
@@ -2696,3 +2720,15 @@ function loadDocumentGroups() {
         queryDocumentGroups = loadQueryDocumentGroups();
     }
 }
+
+// add code customizations here - for example you can implement the following functions:
+// loadReportDocumentGroups()
+// loadQueryDocumentGroups()
+// customLoadReportDocuments()
+// customLoadReport()
+// customSaveReport()
+// customDeleteReport()
+// customLoadQueryDocuments()
+// customLoadQuery()
+// customSaveQuery()
+// customDeleteQuery()
