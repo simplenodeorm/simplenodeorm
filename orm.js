@@ -1499,24 +1499,29 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 
 function loadQueryDocuments() {
     let retval = {};
-    let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
-    for (let i = 0; i < groups.length; ++i) {
-        let qpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
-        if (fs.lstatSync(qpath).isDirectory()) {
-            let files = fs.readdirSync(qpath);
-            retval[groups[i]] = [];
-            for (let j = 0; j < files.length; ++j) {
-                if (files[j].endsWith('.json')) {
-                    retval[groups[i]].push(files[j]);
+    if (typeof loadQueryDocumentsCustom === "function") {
+        retval = loadQueryDocumentsCustom();
+    } else {
+        let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
+
+        for (let i = 0; i < groups.length; ++i) {
+            let qpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
+            if (fs.lstatSync(qpath).isDirectory()) {
+                let files = fs.readdirSync(qpath);
+                retval[groups[i]] = [];
+                for (let j = 0; j < files.length; ++j) {
+                    if (files[j].endsWith('.json')) {
+                        retval[groups[i]].push(files[j]);
+                    }
+                }
+
+                if (retval[groups[i]].length > 0) {
+                    retval[groups[i]].sort();
                 }
             }
-
-            if (retval[groups[i]].length > 0) {
-                retval[groups[i]].sort();
-            }
         }
-        }
+    }
 
     if (logger.isLogDebugEnabled()) {
         logger.logDebug('query documents: ' + JSON.stringify(retval));
@@ -1527,21 +1532,26 @@ function loadQueryDocuments() {
 
 function loadReportDocuments() {
     let retval = {};
-    let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
-    for (let i = 0; i < groups.length; ++i) {
-        let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
-        if (fs.lstatSync(rpath).isDirectory()) {
-            let files = fs.readdirSync(rpath);
-            retval[groups[i]] = [];
-            for (let j = 0; j < files.length; ++j) {
-                if (files[j].endsWith('.json')) {
-                    retval[groups[i]].push(files[j]);
+    if (typeof loadReportDocumentsCustom === "function") {
+        retval = loadReportDocumentsCustom();
+    } else {
+        let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+
+        for (let i = 0; i < groups.length; ++i) {
+            let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
+            if (fs.lstatSync(rpath).isDirectory()) {
+                let files = fs.readdirSync(rpath);
+                retval[groups[i]] = [];
+                for (let j = 0; j < files.length; ++j) {
+                    if (files[j].endsWith('.json')) {
+                        retval[groups[i]].push(files[j]);
+                    }
                 }
-            }
 
-            if (retval[groups[i]].length > 0) {
-                retval[groups[i]].sort();
+                if (retval[groups[i]].length > 0) {
+                    retval[groups[i]].sort();
+                }
             }
         }
     }
