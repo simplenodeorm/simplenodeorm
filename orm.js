@@ -15,8 +15,6 @@ const path = require('path');
 const fspath = require('fs-path');
 const saveAuthorizer = new (require(appConfiguration.saveAuthorizer))();
 const deleteAuthorizer = new (require(appConfiguration.deleteAuthorizer))();
-const reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
-const queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 
@@ -29,8 +27,12 @@ const server = express();
 const APP_NAME = appConfiguration.applicationName || "SIMPLE ORM";
 const REST_URL_BASE = appConfiguration.restUrlBase || '/hrorm';
 const REST_SERVER_PORT = appConfiguration.restPort || 8888;
- 
- 
+
+let reportDocumentGroups;
+let queryDocumentGroups;
+
+
+
 // create an event emitter to signal when
 // connection pool is initialized
 const poolCreatedEmitter = new events.EventEmitter();
@@ -48,6 +50,7 @@ poolCreatedEmitter.on('poolscreated', async function() {
     }
     
     if (appConfiguration.startRestServer) {
+        loadDocumentGroups();
         startRestServer();
     }
 }); 
@@ -2659,4 +2662,19 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     }
     
     return retval;
+}
+
+// implement functions loadReportDocumentGroups and loadQueryDocumentGroups for custom loading
+function loadDocumentGroups() {
+    if (fs.existsSync('./report-document-groups.json')) {
+        reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
+    } else if (typeof loadReportDocumentGroups === "function") {
+        reportDocumentGroups = loadReportDocumentGroups();
+    }
+
+    if (fs.existsSync('./query-document-groups.json')) {
+        queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
+    } else if (typeof loadQueryDocumentGroups === "function") {
+        queryDocumentGroups = loadQueryDocumentGroups();
+    }
 }

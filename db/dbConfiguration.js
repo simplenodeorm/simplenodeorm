@@ -1,11 +1,27 @@
 "use strict";
 
-const oracledb = require('oracledb');
-const mysqldb = require('promise-mysql');
-const postgresdb = require('pg-pool');
 const util = require("../main/util.js");
 const fs = require('fs');
 const logger = require('../main/Logger.js');
+
+let oracledb;
+
+try {
+    oracledb = require('oracledb');
+} catch(e) {}
+
+
+let mysqldb;
+
+try {
+    mysqldb = require('promise-mysql');
+} catch (e) {}
+
+
+let postgresdb;
+try {
+    postgresdb = require('pg-pool');
+} catch (e) {}
 
 module.exports = function(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap) {
     if (appConfiguration.testMode) {
