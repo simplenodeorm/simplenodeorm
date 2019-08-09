@@ -1,43 +1,15 @@
 {
-	"pools": [{
-		"dbtype": "oracle",
-		"user": "hr",
-		"password": "hr",
-		"connectString": "localhost/XE",
-		"poolAlias": "hrdb",
-		"poolMax": 20,
-		"poolMin": 2,
-		"poolIncrement": 5,
-		"poolTimeout": 120,
-		"retryCount": 3,
-		"retryInterval": 500,
-		"runValidationSQL": true, 
-		"validationSQL": "alter session set current_schema=HR"
-	},
+	"pools": [
 	{
 		"dbtype": "mysql",
 		"host": "localhost",
-		"user": "tester",
+		"user": "root",
 		"poolAlias": "sakila",
-		"password": "tester",
+		"password": "password",
 		"database": "sakila",
 		"supportBigNumbers": true,
 		"waitForConnections": true,
 		"connectionLimit": 20
-	},
-	{
-		"dbtype": "postgres",
-		"host": "localhost",
-		"database": "dvdrental",
-		"user": "postgres",
-		"poolAlias": "dvdrent",
-		"password": "postgres",
-		"port": 5432,
-		"ssl": false,
-		"max": 20,
-		"min": 4,
-		"idleTimeoutMillis": 1000,
-		"connectionTimeoutMillis": 5000
 	}
 	]
 }

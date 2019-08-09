@@ -194,26 +194,26 @@ function startRestServer() {
         logger.logInfo(APP_NAME + ' is live on port ' + REST_SERVER_PORT);
     });
 
-    server.get(REST_URL_BASE + '/design/login', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/login', async function (req, res) {
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("in /design/login");
         }
         res.status(200).send("success");
     });
 
-    server.get(REST_URL_BASE + '/design/modelnames', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/modelnames', async function (req, res) {
         res.status(200).send(modelList);
     });
 
-    server.get(REST_URL_BASE + '/design/document/groups', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/document/groups', async function (req, res) {
         res.status(200).send(queryDocumentGroups);
     });
     
-    server.get(REST_URL_BASE + '/report/document/groups', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/document/groups', async function (req, res) {
         res.status(200).send(reportDocumentGroups);
     });
     
-    server.get(REST_URL_BASE + '/report/documents', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/documents', async function (req, res) {
         try {
             res.status(200).send(loadReportDocuments());
         }
@@ -224,7 +224,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/design/documents', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/documents', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocuments());
         }
@@ -235,7 +235,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/design/authorizers', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/authorizers', async function (req, res) {
         try {
             res.status(200).send(loadAuthorizers());
         }
@@ -246,7 +246,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/authorizers', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/authorizers', async function (req, res) {
         try {
             res.status(200).send(loadAuthorizers());
         }
@@ -257,7 +257,7 @@ function startRestServer() {
         }
     });
 
-    server.post(REST_URL_BASE + '/design/generatesql', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/query/generatesql', async function (req, res) {
         try {
             res.status(200).send(buildQueryDocumentSql(req.body, true));
         } catch (e) {
@@ -266,7 +266,7 @@ function startRestServer() {
         }
     });
 
-    server.post(REST_URL_BASE + '/design/runquery', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/query/runquery', async function (req, res) {
         try {
             (async function () {
                 let doc = req.body;
@@ -336,7 +336,7 @@ function startRestServer() {
         }
     });
 
-    server.post(REST_URL_BASE + '/design/savequery', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/query/savequery', async function (req, res) {
         try {
             saveQueryDocument(req.body);
             res.status(200).send('success');
@@ -346,7 +346,7 @@ function startRestServer() {
         }
     });
 
-    server.post(REST_URL_BASE + '/report/save', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/report/save', async function (req, res) {
         try {
             saveReport(req.body);
             res.status(200).send('success');
@@ -356,7 +356,7 @@ function startRestServer() {
         }
     });
     
-    server.get(REST_URL_BASE + '/report/run/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/run/:docid', async function (req, res) {
         try {
             let report = loadReport(req.params.docid);
             let query = loadQueryDocument(report.document.queryDocumentId);
@@ -388,7 +388,7 @@ function startRestServer() {
         }
     });
     
-    server.post(REST_URL_BASE + '/report/run/:docid', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/report/run/:docid', async function (req, res) {
         try {
             let report = loadReport(req.params.docid);
             let query = loadQueryDocument(report.document.queryDocumentId);
@@ -399,7 +399,7 @@ function startRestServer() {
         }
     });
     
-    server.post(REST_URL_BASE + '/report/runfordesign', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/report/runfordesign', async function (req, res) {
         try {
             let report = req.body.report;
             let query = loadQueryDocument(report.document.queryDocumentId);
@@ -410,7 +410,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/userinputrequired/:queryDocumentId', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
         try {
             let query = loadQueryDocument(req.params.queryDocumentId);
             let requiredInputs = getRequiredInputFields(query.document);
@@ -427,7 +427,7 @@ function startRestServer() {
     });
 
 
-    server.get(REST_URL_BASE + '/design/deletedocument/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/deletedocument/:docid', async function (req, res) {
         try {
             deleteQueryDocument(req.params.docid);
             res.status(200).send('success');
@@ -437,7 +437,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/delete/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/delete/:docid', async function (req, res) {
         try {
             deleteReport(req.params.docid);
             res.status(200).send('success');
@@ -447,7 +447,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/load/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/load/:docid', async function (req, res) {
         try {
             res.status(200).send(loadReport(req.params.docid));
         } catch (e) {
@@ -456,7 +456,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/querycolumninfo/:qdocid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/querycolumninfo/:qdocid', async function (req, res) {
         try {
             let qdoc = loadQueryDocument(req.params.qdocid);
             let qcinfo = [];
@@ -484,7 +484,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/design/loaddocument/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/loaddocument/:docid', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocument(req.params.docid));
         } catch (e) {
@@ -493,7 +493,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/design/modeltree/:modelname', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/modeltree/:modelname', async function (req, res) {
         let modelname = req.params.modelname;
         let repo = repositoryMap.get(modelname.toLowerCase());
         if (repo && repo.metaData) {
@@ -512,7 +512,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/report/querydocuments', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/report/querydocuments', async function (req, res) {
         try {
             let groupMap = new Map();
             let queryDocs = JSON.parse(loadQueryDocuments());
@@ -556,7 +556,7 @@ function startRestServer() {
 
     
 
-    server.get(REST_URL_BASE + '/:module/:method', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -657,7 +657,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.post(REST_URL_BASE + '/:module/:method', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -721,7 +721,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.put(REST_URL_BASE + '/:module/:method', function (req, res) {
+    server.put(REST_URL_BASE + '/api/:module/:method', function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {
@@ -767,7 +767,7 @@ function startRestServer() {
         res.end();
     });
 
-    server.delete(REST_URL_BASE + '/:module/:method', function (req, res) {
+    server.delete(REST_URL_BASE + '/api/:module/:method', function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
         if (util.isUndefined(repo)) {

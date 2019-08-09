@@ -23,12 +23,14 @@ module.exports.run = async function(orm) {
     let poolSet = new Set();
     for (let i = 0; i < models.length; ++i) {
         repo = orm.getRepository(models[i].name);
-        assert(util.isDefined(repo), 'failed to load ' + models[i].name + 'Repository');
-        let md = repo.getMetaData();
-        assert(util.isDefined(md), 'failed to load ' + models[i].name + 'MetaData');
-        assert(util.isDefined(orm.newModelInstance(md)), 'failed to load ' + models[i].name);
-        poolSet.add(repo.getPoolAlias());
-        assert(util.isDefined(orm.getMetaData(models[i].name)), 'failed to load ' + models[i].name + 'MetaData');
+        if (orm.getDbType(repo.getPoolAlias())) {
+            assert(util.isDefined(repo), 'failed to load ' + models[i].name + 'Repository');
+            let md = repo.getMetaData();
+            assert(util.isDefined(md), 'failed to load ' + models[i].name + 'MetaData');
+            assert(util.isDefined(orm.newModelInstance(md)), 'failed to load ' + models[i].name);
+            poolSet.add(repo.getPoolAlias());
+            assert(util.isDefined(orm.getMetaData(models[i].name)), 'failed to load ' + models[i].name + 'MetaData');
+        }
     }
     
     
