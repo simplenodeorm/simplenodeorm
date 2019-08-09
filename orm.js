@@ -25,7 +25,7 @@ const bodyParser = require('body-parser');
 const server = express();
 
 const APP_NAME = appConfiguration.applicationName || "SIMPLE ORM";
-const REST_URL_BASE = appConfiguration.restUrlBase || '/hrorm';
+const REST_URL_BASE = appConfiguration.restUrlBase || '/orm';
 const REST_SERVER_PORT = appConfiguration.restPort || 8888;
 
 let reportDocumentGroups;
