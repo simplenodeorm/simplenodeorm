@@ -338,7 +338,7 @@ function startRestServer() {
         }
     });
 
-    server.post(REST_URL_BASE + '/api/query/savequery', async function (req, res) {
+    server.post(REST_URL_BASE + '/api/query/save', async function (req, res) {
         try {
             saveQueryDocument(req.body);
             res.status(200).send('success');
@@ -429,7 +429,7 @@ function startRestServer() {
     });
 
 
-    server.get(REST_URL_BASE + '/api/query/deletedocument/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/delete/:docid', async function (req, res) {
         try {
             deleteQueryDocument(req.params.docid);
             res.status(200).send('success');
@@ -486,7 +486,7 @@ function startRestServer() {
         }
     });
 
-    server.get(REST_URL_BASE + '/api/query/loaddocument/:docid', async function (req, res) {
+    server.get(REST_URL_BASE + '/api/query/load/:docid', async function (req, res) {
         try {
             res.status(200).send(loadQueryDocument(req.params.docid));
         } catch (e) {
@@ -1502,19 +1502,22 @@ function loadQueryDocuments() {
     let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
-        let files = fs.readdirSync(appConfiguration.queryDocumentRoot + path.sep + groups[i]);
-        retval[groups[i]] = [];
-        for (let j = 0; j < files.length; ++j) {
-            if (files[j].endsWith('.json')) {
-                retval[groups[i]].push(files[j]);
+        let qpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
+        if (fs.lstatSync(qpath).isDirectory()) {
+            let files = fs.readdirSync(qpath);
+            retval[groups[i]] = [];
+            for (let j = 0; j < files.length; ++j) {
+                if (files[j].endsWith('.json')) {
+                    retval[groups[i]].push(files[j]);
+                }
+            }
+
+            if (retval[groups[i]].length > 0) {
+                retval[groups[i]].sort();
             }
         }
-        
-        if (retval[groups[i]].length > 0) {
-            retval[groups[i]].sort();
         }
-    }
-    
+
     if (logger.isLogDebugEnabled()) {
         logger.logDebug('query documents: ' + JSON.stringify(retval));
     }
@@ -1527,16 +1530,19 @@ function loadReportDocuments() {
     let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
     for (let i = 0; i < groups.length; ++i) {
-        let files = fs.readdirSync(appConfiguration.reportDocumentRoot + path.sep + groups[i]);
-        retval[groups[i]] = [];
-        for (let j = 0; j < files.length; ++j) {
-            if (files[j].endsWith('.json')) {
-                retval[groups[i]].push(files[j]);
+        let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
+        if (fs.lstatSync(rpath).isDirectory()) {
+            let files = fs.readdirSync(rpath);
+            retval[groups[i]] = [];
+            for (let j = 0; j < files.length; ++j) {
+                if (files[j].endsWith('.json')) {
+                    retval[groups[i]].push(files[j]);
+                }
             }
-        }
-        
-        if (retval[groups[i]].length > 0) {
-            retval[groups[i]].sort();
+
+            if (retval[groups[i]].length > 0) {
+                retval[groups[i]].sort();
+            }
         }
     }
     
