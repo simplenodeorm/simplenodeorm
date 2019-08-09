@@ -1,2 +1,4 @@
 /.netbeans.xml
-/hrorm.log
+/orm.log
+/node_modules
+/.directory
