@@ -136,23 +136,25 @@ function loadOrmDefinitions() {
         let md = new (require(modelFiles[i].replace('./model', './metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
             let repo = require(modelFiles[i].replace('./model', './repository').replace('.js', 'Repository.js'))(md);
-            modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
-            repositoryMap.set(modelName.toLowerCase(), repo);
-            if (md.getOneToOneDefinitions()) {
-                for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
-                    md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
+            if (dbTypeMap.get(repo.getPoolAlias())) {
+                modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
+                repositoryMap.set(modelName.toLowerCase(), repo);
+                if (md.getOneToOneDefinitions()) {
+                    for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
+                        md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
+                    }
                 }
-            }
 
-            if (md.getOneToManyDefinitions()) {
-                for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
-                    md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
+                if (md.getOneToManyDefinitions()) {
+                    for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
+                        md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
+                    }
                 }
-            }
 
-            if (md.getOneToManyDefinitions()) {
-                for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
-                    md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
+                if (md.getOneToManyDefinitions()) {
+                    for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
+                        md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
+                    }
                 }
             }
         }
