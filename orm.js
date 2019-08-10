@@ -15,6 +15,7 @@ const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const express = require('express');
 const bodyParser = require('body-parser');
+const dbTypeMap = new Map();
 const apiServer = express();
 
 // These are variables setup via the app configuration. The default configuration
@@ -31,30 +32,7 @@ loadConfiguration();
 
 // create an event emitter to signal when
 // connection pool is initialized
-const poolCreatedEmitter = new events.EventEmitter();
-poolCreatedEmitter.on('poolscreated', async function() {
-    loadOrm();
-    
-    // check for associated table existence and create if configured to do so
-    if (appConfiguration.createTablesIfRequired) {
-        createTablesIfRequired();
-    }
 
-    if (appConfiguration.testMode) {
-        let suite = require("./test/testSuite.js");
-        await suite.run();
-    }
-    
-    if (appConfiguration.startApiServer) {
-        loadDocumentGroups();
-        startApiServer();
-    }
-}); 
-
-const dbTypeMap = new Map();
-
-// setup database pool and fire off orm load
-require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
 function loadConfiguration() {
     if (process.env.APP_CONFIGURATION_FILE) {
         appConfiguration = JSON.parse(fs.readFileSync(process.env.APP_CONFIGURATION_FILE));
@@ -71,6 +49,33 @@ function loadConfiguration() {
     if (appConfiguration.customizationModule) {
         customization = require(appConfiguration.customizationModule)
     }
+
+    // export some of the constants for use in other modules
+    module.exports.appConfiguration = appConfiguration;
+    module.exports.testConfiguration = testConfiguration;
+
+    const poolCreatedEmitter = new events.EventEmitter();
+    poolCreatedEmitter.on('poolscreated', async function() {
+        loadOrm();
+
+        // check for associated table existence and create if configured to do so
+        if (appConfiguration.createTablesIfRequired) {
+            createTablesIfRequired();
+        }
+
+        if (appConfiguration.testMode) {
+            let suite = require("./test/testSuite.js");
+            await suite.run();
+        }
+
+        if (appConfiguration.startApiServer) {
+            loadDocumentGroups();
+            startApiServer();
+        }
+    });
+
+    // setup database pool and fire off orm load
+    require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
 }
 
 
@@ -90,10 +95,6 @@ function loadOrm() {
     
     logger.logInfo("ORM definitions loaded ");
 }
-
-// export some of the constants for use in other modules
-module.exports.appConfiguration = appConfiguration;
-module.exports.testConfiguration = testConfiguration;
 
 module.exports.newModelInstance = function (metaData) {
     return require('./' + metaData.module)(metaData);
@@ -2713,7 +2714,6 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-// implement functions loadReportDocumentGroups and loadQueryDocumentGroups for custom loading
 function loadDocumentGroups() {
     if (fs.existsSync('./report-document-groups.json')) {
         reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
