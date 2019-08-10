@@ -8,7 +8,6 @@ class Authorizer {
     checkAuthorization(req) {
         return false;
     }
-
 }
 
 module.exports = Authorizer;

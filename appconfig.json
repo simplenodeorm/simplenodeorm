@@ -3,6 +3,7 @@
   "dbConfiguration" : "examples/exampledb.json",
   "queryDocumentRoot" : "examples/queries",
   "reportDocumentRoot" : "examples/reports",
+  "certLocation": "cert",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
   "createTablesIfRequired" : false,
@@ -14,8 +15,7 @@
   "maxDeasyncWaitTime" : 30000,
   "maxRowsForGetAll" : 1000,
   "authorizer": "./auth/DefaultAuthorizer",
-  "saveAuthorizer": "./auth/DefaultSaveAuthorizer",
-  "deleteAuthorizer": "./auth/DefaultDeleteAuthorizer",
   "chartjsurl": "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js",
+  "customizationModule": "./examples/Customization.js",
   "aliases" : {}
 }

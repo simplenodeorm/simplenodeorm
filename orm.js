@@ -5,36 +5,34 @@ const util = require('./main/util.js');
 const modelList = [];
 const repositoryMap = new Map();
 const events = require('events');
-const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
-const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
 const cors = require('cors');
 const uuidv1 = require('uuid/v1');
 const path = require('path');
 const fspath = require('fs-path');
-const saveAuthorizer = new (require(appConfiguration.saveAuthorizer))();
-const deleteAuthorizer = new (require(appConfiguration.deleteAuthorizer))();
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
-
-
-// REST API stuff
 const express = require('express');
 const bodyParser = require('body-parser');
 const apiServer = express();
 
-const API_SERVER_PORT = appConfiguration.apiPort || 8888;
-
+// These are variables setup via the app configuration. The default configuration
+// is found in appconfig.json and testconfig.json. The environment variables
+// APP_CONFIGURATION_FILE and APP_TEST_CONFIGURATION_FILE can be set to point to
+// custom configuration files.
 let reportDocumentGroups;
 let queryDocumentGroups;
+let appConfiguration;
+let testConfiguration;
+let customization;
 
-
+loadConfiguration();
 
 // create an event emitter to signal when
 // connection pool is initialized
 const poolCreatedEmitter = new events.EventEmitter();
-poolCreatedEmitter.on('poolscreated', async function() { 
+poolCreatedEmitter.on('poolscreated', async function() {
     loadOrm();
     
     // check for associated table existence and create if configured to do so
@@ -57,6 +55,24 @@ const dbTypeMap = new Map();
 
 // setup database pool and fire off orm load
 require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
+function loadConfiguration() {
+    if (process.env.APP_CONFIGURATION_FILE) {
+        appConfiguration = JSON.parse(fs.readFileSync(process.env.APP_CONFIGURATION_FILE));
+    } else {
+        appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'))
+    }
+
+    if (process.env.APP_TEST_CONFIGURATION_FILE) {
+        testConfiguration = JSON.parse(fs.readFileSync(process.env.APP_TEST_CONFIGURATION_FILE));
+    } else {
+        testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
+    }
+
+    if (appConfiguration.customizationModule) {
+        customization = require(appConfiguration.customizationModule)
+    }
+}
+
 
 function loadOrm() {
     logger.logInfo("loading api ORM definitions...");
@@ -189,8 +205,8 @@ function startApiServer() {
         apiServer.use(basicAuth({authorizer: authfunc}));
     }
 
-    apiServer.listen(API_SERVER_PORT, () => {
-        logger.logInfo('api server is live on port ' + API_SERVER_PORT);
+    apiServer.listen(appConfiguration.apiServerPort || 8888, () => {
+        logger.logInfo('api server is live on port ' + (appConfiguration.apiServerPort || 8888));
     });
 
     apiServer.get('/api/query/login', async function (req, res) {
@@ -667,11 +683,7 @@ function startApiServer() {
             }
         }
         
-        if ((req.params.method.toLowerCase() === util.SAVE.toLowerCase())
-            && !saveAuthorizer.checkAuthorization(req)) {
-            logger.logInfo('unauthorized access attempted');
-            res.status(401).send('unauthorized');
-        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
+        if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let result;
@@ -776,10 +788,8 @@ function startApiServer() {
                 md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
             }
         }
-        if (!deleteAuthorizer.checkAuthorization(req)) {
-            logger.logInfo('unauthorized access attempted');
-            res.status(401).send('unauthorized');
-        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
+
+        if (util.isUndefined(repo) || util.isUndefined(md)) {
             res.status(400).send('invalid module \'' + req.params.module + '\' specified');
         } else {
             let result;
@@ -1497,8 +1507,8 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 function loadQueryDocuments() {
     let retval = {};
 
-    if (typeof customLoadQueryDocuments === "function") {
-        retval = customLoadQueryDocuments();
+    if (customization && (typeof customization.loadQueryDocuments === "function")) {
+        retval = customization.loadQueryDocuments();
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
@@ -1530,8 +1540,8 @@ function loadQueryDocuments() {
 function loadReportDocuments() {
     let retval = {};
 
-    if (typeof customLoadReportDocuments === "function") {
-        retval = customLoadReportDocuments();
+    if (customization && (typeof customization.loadReportDocuments === "function")) {
+        retval = customization.loadReportDocuments();
     } else {
         let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
@@ -1581,8 +1591,8 @@ function loadAuthorizers() {
 
 
 function saveQuery(doc) {
-    if (typeof customSaveQuery === "function") {
-        customSaveQuery(doc);
+    if (customization && (typeof customization.saveQuery === "function")) {
+        customization.saveQuery(doc);
     } else {
         let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1596,8 +1606,8 @@ function saveQuery(doc) {
 }
 
 function saveReport(doc) {
-    if (typeof customSaveReport === "function") {
-        customSaveReport(doc);
+    if (customization && (typeof customization.saveReport === "function")) {
+        customization.saveReport(doc);
     } else {
         let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1611,8 +1621,8 @@ function saveReport(doc) {
 }
 
 function deleteQuery(docid) {
-    if (typeof customDeleteQuery === "function") {
-        customDeleteQuery(docid);
+    if (customization && (typeof customization.deleteQuery === "function")) {
+        customization.deleteQuery(docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1624,8 +1634,8 @@ function deleteQuery(docid) {
 }
 
 function deleteReport(docid) {
-    if (typeof customDeleteReport === "function") {
-        customDeleteReport(doc);
+    if (customization && (typeof customization.deleteReport === "function")) {
+        customization.deleteReport(doc);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1637,8 +1647,8 @@ function deleteReport(docid) {
 }
 
 function loadQuery(docid) {
-    if (typeof customLoadQuery === "function") {
-        return customLoadQuery(docid);
+    if (customization && (typeof customization.loadQuery === "function")) {
+        return customization.loadQuery(docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1651,8 +1661,8 @@ function loadQuery(docid) {
 }
 
 function loadReport(docid) {
-    if (typeof customLoadReport === "function") {
-        return customLoadReport(docid);
+    if (customization && (typeof customization.loadReport === "function")) {
+        return customization.loadReport(docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -2707,25 +2717,14 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 function loadDocumentGroups() {
     if (fs.existsSync('./report-document-groups.json')) {
         reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
-    } else if (typeof loadReportDocumentGroups === "function") {
+    } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
         reportDocumentGroups = loadReportDocumentGroups();
     }
 
     if (fs.existsSync('./query-document-groups.json')) {
         queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
-    } else if (typeof loadQueryDocumentGroups === "function") {
+    } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
         queryDocumentGroups = loadQueryDocumentGroups();
     }
 }
 
-// add code customizations here - for example you can implement the following functions:
-// loadReportDocumentGroups()
-// loadQueryDocumentGroups()
-// customLoadReportDocuments()
-// customLoadReport()
-// customSaveReport()
-// customDeleteReport()
-// customLoadQueryDocuments()
-// customLoadQuery()
-// customSaveQuery()
-// customDeleteQuery()

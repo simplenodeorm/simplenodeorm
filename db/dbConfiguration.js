@@ -4,15 +4,14 @@ const util = require("../main/util.js");
 const fs = require('fs');
 const logger = require('../main/Logger.js');
 
+// try the various supported databases - ignore errors, assume no driver present
 let oracledb;
-
 try {
     oracledb = require('oracledb');
 } catch(e) {}
 
 
 let mysqldb;
-
 try {
     mysqldb = require('promise-mysql');
 } catch (e) {}
