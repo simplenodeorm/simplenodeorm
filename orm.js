@@ -197,9 +197,6 @@ function startApiServer() {
     apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
     apiServer.use(bodyParser.json({limit: '5MB'} ));
     apiServer.use(cors());
-    apiServer.options('*', cors());
-
-
 
     let options = {
         key: fs.readFileSync(appConfiguration.certKeyPath),
