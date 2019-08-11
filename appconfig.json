@@ -17,7 +17,8 @@
   "authorizer": "./auth/DefaultAuthorizer",
   "chartjsurl": "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js",
   "customizationModule": "./examples/Customization.js",
-  "certKeyPath" : "./cert/server.key",
-  "certPath" : "./cert/server.crt",
+  "certKeyPath" : "./examples/cert/server.key",
+  "certPath" : "./examples/cert/server.crt",
+  "ormModuleRootPath": "./",
   "aliases" : {}
 }

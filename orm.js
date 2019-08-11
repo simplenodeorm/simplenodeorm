@@ -137,15 +137,15 @@ function getModelNameFromPath(path) {
 function loadOrmDefinitions() {
     logger.logInfo("loading orm definitions...");
     let modelFiles = [];
-    loadModelFiles("./model", modelFiles);
+    loadModelFiles(appConfiguration.ormModuleRootPath + "/model", modelFiles);
     let indx = 1;
 
     for (let i = 0; i < modelFiles.length; ++i) {
         let modelName = getModelNameFromPath(modelFiles[i]);
         
-        let md = new (require(modelFiles[i].replace('./model', './metadata').replace('.js', 'MetaData.js')));
+        let md = new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
-            let repo = require(modelFiles[i].replace('./model', './repository').replace('.js', 'Repository.js'))(md);
+            let repo = require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/repository').replace('.js', 'Repository.js'))(md);
             if (dbTypeMap.get(repo.getPoolAlias())) {
                 modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
                 repositoryMap.set(modelName.toLowerCase(), repo);
