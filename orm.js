@@ -7,16 +7,12 @@ const repositoryMap = new Map();
 const events = require('events');
 const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
-const cors = require('cors');
 const uuidv1 = require('uuid/v1');
 const path = require('path');
 const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
-const express = require('express');
-const bodyParser = require('body-parser');
 const dbTypeMap = new Map();
-const apiServer = express();
 
 // These are variables setup via the app configuration. The default configuration
 // is found in appconfig.json and testconfig.json. The environment variables
@@ -192,9 +188,27 @@ function loadModelFiles(dir, modelFiles) {
 
 function startApiServer() {
     logger.logInfo('starting api server...');
+    const cors = require('cors');
+    const express = require('express');
+    const bodyParser = require('body-parser');
+    const https = require('https');
+    const apiServer = express();
+
     apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
     apiServer.use(bodyParser.json({limit: '5MB'} ));
     apiServer.use(cors());
+    apiServer.options('*', cors());
+
+
+
+    let options = {
+        key: fs.readFileSync(appConfiguration.certKeyPath),
+        cert: fs.readFileSync( appConfiguration.certPath ),
+        requestCert: false,
+        rejectUnauthorized: false
+    };
+
+    let server = https.createServer(options, apiServer);
 
     // plug authentication in here
     if (util.isDefined(appConfiguration.authorizer)) {
@@ -206,8 +220,8 @@ function startApiServer() {
         apiServer.use(basicAuth({authorizer: authfunc}));
     }
 
-    apiServer.listen(appConfiguration.apiServerPort || 8888, () => {
-        logger.logInfo('api server is live on port ' + (appConfiguration.apiServerPort || 8888));
+    server.listen(appConfiguration.apiPort || 8443, function () {
+        logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
     });
 
     apiServer.get('/api/query/login', async function (req, res) {
@@ -570,8 +584,6 @@ function startApiServer() {
         }
     });
 
-
-
     apiServer.get('/ormapi/:module/:method', async function (req, res) {
         let repo = repositoryMap.get(req.params.module);
         let md = repo.getMetaData(req.params.module);
@@ -817,7 +829,6 @@ function startApiServer() {
 
         res.end();
     });
-
 }
 
 function populateWhereFromRequestInput(input) {
