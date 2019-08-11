@@ -5,7 +5,6 @@ const util = require('./main/util.js');
 const modelList = [];
 const repositoryMap = new Map();
 const events = require('events');
-const logger = require('./main/Logger.js');
 const basicAuth = require('express-basic-auth');
 const uuidv1 = require('uuid/v1');
 const path = require('path');
@@ -23,32 +22,19 @@ let queryDocumentGroups;
 let appConfiguration;
 let testConfiguration;
 let customization;
+let logger;
 
-loadConfiguration();
-
-// create an event emitter to signal when
-// connection pool is initialized
-
-function loadConfiguration() {
-    if (process.env.APP_CONFIGURATION_FILE) {
-        appConfiguration = JSON.parse(fs.readFileSync(process.env.APP_CONFIGURATION_FILE));
-    } else {
-        appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'))
-    }
-
-    if (process.env.APP_TEST_CONFIGURATION_FILE) {
-        testConfiguration = JSON.parse(fs.readFileSync(process.env.APP_TEST_CONFIGURATION_FILE));
-    } else {
-        testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
-    }
-
-    if (appConfiguration.customizationModule) {
-        customization = require(appConfiguration.customizationModule)
-    }
+// start and initialize the orm
+module.exports.startOrm = function startOrm(appconfig, testconfig, customizations) {
+    appConfiguration = appconfig;
+    testConfiguration = testconfig;
+    customization = customizations
 
     // export some of the constants for use in other modules
     module.exports.appConfiguration = appConfiguration;
     module.exports.testConfiguration = testConfiguration;
+
+    logger = require('./main/Logger.js')
 
     const poolCreatedEmitter = new events.EventEmitter();
     poolCreatedEmitter.on('poolscreated', async function() {
@@ -2735,4 +2721,5 @@ function loadDocumentGroups() {
         queryDocumentGroups = loadQueryDocumentGroups();
     }
 }
+
 

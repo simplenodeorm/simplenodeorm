@@ -63,7 +63,7 @@ module.exports.run = async function(orm) {
 async function runQueryDesignerQueryTests(orm) {
     testUtil.logInfo("    - starting query designer query tests...");
     let testResults = [];
-    let flist = fs.readdirSync('./test/testdata/querydesigner');
+    let flist = fs.readdirSync(orm.testConfiguration.testDataRootPath + '/querydesigner');
     
     if (!flist || (flist.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no query designer test query documents found', 'ormTests.runQueryDesignerQueryTests'));
@@ -72,7 +72,7 @@ async function runQueryDesignerQueryTests(orm) {
             if (flist[i].startsWith("test_query")) {
                 testUtil.logInfo("    - test query file " + flist[i] + '...');
                 try {
-                    let doc = JSON.parse(fs.readFileSync('./test/testdata/querydesigner/' + flist[i]));
+                    let doc = JSON.parse(fs.readFileSync(orm.testConfiguration.testDataRootPath + '/querydesigner/' + flist[i]));
                     let sql = orm.buildQueryDocumentSql(doc);
                     let repo = orm.getRepository(doc.document.rootModel);
                     if (!repo) {
