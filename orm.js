@@ -28,13 +28,13 @@ let logger;
 module.exports.startOrm = function startOrm(appconfig, testconfig, customizations) {
     appConfiguration = appconfig;
     testConfiguration = testconfig;
-    customization = customizations
+    customization = customizations;
 
     // export some of the constants for use in other modules
     module.exports.appConfiguration = appConfiguration;
     module.exports.testConfiguration = testConfiguration;
 
-    logger = require('./main/Logger.js')
+    logger = require('./main/Logger.js');
 
     const poolCreatedEmitter = new events.EventEmitter();
     poolCreatedEmitter.on('poolscreated', async function() {
