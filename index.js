@@ -1,4 +1,4 @@
-module.exports = require('./orm.js');
+module.exports.orm = require('./orm.js');
 module.exports.MetaData = require('./main/MetaData.js').MetaData;
 module.exports.Model = require('./main/Model.js');
 module.exports.Repository = require('./main/Repository.js');
