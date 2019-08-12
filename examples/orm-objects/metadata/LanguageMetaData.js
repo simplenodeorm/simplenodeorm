@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class LanguageMetaData extends MetaData {
     constructor() {
         super(
             'Language', // object name,
-            'model/mysql/Language.js', // relative module path,
+            'model/Language.js', // relative module path,
             'language', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first

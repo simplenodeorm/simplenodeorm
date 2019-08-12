@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class CityMetaData extends MetaData {
     constructor() {
         super(
             'City', // object name,
-            'model/mysql/City.js', // relative module path,
+            'model/City.js', // relative module path,
             'city', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
@@ -44,7 +44,7 @@ class CityMetaData extends MetaData {
                     fieldName: "country",
                     type: 1,
                     targetModelName: "MSCountry",
-                    targetModule: "../model/mysql/MSCountry.js",
+                    targetModule: "model/MSCountry.js",
                     targetTableName: "country",
                     status: "enabled",
                     required: true,

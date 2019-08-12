@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class CategoryMetaData extends MetaData {
     constructor() {
         super(
             'Category', // object name,
-            'model/mysql/Category.js', // relative module path,
+            'model/Category.js', // relative module path,
             'category', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first

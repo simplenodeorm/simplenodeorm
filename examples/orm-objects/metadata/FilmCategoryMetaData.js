@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class FilmCategoryMetaData extends MetaData {
     constructor() {
         super(
             'FilmCategory', // object name,
-            'model/mysql/FilmCategory.js', // relative module path,
+            'model/FilmCategory.js', // relative module path,
             'film_category', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
@@ -37,7 +37,7 @@ class FilmCategoryMetaData extends MetaData {
                     fieldName: "category",
                     type: 1,
                     targetModelName: "Category",
-                    targetModule: "../model/mysql/Category.js",
+                    targetModule: "model/Category.js",
                     targetTableName: "category",
                     status: "enabled",
                     required: true,
@@ -52,7 +52,7 @@ class FilmCategoryMetaData extends MetaData {
                     fieldName: "films",
                     type: 2,
                     targetModelName: "Film",
-                    targetModule: "../model/mysql/Film.js",
+                    targetModule: "model/Film.js",
                     targetTableName: "film",
                     status: "enabled",
                     joinColumns: {

@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class StaffMetaData extends MetaData {
     constructor() {
         super(
             'Staff', // object name,
-            'model/mysql/Staff.js', // relative module path,
+            'model/Staff.js', // relative module path,
             'staff', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
@@ -91,7 +91,7 @@ class StaffMetaData extends MetaData {
                     fieldName: "store",
                     type: 1,
                     targetModelName: "Store",
-                    targetModule: "../model/mysql/Store.js",
+                    targetModule: "model/Store.js",
                     targetTableName: "store",
                     status: "enabled",
                     joinColumns: {
@@ -103,7 +103,7 @@ class StaffMetaData extends MetaData {
                     fieldName: "addess",
                     type: 1,
                     targetModelName: "Address",
-                    targetModule: "../model/mysql/Address.js",
+                    targetModule: "model/Address.js",
                     targetTableName: "address",
                     status: "enabled",
                     joinColumns: {

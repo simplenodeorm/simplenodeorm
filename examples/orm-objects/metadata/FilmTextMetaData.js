@@ -1,12 +1,12 @@
 "use strict";
 
-var MetaData = require('../../main/MetaData.js').MetaData;
+let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
 
 class FilmTextMetaData extends MetaData {
     constructor() {
         super(
             'FilmText', // object name,
-            'model/mysql/FilmText.js', // relative module path,
+            'model/FilmText.js', // relative module path,
             'film_text', // table name
             [ // field definitions - order is important,
                 //selected data will be in this order, primary key fields should be first
