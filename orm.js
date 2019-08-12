@@ -26,10 +26,20 @@ let logger;
 
 
 // start and initialize the orm
-module.exports.startOrm = function startOrm(appconfig, testconfig, serverStartedCallback, customizations) {
+module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback, customizations) {
     appConfiguration = appconfig;
     testConfiguration = testconfig;
     customization = customizations;
+
+    // convert application relative paths in configuration files
+    // to absolute path for current installation
+    appConfiguration.dbConfiguration = installdir + "/" + appConfiguration.dbConfiguration;
+    appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
+    appConfiguration.certKeyPath = installdir + "/" + appConfiguration.certKeyPath;
+    appConfiguration.certPath = installdir + "/" + appConfiguration.certPath;
+    appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
+    testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
+    testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
 
     // export some of the constants for use in other modules
     module.exports.appConfiguration = appConfiguration;
