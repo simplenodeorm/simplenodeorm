@@ -2055,7 +2055,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
             let curobj = pkmap.get(objkey);
 
             if (util.isUndefined(curobj)) {
-                curobj = require(appConfiguration.ormModuleRootPath + "/" + repo.getMetaData().getModule())(orm.getMetaData(objname));
+                curobj = require(orm.appConfiguration.ormModuleRootPath + "/" + repo.getMetaData().getModule())(orm.getMetaData(objname));
                 pkmap.set(objkey, curobj);
 
                 if (isRootTable(curAlias)) {
