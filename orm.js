@@ -13,6 +13,15 @@ const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const dbTypeMap = new Map();
 
+module.exports.MetaData = require('./main/MetaData.js').MetaData;
+module.exports.Model = require('./main/Model.js');
+module.exports.Repository = require('./main/Repository.js');
+module.exports.Authorizor = require('./auth/Authorizor.js');
+module.exports.FieldConstraint = require('./main/FieldConstraint.js');
+module.exports.WhereComparison = require('./main/WhereComprison.js');
+module.exports.OrderByEntry = require('./main/OrderByEntry.js');
+
+
 // These are variables setup via the app configuration. The default configuration
 // is found in appconfig.json and testconfig.json. The environment variables
 // APP_CONFIGURATION_FILE and APP_TEST_CONFIGURATION_FILE can be set to point to
