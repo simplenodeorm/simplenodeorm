@@ -2190,7 +2190,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
                                 let obj = pkmap.get(key);
                                 if (util.isUndefined(obj)) {
-                                    obj = require(otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
+                                    obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
                                     populateModel(
                                         r, 
