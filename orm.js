@@ -13,15 +13,6 @@ const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const dbTypeMap = new Map();
 
-module.exports.MetaData = require('./main/MetaData.js').MetaData;
-module.exports.Model = require('./main/Model.js');
-module.exports.Repository = require('./main/Repository.js');
-module.exports.Authorizor = require('./auth/Authorizor.js');
-module.exports.FieldConstraint = require('./main/FieldConstraint.js');
-module.exports.WhereComparison = require('./main/WhereComprison.js');
-module.exports.OrderByEntry = require('./main/OrderByEntry.js');
-
-
 // These are variables setup via the app configuration. The default configuration
 // is found in appconfig.json and testconfig.json. The environment variables
 // APP_CONFIGURATION_FILE and APP_TEST_CONFIGURATION_FILE can be set to point to
@@ -32,10 +23,10 @@ let appConfiguration;
 let testConfiguration;
 let customization;
 let logger;
-let apiServer;
+
 
 // start and initialize the orm
-module.exports.startOrm = function startOrm(appconfig, testconfig, customizations) {
+module.exports.startOrm = function startOrm(appconfig, testconfig, serverStartedCallback, customizations) {
     appConfiguration = appconfig;
     testConfiguration = testconfig;
     customization = customizations;
@@ -45,6 +36,8 @@ module.exports.startOrm = function startOrm(appconfig, testconfig, customization
     module.exports.testConfiguration = testConfiguration;
 
     logger = require('./main/Logger.js');
+
+    module.exports.logger = logger;
 
     const poolCreatedEmitter = new events.EventEmitter();
     poolCreatedEmitter.on('poolscreated', async function() {
@@ -61,19 +54,11 @@ module.exports.startOrm = function startOrm(appconfig, testconfig, customization
         }
 
         loadDocumentGroups();
-        startApiServer();
+        serverStartedCallback(startApiServer(), logger);
     });
 
     // setup database pool and fire off orm load
     require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
-}
-
-module.exports.getApiServer = function() {
-    return apiServer;
-}
-
-module.exports.isServerStarted = function() {
-    return util.isValidObject(apiServer);
 }
 
 function loadOrm() {
@@ -189,6 +174,7 @@ function loadModelFiles(dir, modelFiles) {
 
 function startApiServer() {
     logger.logInfo('starting api server...');
+    let apiServer;
     try {
         const cors = require('cors');
         const express = require('express');
@@ -816,6 +802,8 @@ function startApiServer() {
     catch (e) {
         apiServer = null;
     }
+
+    return apiServer;
 }
 
 function populateWhereFromRequestInput(input) {
