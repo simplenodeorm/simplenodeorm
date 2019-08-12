@@ -23,6 +23,7 @@ let appConfiguration;
 let testConfiguration;
 let customization;
 let logger;
+let apiServer;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(appconfig, testconfig, customizations) {
@@ -50,16 +51,21 @@ module.exports.startOrm = function startOrm(appconfig, testconfig, customization
             await suite.run();
         }
 
-        if (appConfiguration.startApiServer) {
-            loadDocumentGroups();
-            startApiServer();
-        }
+        loadDocumentGroups();
+        startApiServer();
     });
 
     // setup database pool and fire off orm load
     require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
 }
 
+module.exports.getApiServer = function() {
+    return apiServer;
+}
+
+module.exports.isServerStarted = function() {
+    return util.isValidObject(apiServer);
+}
 
 function loadOrm() {
     logger.logInfo("loading api ORM definitions...");
@@ -174,644 +180,633 @@ function loadModelFiles(dir, modelFiles) {
 
 function startApiServer() {
     logger.logInfo('starting api server...');
-    const cors = require('cors');
-    const express = require('express');
-    const bodyParser = require('body-parser');
-    const https = require('https');
-    const apiServer = express();
+    try {
+        const cors = require('cors');
+        const express = require('express');
+        const bodyParser = require('body-parser');
+        const https = require('https');
+        apiServer = express();
 
-    apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
-    apiServer.use(bodyParser.json({limit: '5MB'} ));
-    apiServer.use(cors());
+        apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
+        apiServer.use(bodyParser.json({limit: '5MB'}));
+        apiServer.use(cors());
 
-    let options = {
-        key: fs.readFileSync(appConfiguration.certKeyPath),
-        cert: fs.readFileSync( appConfiguration.certPath ),
-        requestCert: false,
-        rejectUnauthorized: false
-    };
-
-    let server = https.createServer(options, apiServer);
-
-    // plug authentication in here
-    if (util.isDefined(appConfiguration.authorizer)) {
-        const authorizer = new (require(appConfiguration.authorizer));
-        const authfunc = function (user, pass) {
-            return authorizer.isAuthorized(user, pass);
+        let options = {
+            key: fs.readFileSync(appConfiguration.certKeyPath),
+            cert: fs.readFileSync(appConfiguration.certPath),
+            requestCert: false,
+            rejectUnauthorized: false
         };
 
-        apiServer.use(basicAuth({authorizer: authfunc}));
-    }
+        let server = https.createServer(options, apiServer);
 
-    server.listen(appConfiguration.apiPort || 8443, function () {
-        logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
-    });
+        // plug authentication in here
+        if (util.isDefined(appConfiguration.authorizer)) {
+            const authorizer = new (require(appConfiguration.authorizer));
+            const authfunc = function (user, pass) {
+                return authorizer.isAuthorized(user, pass);
+            };
 
-    apiServer.get('/api/query/login', async function (req, res) {
-        if (logger.isLogDebugEnabled()) {
-            logger.logDebug("in /design/login");
-        }
-        res.status(200).send("success");
-    });
-
-    apiServer.get('/api/query/modelnames', async function (req, res) {
-        res.status(200).send(modelList);
-    });
-
-    apiServer.get('/api/query/document/groups', async function (req, res) {
-        res.status(200).send(queryDocumentGroups);
-    });
-
-    apiServer.get('/api/report/document/groups', async function (req, res) {
-        res.status(200).send(reportDocumentGroups);
-    });
-
-    apiServer.get('/api/report/documents', async function (req, res) {
-        try {
-            res.status(200).send(loadReportDocuments());
+            apiServer.use(basicAuth({authorizer: authfunc}));
         }
 
-        catch (e) {
-            logger.logError('error occured while loading report documents', e);
-            res.status(500).send('error occured while loading report documents');
-        }
-    });
+        server.listen(appConfiguration.apiPort || 8443, function () {
+            logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
+        });
 
-    apiServer.get('/api/query/documents', async function (req, res) {
-        try {
-            res.status(200).send(loadQueryDocuments());
-        }
+        apiServer.get('/api/query/login', async function (req, res) {
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in /design/login");
+            }
+            res.status(200).send("success");
+        });
 
-        catch (e) {
-            logger.logError('error occured while loading query documents', e);
-            res.status(500).send('error occured while loading query documents');
-        }
-    });
+        apiServer.get('/api/query/modelnames', async function (req, res) {
+            res.status(200).send(modelList);
+        });
 
-    apiServer.get('/api/query/authorizers', async function (req, res) {
-        try {
-            res.status(200).send(loadAuthorizers());
-        }
+        apiServer.get('/api/query/document/groups', async function (req, res) {
+            res.status(200).send(queryDocumentGroups);
+        });
 
-        catch (e) {
-            logger.logError('error occured while loading available authorizers', e);
-            res.status(500).send('error occured while loading available authorizers');
-        }
-    });
+        apiServer.get('/api/report/document/groups', async function (req, res) {
+            res.status(200).send(reportDocumentGroups);
+        });
 
-    apiServer.get('/api/report/authorizers', async function (req, res) {
-        try {
-            res.status(200).send(loadAuthorizers());
-        }
-
-        catch (e) {
-            logger.logError('error occured while loading available authorizers', e);
-            res.status(500).send('error occured while loading available authorizers');
-        }
-    });
-
-    apiServer.post('/api/query/generatesql', async function (req, res) {
-        try {
-            res.status(200).send(buildQueryDocumentSql(req.body, true));
-        } catch (e) {
-            logger.logError('error occured while building sql from query document', e);
-            res.status(500).send('error occured while building sql from query document');
-        }
-    });
-
-    apiServer.post('/api/query/run', async function (req, res) {
-        try {
-            (async function () {
-                let doc = req.body;
-                try {
-                    if (doc.documentName && !doc.interactive) {
-                        let params = doc.parameters;
-                        doc = loadQuery(doc.groupId + '.' + doc.documentName + '.json');
-                        doc.parameters = params;
-                        
-                    }
-
-                    let authorizer;
-                    try {
-                        logger.logInfo('authorizer: ' + doc.authenticator);
-                        let Authenticator = require('./auth/' + doc.authenticator + '.js');
-                        authorizer = new Authenticator();
-                    } 
-                    
-                    catch(e) {
-                    }
-                    
-                    if (!authorizer || !authorizer.checkAuthorization(req)) {
-                        logger.logInfo('unauthorized access attempted');
-                        res.status(401).send('unauthorized');
-                    } else {
-                        let sql = buildQueryDocumentSql(doc);
-
-                        if (logger.isLogDebugEnabled()) {
-                            logger.logDebug(util.toString(doc));
-                            logger.logDebug(sql);
-                        }
-
-                        let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
-                        let result = await repo.executeSqlQuery(sql, doc.parameters);
-                        if (result.error) {
-                            if (doc.validityCheckOnly) {
-                                res.status(200).send('generated sql is invalid');
-                            } else {
-                                res.status(500).send(result.error);
-                            }
-                        } else if (doc.validityCheckOnly) {
-                            res.status(200).send('generated sql is valid');
-                        } else if (doc.resultFormat === 'result set') {
-                            res.status(200).send(result);
-                        } else {
-                            try {
-                                let retval = buildResultObjectGraph(doc, result.result.rows);
-                                res.status(200).send(retval);
-                            }
-
-                            catch (e) {
-                                logger.logError('error occured while building result object graph', e);
-                                res.status(500).send('error occured while building result object graph - ' + e);
-                            }
-                        }
-                    }
-                }
-                
-                catch(e) {
-                    logger.logError('error occured while running query document', e);
-                    res.status(500).send('error occured while running query document - ' + e);
-                }
-            })(req, res);
-        } catch (e) {
-            logger.logError('error occured while running query document', e);
-            res.status(500).send('error occured while running query document - ' + e);
-        }
-    });
-
-    apiServer.post('/api/query/save', async function (req, res) {
-        try {
-            saveQuery(req.body);
-            res.status(200).send('success');
-        } catch (e) {
-            logger.logError('error occured while saving query document ' + req.body.documentName, e);
-            res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
-        }
-    });
-
-    apiServer.post('/api/report/save', async function (req, res) {
-        try {
-            saveReport(req.body);
-            res.status(200).send('success');
-        } catch (e) {
-            logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
-            res.status(500).send('error occured while saving query document ' + req.body.document.documentName + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/report/run/:docid', async function (req, res) {
-        try {
-            let report = loadReport(req.params.docid);
-            let query = loadQuery(report.document.queryDocumentId);
-            let authorizer;
+        apiServer.get('/api/report/documents', async function (req, res) {
             try {
-                logger.logInfo('authorizer: ' + report.authenticator);
-                let Authenticator = require('./auth/' + report.authenticator + '.js');
-                authorizer = new Authenticator();
+                res.status(200).send(loadReportDocuments());
+            } catch (e) {
+                logger.logError('error occured while loading report documents', e);
+                res.status(500).send('error occured while loading report documents');
             }
-    
-            catch(e) {
+        });
+
+        apiServer.get('/api/query/documents', async function (req, res) {
+            try {
+                res.status(200).send(loadQueryDocuments());
+            } catch (e) {
+                logger.logError('error occured while loading query documents', e);
+                res.status(500).send('error occured while loading query documents');
             }
-    
-            if (!authorizer || !authorizer.checkAuthorization(req)) {
-                logger.logInfo('unauthorized access attempted');
-                res.status(401).send('unauthorized');
-            } else {
+        });
+
+        apiServer.get('/api/query/authorizers', async function (req, res) {
+            try {
+                res.status(200).send(loadAuthorizers());
+            } catch (e) {
+                logger.logError('error occured while loading available authorizers', e);
+                res.status(500).send('error occured while loading available authorizers');
+            }
+        });
+
+        apiServer.get('/api/report/authorizers', async function (req, res) {
+            try {
+                res.status(200).send(loadAuthorizers());
+            } catch (e) {
+                logger.logError('error occured while loading available authorizers', e);
+                res.status(500).send('error occured while loading available authorizers');
+            }
+        });
+
+        apiServer.post('/api/query/generatesql', async function (req, res) {
+            try {
+                res.status(200).send(buildQueryDocumentSql(req.body, true));
+            } catch (e) {
+                logger.logError('error occured while building sql from query document', e);
+                res.status(500).send('error occured while building sql from query document');
+            }
+        });
+
+        apiServer.post('/api/query/run', async function (req, res) {
+            try {
+                (async function () {
+                    let doc = req.body;
+                    try {
+                        if (doc.documentName && !doc.interactive) {
+                            let params = doc.parameters;
+                            doc = loadQuery(doc.groupId + '.' + doc.documentName + '.json');
+                            doc.parameters = params;
+
+                        }
+
+                        let authorizer;
+                        try {
+                            logger.logInfo('authorizer: ' + doc.authenticator);
+                            let Authenticator = require('./auth/' + doc.authenticator + '.js');
+                            authorizer = new Authenticator();
+                        } catch (e) {
+                        }
+
+                        if (!authorizer || !authorizer.checkAuthorization(req)) {
+                            logger.logInfo('unauthorized access attempted');
+                            res.status(401).send('unauthorized');
+                        } else {
+                            let sql = buildQueryDocumentSql(doc);
+
+                            if (logger.isLogDebugEnabled()) {
+                                logger.logDebug(util.toString(doc));
+                                logger.logDebug(sql);
+                            }
+
+                            let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
+                            let result = await repo.executeSqlQuery(sql, doc.parameters);
+                            if (result.error) {
+                                if (doc.validityCheckOnly) {
+                                    res.status(200).send('generated sql is invalid');
+                                } else {
+                                    res.status(500).send(result.error);
+                                }
+                            } else if (doc.validityCheckOnly) {
+                                res.status(200).send('generated sql is valid');
+                            } else if (doc.resultFormat === 'result set') {
+                                res.status(200).send(result);
+                            } else {
+                                try {
+                                    let retval = buildResultObjectGraph(doc, result.result.rows);
+                                    res.status(200).send(retval);
+                                } catch (e) {
+                                    logger.logError('error occured while building result object graph', e);
+                                    res.status(500).send('error occured while building result object graph - ' + e);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        logger.logError('error occured while running query document', e);
+                        res.status(500).send('error occured while running query document - ' + e);
+                    }
+                })(req, res);
+            } catch (e) {
+                logger.logError('error occured while running query document', e);
+                res.status(500).send('error occured while running query document - ' + e);
+            }
+        });
+
+        apiServer.post('/api/query/save', async function (req, res) {
+            try {
+                saveQuery(req.body);
+                res.status(200).send('success');
+            } catch (e) {
+                logger.logError('error occured while saving query document ' + req.body.documentName, e);
+                res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
+            }
+        });
+
+        apiServer.post('/api/report/save', async function (req, res) {
+            try {
+                saveReport(req.body);
+                res.status(200).send('success');
+            } catch (e) {
+                logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
+                res.status(500).send('error occured while saving query document ' + req.body.document.documentName + ' - ' + e);
+            }
+        });
+
+        apiServer.get('/api/report/run/:docid', async function (req, res) {
+            try {
+                let report = loadReport(req.params.docid);
+                let query = loadQuery(report.document.queryDocumentId);
+                let authorizer;
+                try {
+                    logger.logInfo('authorizer: ' + report.authenticator);
+                    let Authenticator = require('./auth/' + report.authenticator + '.js');
+                    authorizer = new Authenticator();
+                } catch (e) {
+                }
+
+                if (!authorizer || !authorizer.checkAuthorization(req)) {
+                    logger.logInfo('unauthorized access attempted');
+                    res.status(401).send('unauthorized');
+                } else {
+                    let requiredInputs = getRequiredInputFields(query.document);
+                    // see if we need user input
+                    if (requiredInputs.length > 0) {
+                        res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
+                    } else {
+                        res.status(200).send(await generateReport(report, query));
+                    }
+                }
+            } catch (e) {
+                logger.logError('error occured while running report ' + req.params.docid, e);
+                res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+            }
+        });
+
+        apiServer.post('/api/report/run/:docid', async function (req, res) {
+            try {
+                let report = loadReport(req.params.docid);
+                let query = loadQuery(report.document.queryDocumentId);
+                res.status(200).send(await generateReport(report, query, req.body.parameters));
+            } catch (e) {
+                logger.logError('error occured while running report ' + req.params.docid, e);
+                res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+            }
+        });
+
+        apiServer.post('/api/report/runfordesign', async function (req, res) {
+            try {
+                let report = req.body.report;
+                let query = loadQuery(report.document.queryDocumentId);
+                res.status(200).send(await generateReport(report, query, req.body.parameters));
+            } catch (e) {
+                logger.logError('error occured while running report ' + req.body.report.reportName, e);
+                res.status(500).send('error occured while running report ' + req.body.report.reportName + ' - ' + e);
+            }
+        });
+
+        apiServer.get('/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
+            try {
+                let query = loadQuery(req.params.queryDocumentId);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
                 if (requiredInputs.length > 0) {
                     res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
                 } else {
-                    res.status(200).send(await generateReport(report, query));
+                    res.status(200).send({"userInputRequired": false});
                 }
+            } catch (e) {
+                logger.logError('error occured while checking user input required ' + req.params.queryDocumentId, e);
+                res.status(500).send('eerror occured while checking user input required  ' + req.params.queryDocumentId + ' - ' + e);
             }
-        } catch (e) {
-            logger.logError('error occured while running report ' + req.params.docid, e);
-            res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
-        }
-    });
+        });
 
-    apiServer.post('/api/report/run/:docid', async function (req, res) {
-        try {
-            let report = loadReport(req.params.docid);
-            let query = loadQuery(report.document.queryDocumentId);
-            res.status(200).send(await generateReport(report, query, req.body.parameters));
-        } catch (e) {
-            logger.logError('error occured while running report ' + req.params.docid, e);
-            res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
-        }
-    });
 
-    apiServer.post('/api/report/runfordesign', async function (req, res) {
-        try {
-            let report = req.body.report;
-            let query = loadQuery(report.document.queryDocumentId);
-            res.status(200).send(await generateReport(report, query, req.body.parameters));
-        } catch (e) {
-            logger.logError('error occured while running report ' + req.body.report.reportName, e);
-            res.status(500).send('error occured while running report ' + req.body.report.reportName + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
-        try {
-            let query = loadQuery(req.params.queryDocumentId);
-            let requiredInputs = getRequiredInputFields(query.document);
-            // see if we need user input
-            if (requiredInputs.length > 0) {
-                res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
-            } else {
-                res.status(200).send({"userInputRequired": false});
+        apiServer.get('/api/query/delete/:docid', async function (req, res) {
+            try {
+                deleteQuery(req.params.docid);
+                res.status(200).send('success');
+            } catch (e) {
+                logger.logError('error occured while deleting query document ' + req.params.docid, e);
+                res.status(500).send('error occured while deleting query document ' + req.params.docid + ' - ' + e);
             }
-        } catch (e) {
-            logger.logError('error occured while checking user input required ' + req.params.queryDocumentId, e);
-            res.status(500).send('eerror occured while checking user input required  ' + req.params.queryDocumentId + ' - ' + e);
-        }
-    });
+        });
 
-
-    apiServer.get('/api/query/delete/:docid', async function (req, res) {
-        try {
-            deleteQuery(req.params.docid);
-            res.status(200).send('success');
-        } catch (e) {
-            logger.logError('error occured while deleting query document ' + req.params.docid, e);
-            res.status(500).send('error occured while deleting query document ' + req.params.docid + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/report/delete/:docid', async function (req, res) {
-        try {
-            deleteReport(req.params.docid);
-            res.status(200).send('success');
-        } catch (e) {
-            logger.logError('error occured while deleting report ' + req.params.docid, e);
-            res.status(500).send('error occured while deleting report ' + req.params.docid + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/report/load/:docid', async function (req, res) {
-        try {
-            res.status(200).send(loadReport(req.params.docid));
-        } catch (e) {
-            logger.logError('error occured while loading report ' + req.params.docid, e);
-            res.status(500).send('error occured while loading report ' + req.params.docid + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/report/querycolumninfo/:qdocid', async function (req, res) {
-        try {
-            let qdoc = loadQuery(req.params.qdocid);
-            let qcinfo = [];
-
-            for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
-                let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
-                let label = qdoc.document.selectedColumns[i].label;
-                if (!label) {
-                    label = fld.fieldName;
-                }
-                
-                // SIM-3 add function
-                qcinfo.push({
-                    path: qdoc.document.selectedColumns[i].path,
-                    name: label,
-                    type: fld.type,
-                    function: qdoc.document.selectedColumns[i].function,
-                    customInput: qdoc.document.selectedColumns[i].customInput,
-                    length: fld.length});
+        apiServer.get('/api/report/delete/:docid', async function (req, res) {
+            try {
+                deleteReport(req.params.docid);
+                res.status(200).send('success');
+            } catch (e) {
+                logger.logError('error occured while deleting report ' + req.params.docid, e);
+                res.status(500).send('error occured while deleting report ' + req.params.docid + ' - ' + e);
             }
-            res.status(200).send(qcinfo);
-        } catch (e) {
-            logger.logError('error occured while loading query columns for query ' + req.params.qdocid, e);
-            res.status(500).send('error occured while loading query columns for query ' + req.params.qdocid + ' - ' + e);
-        }
-    });
+        });
 
-    apiServer.get('/api/query/load/:docid', async function (req, res) {
-        try {
-            res.status(200).send(loadQuery(req.params.docid));
-        } catch (e) {
-            logger.logError('error occured while loading document ' + req.params.docid, e);
-            res.status(500).send('error occured while loading document ' + req.params.docid + ' - ' + e);
-        }
-    });
-
-    apiServer.get('/api/query/modeltree/:modelname', async function (req, res) {
-        let modelname = req.params.modelname;
-        let repo = repositoryMap.get(modelname.toLowerCase());
-        if (repo && repo.metaData) {
-            let data = {};
-            data.key = 't0';
-            data.title = modelname;
-            loadModelData(data, repo.metaData, [], '', false);
-            if (data.title) {
-                res.status(200).json(data);
-            } else {
-                res.status(404).send('not found');
+        apiServer.get('/api/report/load/:docid', async function (req, res) {
+            try {
+                res.status(200).send(loadReport(req.params.docid));
+            } catch (e) {
+                logger.logError('error occured while loading report ' + req.params.docid, e);
+                res.status(500).send('error occured while loading report ' + req.params.docid + ' - ' + e);
             }
-        } else {
-            logger.logError('no metadata found for' + modelname);
-            res.status(500).send('no metadata found for' + modelname);
-        }
-    });
+        });
 
-    apiServer.get('/api/report/querydocuments', async function (req, res) {
-        try {
-            let groupMap = new Map();
-            let queryDocs = JSON.parse(loadQueryDocuments());
-            loadGroupMap(queryDocumentGroups, groupMap);
-            
-            let retval = [];
-            
-            groupMap.forEach((v, k) => {
-                if (queryDocs[k]) {
-                    for (let i = 0; i < queryDocs[k].length; ++i) {
-                        retval.push({key: k, group: v.title, documentName: queryDocs[k][i]});
+        apiServer.get('/api/report/querycolumninfo/:qdocid', async function (req, res) {
+            try {
+                let qdoc = loadQuery(req.params.qdocid);
+                let qcinfo = [];
+
+                for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
+                    let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
+                    let label = qdoc.document.selectedColumns[i].label;
+                    if (!label) {
+                        label = fld.fieldName;
                     }
+
+                    // SIM-3 add function
+                    qcinfo.push({
+                        path: qdoc.document.selectedColumns[i].path,
+                        name: label,
+                        type: fld.type,
+                        function: qdoc.document.selectedColumns[i].function,
+                        customInput: qdoc.document.selectedColumns[i].customInput,
+                        length: fld.length
+                    });
                 }
-            });
-            
-            retval.sort((a, b) => {
-                let retval = 0;
-                if (a.group > b.group) {
-                    retval = 1;
-                } else if (a.group < b.group) {
-                    retval = -1;
+                res.status(200).send(qcinfo);
+            } catch (e) {
+                logger.logError('error occured while loading query columns for query ' + req.params.qdocid, e);
+                res.status(500).send('error occured while loading query columns for query ' + req.params.qdocid + ' - ' + e);
+            }
+        });
+
+        apiServer.get('/api/query/load/:docid', async function (req, res) {
+            try {
+                res.status(200).send(loadQuery(req.params.docid));
+            } catch (e) {
+                logger.logError('error occured while loading document ' + req.params.docid, e);
+                res.status(500).send('error occured while loading document ' + req.params.docid + ' - ' + e);
+            }
+        });
+
+        apiServer.get('/api/query/modeltree/:modelname', async function (req, res) {
+            let modelname = req.params.modelname;
+            let repo = repositoryMap.get(modelname.toLowerCase());
+            if (repo && repo.metaData) {
+                let data = {};
+                data.key = 't0';
+                data.title = modelname;
+                loadModelData(data, repo.metaData, [], '', false);
+                if (data.title) {
+                    res.status(200).json(data);
                 } else {
-                    if (a.documentName > b.documentName) {
-                        retval = 1;
-                    } else {
-                        retval = -1;
-                    }
+                    res.status(404).send('not found');
                 }
-                
-                return retval;
-            });
-            
-            res.status(200).send(JSON.stringify(retval));
-        }
-
-        catch (e) {
-            logger.logError('error occured while loading query documents', e);
-            res.status(500).send('error occured while loading query documents');
-        }
-    });
-
-    apiServer.get('/ormapi/:module/:method', async function (req, res) {
-        let repo = repositoryMap.get(req.params.module);
-        let md = repo.getMetaData(req.params.module);
-        if (util.isUndefined(repo)) {
-            // support for using an alias for long module names
-            if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-            }
-        }
-
-        let params = [];
-        let pk = md.getPrimaryKeyFields();
-        let fields = md.getFields();
-
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
-            res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-        } else {
-            var result;
-            switch (req.params.method.toLowerCase()) {
-                case util.FIND_ONE.toLowerCase():
-                    for (let i = 0; i < pk.length; ++i) {
-                        params.push(req.query[pk[i].fieldName]);
-                    }
-                    result = await repo.findOne(params);
-                    break;
-                case util.GET_ALL.toLowerCase():
-                    result = await repo.getAll();
-                    break;
-                case util.FIND.toLowerCase():
-                    for (let i = 0; i < fields.length; ++i) {
-                        if (util.isDefined(req.query[fields[i].fieldName])) {
-                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                        }
-                    }
-                    result = await repo.find(params);
-                    break;
-                case util.COUNT.toLowerCase():
-                    for (let i = 0; i < fields.length; ++i) {
-                        if (util.isDefined(req.query[fields[i].fieldName])) {
-                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                        }
-                    }
-                    result = await repo.count(params);
-                    break;
-                case util.EXISTS.toLowerCase():
-                    for (let i = 0; i < pk.length; ++i) {
-                        params.push(req.query[pk[i].fieldName]);
-                    }
-                    result = await repo.exists(params);
-                    break;
-                case util.FIND_ONE_SYNC.toLowerCase():
-                    for (let i = 0; i < pk.length; ++i) {
-                        params.push(req.query[pk[i].fieldName]);
-                    }
-                    result = await repo.findOneSync(params);
-                    break;
-                case util.GET_ALL_SYNC.toLowerCase():
-                    result = await repo.getAllSync(params);
-                    break;
-                case util.FIND_SYNC.toLowerCase():
-                    for (let i = 0; i < fields.length; ++i) {
-                        if (util.isDefined(req.query[fields[i].fieldName])) {
-                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                        }
-                    }
-                    result = await repo.findSync(params);
-                    break;
-                case util.COUNT_SYNC.toLowerCase():
-                    for (let i = 0; i < fields.length; ++i) {
-                        if (util.isDefined(req.query[fields[i].fieldName])) {
-                            params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                        }
-                    }
-                    result = await repo.countSync(params);
-                    break;
-                case util.EXISTS_SYNC.toLowerCase():
-                    for (let i = 0; i < pk.length; ++i) {
-                        params.push(req.query[pk[i].fieldName]);
-                    }
-                    result = await repo.existsSync(params);
-                    break;
-                default:
-                    res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                    break;
-            }
-
-            if (util.isUndefined(result)) {
-                res.status(404).send('not found');
-            } else if (util.isDefined(result.error)) {
-                res.status(500).send(util.toString(result.error));
-            } else if (util.isDefined(result.result)) {
-                res.status(200).send(util.toDataTransferString(result.result));
             } else {
-                res.status(200).send(result);
+                logger.logError('no metadata found for' + modelname);
+                res.status(500).send('no metadata found for' + modelname);
             }
-        }
+        });
 
-        res.end();
-    });
+        apiServer.get('/api/report/querydocuments', async function (req, res) {
+            try {
+                let groupMap = new Map();
+                let queryDocs = JSON.parse(loadQueryDocuments());
+                loadGroupMap(queryDocumentGroups, groupMap);
 
-    apiServer.post('/ormapi/:module/:method', async function (req, res) {
-        let repo = repositoryMap.get(req.params.module);
-        let md = repo.getMetaData(req.params.module);
-        if (util.isUndefined(repo)) {
-            // support for using an alias for long module names
-            if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                let retval = [];
+
+                groupMap.forEach((v, k) => {
+                    if (queryDocs[k]) {
+                        for (let i = 0; i < queryDocs[k].length; ++i) {
+                            retval.push({key: k, group: v.title, documentName: queryDocs[k][i]});
+                        }
+                    }
+                });
+
+                retval.sort((a, b) => {
+                    let retval = 0;
+                    if (a.group > b.group) {
+                        retval = 1;
+                    } else if (a.group < b.group) {
+                        retval = -1;
+                    } else {
+                        if (a.documentName > b.documentName) {
+                            retval = 1;
+                        } else {
+                            retval = -1;
+                        }
+                    }
+
+                    return retval;
+                });
+
+                res.status(200).send(JSON.stringify(retval));
+            } catch (e) {
+                logger.logError('error occured while loading query documents', e);
+                res.status(500).send('error occured while loading query documents');
             }
-        }
-        
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
-            res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-        } else {
-            let result;
+        });
 
-            switch (req.params.method.toLowerCase()) {
-                case util.FIND_ONE.toLowerCase():
-                    result = await repo.findOne(req.body.primaryKeyValues);
-                    break;
-                case util.FIND.toLowerCase():
-                    result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
+        apiServer.get('/ormapi/:module/:method', async function (req, res) {
+            let repo = repositoryMap.get(req.params.module);
+            let md = repo.getMetaData(req.params.module);
+            if (util.isUndefined(repo)) {
+                // support for using an alias for long module names
+                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                }
+            }
+
+            let params = [];
+            let pk = md.getPrimaryKeyFields();
+            let fields = md.getFields();
+
+            if (util.isUndefined(repo) || util.isUndefined(md)) {
+                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
+            } else {
+                var result;
+                switch (req.params.method.toLowerCase()) {
+                    case util.FIND_ONE.toLowerCase():
+                        for (let i = 0; i < pk.length; ++i) {
+                            params.push(req.query[pk[i].fieldName]);
+                        }
+                        result = await repo.findOne(params);
+                        break;
+                    case util.GET_ALL.toLowerCase():
+                        result = await repo.getAll();
+                        break;
+                    case util.FIND.toLowerCase():
+                        for (let i = 0; i < fields.length; ++i) {
+                            if (util.isDefined(req.query[fields[i].fieldName])) {
+                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                            }
+                        }
+                        result = await repo.find(params);
+                        break;
+                    case util.COUNT.toLowerCase():
+                        for (let i = 0; i < fields.length; ++i) {
+                            if (util.isDefined(req.query[fields[i].fieldName])) {
+                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                            }
+                        }
+                        result = await repo.count(params);
+                        break;
+                    case util.EXISTS.toLowerCase():
+                        for (let i = 0; i < pk.length; ++i) {
+                            params.push(req.query[pk[i].fieldName]);
+                        }
+                        result = await repo.exists(params);
+                        break;
+                    case util.FIND_ONE_SYNC.toLowerCase():
+                        for (let i = 0; i < pk.length; ++i) {
+                            params.push(req.query[pk[i].fieldName]);
+                        }
+                        result = await repo.findOneSync(params);
+                        break;
+                    case util.GET_ALL_SYNC.toLowerCase():
+                        result = await repo.getAllSync(params);
+                        break;
+                    case util.FIND_SYNC.toLowerCase():
+                        for (let i = 0; i < fields.length; ++i) {
+                            if (util.isDefined(req.query[fields[i].fieldName])) {
+                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                            }
+                        }
+                        result = await repo.findSync(params);
+                        break;
+                    case util.COUNT_SYNC.toLowerCase():
+                        for (let i = 0; i < fields.length; ++i) {
+                            if (util.isDefined(req.query[fields[i].fieldName])) {
+                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                            }
+                        }
+                        result = await repo.countSync(params);
+                        break;
+                    case util.EXISTS_SYNC.toLowerCase():
+                        for (let i = 0; i < pk.length; ++i) {
+                            params.push(req.query[pk[i].fieldName]);
+                        }
+                        result = await repo.existsSync(params);
+                        break;
+                    default:
+                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                        break;
+                }
+
+                if (util.isUndefined(result)) {
+                    res.status(404).send('not found');
+                } else if (util.isDefined(result.error)) {
+                    res.status(500).send(util.toString(result.error));
+                } else if (util.isDefined(result.result)) {
+                    res.status(200).send(util.toDataTransferString(result.result));
+                } else {
+                    res.status(200).send(result);
+                }
+            }
+
+            res.end();
+        });
+
+        apiServer.post('/ormapi/:module/:method', async function (req, res) {
+            let repo = repositoryMap.get(req.params.module);
+            let md = repo.getMetaData(req.params.module);
+            if (util.isUndefined(repo)) {
+                // support for using an alias for long module names
+                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                }
+            }
+
+            if (util.isUndefined(repo) || util.isUndefined(md)) {
+                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
+            } else {
+                let result;
+
+                switch (req.params.method.toLowerCase()) {
+                    case util.FIND_ONE.toLowerCase():
+                        result = await repo.findOne(req.body.primaryKeyValues);
+                        break;
+                    case util.FIND.toLowerCase():
+                        result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
                             populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                case util.SAVE.toLowerCase():
-                    result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
-                    break;
-                case util.FIND_ONE_SYNC.toLowerCase():
-                    result = await repo.findOneSYnc(req.body.primaryKeyValues);
-                    break;
-                case util.FIND_SYNC.toLowerCase():
-                    result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
+                        break;
+                    case util.SAVE.toLowerCase():
+                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
+                        break;
+                    case util.FIND_ONE_SYNC.toLowerCase():
+                        result = await repo.findOneSYnc(req.body.primaryKeyValues);
+                        break;
+                    case util.FIND_SYNC.toLowerCase():
+                        result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
                             populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                case util.SAVE_SYNC.toLowerCase():
-                    result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
-                    break;
-                default:
-                    res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                    break;
+                        break;
+                    case util.SAVE_SYNC.toLowerCase():
+                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
+                        break;
+                    default:
+                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                        break;
+                }
+
+                if (util.isUndefined(result)) {
+                    res.status(404).send('not found');
+                } else if (util.isDefined(result.error)) {
+                    res.status(500).send(util.toString(result.error));
+                } else if (util.isDefined(result.result)) {
+                    res.status(200).send(util.toDataTransferString(result.result));
+                } else if (util.isDefined(result.updatedValues)) {
+                    res.status(200).send(util.toDataTransferString(result.updatedValues));
+                } else if (util.isDefined(result.rowsAffected)) {
+                    res.status(200).send(util.toDataTransferString(result));
+                } else {
+                    res.status(200).send(result);
+                }
             }
 
-            if (util.isUndefined(result)) {
-                res.status(404).send('not found');
-            } else if (util.isDefined(result.error)) {
-                res.status(500).send(util.toString(result.error));
-            } else if (util.isDefined(result.result)) {
-                res.status(200).send(util.toDataTransferString(result.result));
-            } else if (util.isDefined(result.updatedValues)) {
-                res.status(200).send(util.toDataTransferString(result.updatedValues));
-            } else if (util.isDefined(result.rowsAffected)) {
-                res.status(200).send(util.toDataTransferString(result));
+            res.end();
+        });
+
+        apiServer.put('/ormapi/:module/:method', function (req, res) {
+            let repo = repositoryMap.get(req.params.module);
+            let md = repo.getMetaData(req.params.module);
+            if (util.isUndefined(repo)) {
+                // support for using an alias for long module names
+                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                }
+            }
+
+            if (!saveAuthorizer.checkAuthorization(req)) {
+                logger.logInfo('unauthorized access attempted');
+                res.status(401).send('unauthorized');
+            } else if (util.isUndefined(repo) || util.isUndefined(md)) {
+                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
             } else {
-                res.status(200).send(result);
-            }
-        }
+                let result;
+                switch (req.params.method.toLowerCase()) {
+                    case util.SAVE.toLowerCase():
+                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        break;
+                    case util.SAVE_SYNC.toLowerCase():
+                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        break;
+                    default:
+                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                        break;
+                }
 
-        res.end();
-    });
-
-    apiServer.put('/ormapi/:module/:method', function (req, res) {
-        let repo = repositoryMap.get(req.params.module);
-        let md = repo.getMetaData(req.params.module);
-        if (util.isUndefined(repo)) {
-            // support for using an alias for long module names
-            if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-            }
-        }
-
-        if (!saveAuthorizer.checkAuthorization(req)) {
-            logger.logInfo('unauthorized access attempted');
-            res.status(401).send('unauthorized');
-        } else if (util.isUndefined(repo) || util.isUndefined(md)) {
-            res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-        } else {
-            let result;
-            switch (req.params.method.toLowerCase()) {
-                case util.SAVE.toLowerCase():
-                    result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                case util.SAVE_SYNC.toLowerCase():
-                    result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                default:
-                    res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                    break;
+                if (util.isUndefined(result)) {
+                    res.status(404).send('not found');
+                } else if (util.isDefined(result.error)) {
+                    res.status(500).send(util.toString(result.error));
+                } else if (util.isDefined(result.updatedValues)) {
+                    res.status(200).send(util.toDataTransferString(result.updatedValues));
+                } else if (util.isDefined(result.rowsAffected)) {
+                    res.status(200).send(util.toDataTransferString(result));
+                } else {
+                    res.status(200).send(result);
+                }
             }
 
-            if (util.isUndefined(result)) {
-                res.status(404).send('not found');
-            } else if (util.isDefined(result.error)) {
-                res.status(500).send(util.toString(result.error));
-            } else if (util.isDefined(result.updatedValues)) {
-                res.status(200).send(util.toDataTransferString(result.updatedValues));
-            } else if (util.isDefined(result.rowsAffected)) {
-                res.status(200).send(util.toDataTransferString(result));
+            res.end();
+        });
+
+        apiServer.delete('/ormapi/:module/:method', function (req, res) {
+            let repo = repositoryMap.get(req.params.module);
+            let md = repo.getMetaData(req.params.module);
+            if (util.isUndefined(repo)) {
+                // support for using an alias for long module names
+                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                }
+            }
+
+            if (util.isUndefined(repo) || util.isUndefined(md)) {
+                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
             } else {
-                res.status(200).send(result);
-            }
-        }
+                let result;
+                switch (req.params.method.toLowerCase()) {
+                    case util.DELETE.toLowerCase():
+                        result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        break;
+                    case util.DELETE_SYNC.toLowerCase():
+                        result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        break;
+                    default:
+                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                        break;
+                }
 
-        res.end();
-    });
-
-    apiServer.delete('/ormapi/:module/:method', function (req, res) {
-        let repo = repositoryMap.get(req.params.module);
-        let md = repo.getMetaData(req.params.module);
-        if (util.isUndefined(repo)) {
-            // support for using an alias for long module names
-            if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-            }
-        }
-
-        if (util.isUndefined(repo) || util.isUndefined(md)) {
-            res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-        } else {
-            let result;
-            switch (req.params.method.toLowerCase()) {
-                case util.DELETE.toLowerCase():
-                    result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                case util.DELETE_SYNC.toLowerCase():
-                    result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
-                    break;
-                default:
-                    res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                    break;
+                if (util.isDefined(result.error)) {
+                    res.status(500).send(util.toString(result.error));
+                } else if (util.isDefined(result.rowsAffected)) {
+                    res.status(200).send(util.toDataTransferString(result));
+                } else {
+                    res.status(200).send(result);
+                }
             }
 
-            if (util.isDefined(result.error)) {
-                res.status(500).send(util.toString(result.error));
-            } else if (util.isDefined(result.rowsAffected)) {
-                res.status(200).send(util.toDataTransferString(result));
-            } else {
-                res.status(200).send(result);
-            }
-        }
+            res.end();
+        });
+    }
 
-        res.end();
-    });
+    catch (e) {
+        apiServer = null;
+    }
 }
 
 function populateWhereFromRequestInput(input) {

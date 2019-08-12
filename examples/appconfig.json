@@ -5,7 +5,6 @@
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
   "createTablesIfRequired" : false,
-  "startApiServer" : true,
   "apiPort" : 8443,
   "logFile" : "orm.log",
   "logLevel" : "info",
