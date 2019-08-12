@@ -1,8 +1,6 @@
 {
   "testMode" : true,
   "dbConfiguration" : "examples/exampledb.json",
-  "queryDocumentRoot" : "examples/queries",
-  "reportDocumentRoot" : "examples/reports",
   "certLocation": "cert",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
@@ -19,6 +17,10 @@
   "customizationModule": "./examples/Customization.js",
   "certKeyPath" : "./examples/cert/server.key",
   "certPath" : "./examples/cert/server.crt",
+  "queryDocumentRoot" : "examples/queries",
+  "reportDocumentRoot" : "examples/reports",
+  "reportDocumentGroupsDefinition": "./report-document-groups.json",
+  "queryDocumentGroupsDefinition": "./query-document-groups.json",
   "ormModuleRootPath": "./",
   "aliases" : {}
 }
