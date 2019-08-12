@@ -2712,12 +2712,12 @@ function loadDocumentGroups() {
     if (fs.existsSync('./report-document-groups.json')) {
         reportDocumentGroups = JSON.parse(fs.readFileSync('./report-document-groups.json'));
     } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-        reportDocumentGroups = loadReportDocumentGroups();
+        reportDocumentGroups = customization.loadReportDocumentGroups();
     }
 
     if (fs.existsSync('./query-document-groups.json')) {
         queryDocumentGroups = JSON.parse(fs.readFileSync('./query-document-groups.json'));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-        queryDocumentGroups = loadQueryDocumentGroups();
+        queryDocumentGroups = customization.loadQueryDocumentGroups();
     }
 }
