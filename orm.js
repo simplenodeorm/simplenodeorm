@@ -79,7 +79,7 @@ function loadOrm() {
 }
 
 module.exports.newModelInstance = function (metaData) {
-    return require('./' + metaData.module)(metaData);
+    return require(appConfiguration.ormModuleRootPath + '/' + metaData.module)(metaData);
 };
 
 module.exports.getMetaData = function (modelName) {
@@ -2721,5 +2721,3 @@ function loadDocumentGroups() {
         queryDocumentGroups = loadQueryDocumentGroups();
     }
 }
-
-
