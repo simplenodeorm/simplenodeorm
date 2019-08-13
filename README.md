@@ -96,3 +96,6 @@ is shown below:
  module.exports.deleteQuery = function(queryId) {};
 ```
 For more detailed information see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
+
+For help in generating ORM model, meta and repository objects a java maven application is available on github
+at <a href="https://github.com/simplenodeorm/ormobjectgenerator">ormobjectgenerator</a>
