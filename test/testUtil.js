@@ -1020,13 +1020,12 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
 
 function loadModelInsertData(metaData) {
     let retval = [];
-    let modelPath = metaData.module.substring(0, metaData.module.lastIndexOf('/'));
-    let flist = fs.readdirSync(modelPath.replace('model', orm.testConfiguration.testDataRootPath));
+    let flist = fs.readdirSync(orm.testConfiguration.testDataRootPath);
     for (let i = 0; i < flist.length; ++i) {
         if (flist[i].endsWith('.json')) {
             let pos = flist[i].indexOf('_');
             if ((pos > -1) && (metaData.objectName === flist[i].substring(0, pos))) {
-                retval.push(util.jsonToModel(fs.readFileSync(modelPath.replace('model', orm.testConfiguration.testDataRootPath ) + '/' + flist[i]), orm));
+                retval.push(util.jsonToModel(fs.readFileSync(orm.testConfiguration.testDataRootPath ) + '/' + flist[i]));
             }
         }
     }
