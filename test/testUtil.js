@@ -924,7 +924,11 @@ module.exports.testInsert = async function (repository, conn, testResults) {
 };
 
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
-    let md = orm.getMetaData(modelBeforeSave.getObjectName());
+    let repo = orm.getRepository(modelBeforeSave.getObjectName());
+
+    logger.logInfo("------------------->1")
+    let md = repo.getMetaData();
+    logger.logInfo("------------------->2")
 
     let fields = md.getFields();
     
