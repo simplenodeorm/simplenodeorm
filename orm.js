@@ -2711,6 +2711,7 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 }
 
 function loadDocumentGroups() {
+    logger.logInfo("------------------>" + appConfiguration.reportDocumentGroupsDefinition);
     if (fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
         reportDocumentGroups = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
