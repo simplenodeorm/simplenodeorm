@@ -840,11 +840,8 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 };
 
 module.exports.testInsert = async function (repository, conn, testResults) {
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->a"));
     let md = repository.getMetaData();
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->b"));
     let modelTestData = loadModelInsertData(md);
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->c"));
     let dbType = orm.getDbType(repository.getPoolAlias());
     
     switch (dbType) {
@@ -855,7 +852,6 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             await conn.query('BEGIN');
             break;
     }
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->d"));
 
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
@@ -865,24 +861,17 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             models.push(modelTestData[i]);
         }
 
-        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->e"));
         let res = await repository.save(models, {conn: conn, returnValues: true});
-        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->f"));
 
         if (res.error) {
-            testResults.push(require('./testStatus.js')(util.ERROR, "----------------->g"));
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
             if (util.isDefined(res.updatedValues)) {
-                testResults.push(require('./testStatus.js')(util.ERROR, "----------------->h"));
                 if (res.updatedValues.length !== models.length) {
-                    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->j"));
                     testResults.push(require('./testStatus.js')(util.ERROR, 'expected to have ' + models.length + ' ' + md.getObjectName() + ' objects inserted  but found ' + res.updateValues.length, util.SAVE + '[insert]'));
                 } else {
                     for (let i = 0; i < res.updatedValues.length; ++i) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->k"));
                         verifyModelInserts(models[i], res.updatedValues[i], testResults);
-                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->l"));
                     }
                 }
             }
@@ -937,10 +926,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
     let repo = orm.getRepository(modelBeforeSave.getObjectName());
 
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->c"));
     let md = repo.getMetaData();
-    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->d"));
-
     let fields = md.getFields();
     
     for (let i = 0; i < fields.length; ++i) {
@@ -1040,7 +1026,7 @@ function loadModelInsertData(metaData) {
         if (flist[i].endsWith('.json')) {
             let pos = flist[i].indexOf('_');
             if ((pos > -1) && (metaData.objectName === flist[i].substring(0, pos))) {
-                retval.push(util.jsonToModel(fs.readFileSync(orm.testConfiguration.testDataRootPath + '/' + flist[i])));
+                retval.push(util.jsonToModel(fs.readFileSync(orm.testConfiguration.testDataRootPath + '/' + flist[i]), orm));
             }
         }
     }
@@ -1068,9 +1054,7 @@ function updateModelForTest(metaData, model) {
                 if (otmdefs[i].cascadeUpdate) {
                     let otmModels = model.getFieldValue(otmdefs[i].fieldName, true);
                     if (util.isValidObject(otmModels) && (otmModels.length > 0)) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->e"));
                         updateModelForTest(orm.getMetaData(otmdefs[i].targetModelName), otmModels[0]);
-                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->f"));
                         break;
                     }
                 }    
@@ -1127,11 +1111,7 @@ function findUpdateableFields(metaData) {
             retval.push(fields[i]);
         }
     }
-    
-    if (metaData.objectName.startsWith('PS')) {
-        logger.logInfo('-------------------->' + retval);
-    }
-    
+
     return retval;
 }
 
