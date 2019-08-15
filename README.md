@@ -101,3 +101,14 @@ For help in generating ORM model, metadata and repository objects a java maven a
 at <a href="https://github.com/simplenodeorm/ormobjectgenerator">ormobjectgenerator</a>
 
 An example implementation is available on github at <a href="https://github.com/simplenodeorm/simplenodeorm-example">simplenodeorm example application</a>
+
+There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
+
+<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodedesigner">Query Designer - NPM</a><br />
+<a href="https://github.com/simplenodeorm/simplenodedesigner">Query Designer - GitHub</a><br />
+<a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf">Query Designer - Documentation</a><br /><br />
+
+<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodereport">Report Designer - NPM</a><br />
+<a href="https://github.com/simplenodeorm/simplenodereport">Report Designer - GitHub</a><br />
+<a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf">Report Designer - Documentation</a>
+
