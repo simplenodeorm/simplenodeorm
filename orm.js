@@ -13,6 +13,8 @@ const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const dbTypeMap = new Map();
 
+
+
 // These are variables setup via the app configuration. The default configuration
 // is found in appconfig.json and testconfig.json. The environment variables
 // APP_CONFIGURATION_FILE and APP_TEST_CONFIGURATION_FILE can be set to point to
@@ -66,7 +68,7 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
 
     // setup database pool and fire off orm load
     require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
-}
+};
 
 function loadOrm() {
     logger.logInfo("loading api ORM definitions...");
@@ -2722,6 +2724,6 @@ function loadQueryDocumentGroups() {
     if (fs.existsSync(appConfiguration.reportQueryGroupsDefinition)) {
         return JSON.parse(fs.readFileSync(appConfiguration.reportQueryGroupsDefinition));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-        return = customization.loadQueryDocumentGroups();
+        return customization.loadQueryDocumentGroups();
     }
 }
