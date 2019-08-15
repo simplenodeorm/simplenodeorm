@@ -17,8 +17,6 @@ const dbTypeMap = new Map();
 // is found in appconfig.json and testconfig.json. The environment variables
 // APP_CONFIGURATION_FILE and APP_TEST_CONFIGURATION_FILE can be set to point to
 // custom configuration files.
-let reportDocumentGroups;
-let queryDocumentGroups;
 let appConfiguration;
 let testConfiguration;
 let customization;
@@ -63,7 +61,6 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
             await suite.run();
         }
 
-        loadDocumentGroups();
         serverStartedCallback(startApiServer(), logger);
     });
 
@@ -191,6 +188,9 @@ function startApiServer() {
         const bodyParser = require('body-parser');
         const https = require('https');
         apiServer = express();
+
+        const reportDocumentGroups = loadReportDocumentGroups();
+        const queryDocumentGroups = loadQueryDocumentGroups();
 
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
@@ -2710,17 +2710,18 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-function loadDocumentGroups() {
-    logger.logInfo("------------------>" + appConfiguration.reportDocumentGroupsDefinition);
+function loadReportDocumentGroups() {
     if (fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
-        reportDocumentGroups = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
+        return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-        reportDocumentGroups = customization.loadReportDocumentGroups();
+        return customization.loadReportDocumentGroups();
     }
+}
 
+function loadQueryDocumentGroups() {
     if (fs.existsSync(appConfiguration.reportQueryGroupsDefinition)) {
-        queryDocumentGroups = JSON.parse(fs.readFileSync(appConfiguration.reportQueryGroupsDefinition));
+        return JSON.parse(fs.readFileSync(appConfiguration.reportQueryGroupsDefinition));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-        queryDocumentGroups = customization.loadQueryDocumentGroups();
+        return = customization.loadQueryDocumentGroups();
     }
 }
