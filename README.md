@@ -8,6 +8,7 @@ Simplenodeorm provides database access to Oracle, MySQL and PostgreSQL databases
 into an existing javascript app to provide database access based on configuration files provided by the parent 
 application as in the example below:
 
+
 ```
 const fs = require('fs');
 const orm = require('@simplenodeorm/simplenodeorm/orm');
@@ -16,31 +17,44 @@ const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const customizations = require('./Customization.js');
 
-orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted, customizations);
+
+// these are expected to be full paths so do this for the example so it 
+// is self-contained
+appConfiguration.queryDocumentRoot = __dirname + "/" + appConfiguration.queryDocumentRoot;
+appConfiguration.reportDocumentRoot = __dirname + "/" +  appConfiguration.reportDocumentRoot;
+appConfiguration.reportDocumentGroupsDefinition = __dirname + "/" + appConfiguration.reportDocumentGroupsDefinition;
+appConfiguration.queryDocumentGroupsDefinition = __dirname + "/" + appConfiguration.queryDocumentGroupsDefinition;
+
+
+    orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted, customizations);
 
 function onServerStarted(server, logger) {
-    logger.logInfo("simplenodeorm server started");
-    
-    server.get('/clinicalhelper', async function (req, res) {
-        res.status(200).send("clinicalhelper call made");
+    logger.logInfo("simplenodeorm server started for example application");
+
+    server.get('/example', async function (req, res) {
+        res.status(200).send("exam call made");
     });
+
+    let repo = orm.getRepository("Film");
+    let allFilms = repo.getAll();
 }
+
 ```
-It is expected that the required ORM object have been created and are located in the  location 
+It is expected that the required ORM objects have been created and are located in the location 
 specified by appConfiguration.ormModuleRootPath. The callback function (“onServerStart” above) will 
 be called with the express server instance and the server logger. You can use this server 
 instance to add you own customized http handlers.
 
 The Customization module is to facilitate report and query document interactions for the Query Designer 
-and the Report Designer. By default, the Query and Report Designers save documents on the file system
+and Report Designer applications. By default, the Query and Report Designers save documents on the file system
 at locations defined in the appConfiguration entries:
 ```
-  "queryDocumentRoot" : "examples/queries",
-  "reportDocumentRoot" : "examples/reports",
+  "queryDocumentRoot" : "<absolute-path-to>/queries",
+  "reportDocumentRoot" : "<absolute-path-to>/reports",
   "reportDocumentGroupsDefinition": "<absolute-path-to>/report-document-groups.json",
   "queryDocumentGroupsDefinition": "<absolute-path-to>/query-document-groups.json",
 ```
-Query and Report documents are saved in JSON files by group defained as a JSON hierarchy. An example Report Group definition
+Query and Report documents are saved in JSON files by group defined as a JSON hierarchy. An example Report Group definition
 is shown below:
  ```
  {
