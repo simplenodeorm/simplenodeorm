@@ -2711,13 +2711,13 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 }
 
 function loadDocumentGroups() {
-    if (fs.existsSync('./report-document-groups.json')) {
+    if (fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
         reportDocumentGroups = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
         reportDocumentGroups = customization.loadReportDocumentGroups();
     }
 
-    if (fs.existsSync('./query-document-groups.json')) {
+    if (fs.existsSync(appConfiguration.reportQueryGroupsDefinition)) {
         queryDocumentGroups = JSON.parse(fs.readFileSync(appConfiguration.reportQueryGroupsDefinition));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
         queryDocumentGroups = customization.loadQueryDocumentGroups();
