@@ -840,9 +840,9 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 };
 
 module.exports.testInsert = async function (repository, conn, testResults) {
-    logger.logInfo("------------------>a");
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->a"));
     let md = repository.getMetaData();
-    logger.logInfo("------------------>b");
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->b"));
     let modelTestData = loadModelInsertData(md);
     let dbType = orm.getDbType(repository.getPoolAlias());
     
@@ -928,9 +928,9 @@ module.exports.testInsert = async function (repository, conn, testResults) {
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
     let repo = orm.getRepository(modelBeforeSave.getObjectName());
 
-    logger.logInfo("------------------->1")
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->c"));
     let md = repo.getMetaData();
-    logger.logInfo("------------------->2")
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->d"));
 
     let fields = md.getFields();
     
@@ -1059,9 +1059,9 @@ function updateModelForTest(metaData, model) {
                 if (otmdefs[i].cascadeUpdate) {
                     let otmModels = model.getFieldValue(otmdefs[i].fieldName, true);
                     if (util.isValidObject(otmModels) && (otmModels.length > 0)) {
-                        logger.logInfo("------------------>c");
+                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->e"));
                         updateModelForTest(orm.getMetaData(otmdefs[i].targetModelName), otmModels[0]);
-                        logger.logInfo("------------------>d");
+                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->f"));
                         break;
                     }
                 }    
