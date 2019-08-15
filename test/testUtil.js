@@ -840,7 +840,9 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
 };
 
 module.exports.testInsert = async function (repository, conn, testResults) {
+    logger.logInfo("------------------>a");
     let md = repository.getMetaData();
+    logger.logInfo("------------------>b");
     let modelTestData = loadModelInsertData(md);
     let dbType = orm.getDbType(repository.getPoolAlias());
     
@@ -1057,7 +1059,9 @@ function updateModelForTest(metaData, model) {
                 if (otmdefs[i].cascadeUpdate) {
                     let otmModels = model.getFieldValue(otmdefs[i].fieldName, true);
                     if (util.isValidObject(otmModels) && (otmModels.length > 0)) {
+                        logger.logInfo("------------------>c");
                         updateModelForTest(orm.getMetaData(otmdefs[i].targetModelName), otmModels[0]);
+                        logger.logInfo("------------------>d");
                         break;
                     }
                 }    
