@@ -2721,8 +2721,8 @@ function loadReportDocumentGroups() {
 }
 
 function loadQueryDocumentGroups() {
-    if (fs.existsSync(appConfiguration.reportQueryGroupsDefinition)) {
-        return JSON.parse(fs.readFileSync(appConfiguration.reportQueryGroupsDefinition));
+    if (fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
+        return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
         return customization.loadQueryDocumentGroups();
     }
