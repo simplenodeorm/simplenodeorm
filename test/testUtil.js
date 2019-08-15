@@ -844,6 +844,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
     let md = repository.getMetaData();
     testResults.push(require('./testStatus.js')(util.ERROR, "----------------->b"));
     let modelTestData = loadModelInsertData(md);
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->c"));
     let dbType = orm.getDbType(repository.getPoolAlias());
     
     switch (dbType) {
@@ -854,7 +855,8 @@ module.exports.testInsert = async function (repository, conn, testResults) {
             await conn.query('BEGIN');
             break;
     }
-    
+    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->d"));
+
     if (util.isUndefined(modelTestData) || (modelTestData.length === 0)) {
         testResults.push(require('./testStatus.js')(util.WARN, 'no insert test data found for ' + md.getObjectName() , util.SAVE + '[insert]'));
     } else {
@@ -862,18 +864,25 @@ module.exports.testInsert = async function (repository, conn, testResults) {
         for (let i = 0; i < modelTestData.length; ++i) {
             models.push(modelTestData[i]);
         }
-    
+
+        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->e"));
         let res = await repository.save(models, {conn: conn, returnValues: true});
-    
+        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->f"));
+
         if (res.error) {
+            testResults.push(require('./testStatus.js')(util.ERROR, "----------------->g"));
             testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
         } else {
             if (util.isDefined(res.updatedValues)) {
+                testResults.push(require('./testStatus.js')(util.ERROR, "----------------->h"));
                 if (res.updatedValues.length !== models.length) {
+                    testResults.push(require('./testStatus.js')(util.ERROR, "----------------->j"));
                     testResults.push(require('./testStatus.js')(util.ERROR, 'expected to have ' + models.length + ' ' + md.getObjectName() + ' objects inserted  but found ' + res.updateValues.length, util.SAVE + '[insert]'));
                 } else {
                     for (let i = 0; i < res.updatedValues.length; ++i) {
+                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->k"));
                         verifyModelInserts(models[i], res.updatedValues[i], testResults);
+                        testResults.push(require('./testStatus.js')(util.ERROR, "----------------->l"));
                     }
                 }
             }
