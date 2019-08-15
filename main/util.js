@@ -178,7 +178,7 @@ module.exports.jsonToModel = function (json, orm) {
     return JSON.parse(json, function (key, value) {
         if (value && isDefined(value.__model__) && isUndefined(value.getFieldValue)) {
             let md = orm.getMetaData(value.__model__);
-            let m = require('../' + md.getModule())(md);
+            let m = require(orm.appConfiguration.ormModuleRootPath + md.getModule())(md);
             return Object.assign(m, value);
         } else {
             return value;
