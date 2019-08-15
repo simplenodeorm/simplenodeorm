@@ -297,45 +297,32 @@ function startApiServer() {
 
                         }
 
-                        let authorizer;
-                        try {
-                            logger.logInfo('authorizer: ' + doc.authenticator);
-                            let Authenticator = require('./auth/' + doc.authenticator + '.js');
-                            authorizer = new Authenticator();
-                        } catch (e) {
+                        let sql = buildQueryDocumentSql(doc);
+
+                        if (logger.isLogDebugEnabled()) {
+                            logger.logDebug(util.toString(doc));
+                            logger.logDebug(sql);
                         }
 
-                        if (!authorizer || !authorizer.checkAuthorization(req)) {
-                            logger.logInfo('unauthorized access attempted');
-                            res.status(401).send('unauthorized');
-                        } else {
-                            let sql = buildQueryDocumentSql(doc);
-
-                            if (logger.isLogDebugEnabled()) {
-                                logger.logDebug(util.toString(doc));
-                                logger.logDebug(sql);
-                            }
-
-                            let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
-                            let result = await repo.executeSqlQuery(sql, doc.parameters);
-                            if (result.error) {
-                                if (doc.validityCheckOnly) {
-                                    res.status(200).send('generated sql is invalid');
-                                } else {
-                                    res.status(500).send(result.error);
-                                }
-                            } else if (doc.validityCheckOnly) {
-                                res.status(200).send('generated sql is valid');
-                            } else if (doc.resultFormat === 'result set') {
-                                res.status(200).send(result);
+                        let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
+                        let result = await repo.executeSqlQuery(sql, doc.parameters);
+                        if (result.error) {
+                            if (doc.validityCheckOnly) {
+                                res.status(200).send('generated sql is invalid');
                             } else {
-                                try {
-                                    let retval = buildResultObjectGraph(doc, result.result.rows);
-                                    res.status(200).send(retval);
-                                } catch (e) {
-                                    logger.logError('error occured while building result object graph', e);
-                                    res.status(500).send('error occured while building result object graph - ' + e);
-                                }
+                                res.status(500).send(result.error);
+                            }
+                        } else if (doc.validityCheckOnly) {
+                            res.status(200).send('generated sql is valid');
+                        } else if (doc.resultFormat === 'result set') {
+                            res.status(200).send(result);
+                        } else {
+                            try {
+                                let retval = buildResultObjectGraph(doc, result.result.rows);
+                                res.status(200).send(retval);
+                            } catch (e) {
+                                logger.logError('error occured while building result object graph', e);
+                                res.status(500).send('error occured while building result object graph - ' + e);
                             }
                         }
                     } catch (e) {
