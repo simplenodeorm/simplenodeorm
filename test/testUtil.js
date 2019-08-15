@@ -1025,7 +1025,7 @@ function loadModelInsertData(metaData) {
         if (flist[i].endsWith('.json')) {
             let pos = flist[i].indexOf('_');
             if ((pos > -1) && (metaData.objectName === flist[i].substring(0, pos))) {
-                retval.push(util.jsonToModel(fs.readFileSync(orm.testConfiguration.testDataRootPath ) + '/' + flist[i]));
+                retval.push(util.jsonToModel(fs.readFileSync(orm.testConfiguration.testDataRootPath + '/' + flist[i])));
             }
         }
     }
