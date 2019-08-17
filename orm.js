@@ -207,54 +207,50 @@ function startApiServer() {
 
         let server = https.createServer(options, apiServer);
 
-        // plug authentication in here
-        if (util.isDefined(appConfiguration.authorizer)) {
-            const authorizer = new (require(appConfiguration.authorizer));
-            const authfunc = function (user, pass) {
+        const authorizer = new (require(appConfiguration.authorizer));
+
+        apiServer.use(basicAuth({authorizer: function (user, pass) {
                 return authorizer.isAuthorized(user, pass);
-            };
-
-            apiServer.use(basicAuth({authorizer: authfunc}));
-            apiServer.all('/ormapi*', async function (req, res, next) {
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("in /ormapi checkAuthorization");
-                }
-
-                if (authorizer.checkAuthorization(req)) {
-                    next();
-                } else {
-                    res.status(401).send("Not Authorized");
-                }
-            });
-
-            apiServer.all('/api*', async function (req, res, next) {
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("in /api checkAuthorization");
-                }
-
-                if (authorizer.checkAuthorization(req)) {
-                    next();
-                } else {
-                    res.status(401).send("Not Authorized");
-                }
-            });
-
-            apiServer.all('/' + appConfiguration.context + '*', async function (req, res, next) {
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("in /" + appConfiguration.contextcheckAuthorization);
-                }
-               if (authorizer.checkAuthorization(req)) {
-                   next();
-               } else {
-                   res.status(401).send("Not Authorized");
-               }
-            });
-        }
+        }}));
 
         server.listen(appConfiguration.apiPort || 8443, function () {
             logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
         });
 
+        apiServer.all('/ormapi*', async function (req, res, next) {
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in /ormapi checkAuthorization");
+            }
+
+            if (authorizer.checkAuthorization(req)) {
+                next();
+            } else {
+                res.status(401).send("Not Authorized");
+            }
+        });
+
+        apiServer.all('/api*', async function (req, res, next) {
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in /api checkAuthorization");
+            }
+
+            if (authorizer.checkAuthorization(req)) {
+                next();
+            } else {
+                res.status(401).send("Not Authorized");
+            }
+        });
+
+        apiServer.all('/' + appConfiguration.context + '*', async function (req, res, next) {
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in /" + appConfiguration.contextcheckAuthorization);
+            }
+            if (authorizer.checkAuthorization(req)) {
+                next();
+            } else {
+                res.status(401).send("Not Authorized");
+            }
+        });
         apiServer.get('/api/query/login', async function (req, res) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /design/login");
