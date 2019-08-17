@@ -215,6 +215,13 @@ function startApiServer() {
             };
 
             apiServer.use(basicAuth({authorizer: authfunc}));
+            apiServer.all('/', async function (req, res, next) {
+                if (authorizer.checkAuthorization(req)) {
+                    next();
+                } else {
+                    res.status(401).send("Not Authorized");
+                }
+            });
         }
 
         server.listen(appConfiguration.apiPort || 8443, function () {
@@ -1494,7 +1501,7 @@ function loadQueryDocuments() {
     let retval = {};
 
     if (customization && (typeof customization.loadQueryDocuments === "function")) {
-        retval = customization.loadQueryDocuments();
+        retval = customization.loadQueryDocuments(orm);
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
@@ -1527,7 +1534,7 @@ function loadReportDocuments() {
     let retval = {};
 
     if (customization && (typeof customization.loadReportDocuments === "function")) {
-        retval = customization.loadReportDocuments();
+        retval = customization.loadReportDocuments(orm);
     } else {
         let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
@@ -1578,7 +1585,7 @@ function loadAuthorizers() {
 
 function saveQuery(doc) {
     if (customization && (typeof customization.saveQuery === "function")) {
-        customization.saveQuery(doc);
+        customization.saveQuery(orm, doc);
     } else {
         let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1593,7 +1600,7 @@ function saveQuery(doc) {
 
 function saveReport(doc) {
     if (customization && (typeof customization.saveReport === "function")) {
-        customization.saveReport(doc);
+        customization.saveReport(orm, doc);
     } else {
         let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1608,7 +1615,7 @@ function saveReport(doc) {
 
 function deleteQuery(docid) {
     if (customization && (typeof customization.deleteQuery === "function")) {
-        customization.deleteQuery(docid);
+        customization.deleteQuery(orm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1621,7 +1628,7 @@ function deleteQuery(docid) {
 
 function deleteReport(docid) {
     if (customization && (typeof customization.deleteReport === "function")) {
-        customization.deleteReport(doc);
+        customization.deleteReport(orm, doc);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1634,7 +1641,7 @@ function deleteReport(docid) {
 
 function loadQuery(docid) {
     if (customization && (typeof customization.loadQuery === "function")) {
-        return customization.loadQuery(docid);
+        return customization.loadQuery(orm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1648,7 +1655,7 @@ function loadQuery(docid) {
 
 function loadReport(docid) {
     if (customization && (typeof customization.loadReport === "function")) {
-        return customization.loadReport(docid);
+        return customization.loadReport(rm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -2703,7 +2710,7 @@ function loadReportDocumentGroups() {
     if (fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
         return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-        return customization.loadReportDocumentGroups();
+        return customization.loadReportDocumentGroups(orm);
     }
 }
 
@@ -2711,6 +2718,6 @@ function loadQueryDocumentGroups() {
     if (fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
         return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
     } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-        return customization.loadQueryDocumentGroups();
+        return customization.loadQueryDocumentGroups(orm);
     }
 }

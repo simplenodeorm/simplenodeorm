@@ -98,16 +98,16 @@ is shown below:
  in the database you can implement the following methods in the Customization module:
 
 ```
- module.exports.loadReportDocumentGroups = function() {}
- module.exports.loadQueryDocumentGroups = function() {}
- module.exports.loadReportDocuments = function() {}
- module.exports.loadReport = function(documentId) {}
- module.exports.saveReport = function(reportDocument) {}
- module.exports.deleteReport = function(reportId) {}
- module.exports.loadQueryDocuments = function() {}
- module.exports.loadQuery = function(queryId) {}
- module.exports.saveQuery = function(queryDicument) {}
- module.exports.deleteQuery = function(queryId) {};
+ module.exports.loadReportDocumentGroups = function(orm) {}
+ module.exports.loadQueryDocumentGroups = function(orm) {}
+ module.exports.loadReportDocuments = function(orm) {}
+ module.exports.loadReport = function(orm, documentId) {}
+ module.exports.saveReport = function(orm, reportDocument) {}
+ module.exports.deleteReport = function(orm, reportId) {}
+ module.exports.loadQueryDocuments = function(orm) {}
+ module.exports.loadQuery = function(orm, queryId) {}
+ module.exports.saveQuery = function(orm, queryDocument) {}
+ module.exports.deleteQuery = function(orm, queryId) {};
 ```
 For more detailed information see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
 
