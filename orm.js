@@ -214,34 +214,41 @@ function startApiServer() {
                 return authorizer.isAuthorized(user, pass);
             };
 
-            try {
-                apiServer.use(basicAuth({authorizer: authfunc}));
-                apiServer.get('/ormapi', async function (req, res, next) {
-                    if (authorizer.checkAuthorization(req)) {
-                        next();
-                    } else {
-                        res.status(401).send("Not Authorized");
-                    }
-                });
+            apiServer.use(basicAuth({authorizer: authfunc}));
+            apiServer.all('/ormapi', async function (req, res, next) {
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("in /ormapi checkAuthorization");
+                }
 
-                apiServer.get('/api', async function (req, res, next) {
-                    if (authorizer.checkAuthorization(req)) {
-                        next();
-                    } else {
-                        res.status(401).send("Not Authorized");
-                    }
-                });
+                if (authorizer.checkAuthorization(req)) {
+                    next();
+                } else {
+                    res.status(401).send("Not Authorized");
+                }
+            });
 
-                apiServer.get('/' + appConfiguration.context, async function (req, res, next) {
-                    if (authorizer.checkAuthorization(req)) {
-                        next();
-                    } else {
-                        res.status(401).send("Not Authorized");
-                    }
-                });
-            } catch (e) {
-                logger.logError(e);
-            }
+            apiServer.all('/api', async function (req, res, next) {
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("in /api checkAuthorization");
+                }
+
+                if (authorizer.checkAuthorization(req)) {
+                    next();
+                } else {
+                    res.status(401).send("Not Authorized");
+                }
+            });
+
+            apiServer.all('/' + appConfiguration.context, async function (req, res, next) {
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("in /" + appConfiguration.contextcheckAuthorization);
+                }
+               if (authorizer.checkAuthorization(req)) {
+                   next();
+               } else {
+                   res.status(401).send("Not Authorized");
+               }
+            });
         }
 
         server.listen(appConfiguration.apiPort || 8443, function () {
