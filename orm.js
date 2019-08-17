@@ -214,14 +214,34 @@ function startApiServer() {
                 return authorizer.isAuthorized(user, pass);
             };
 
-            apiServer.use(basicAuth({authorizer: authfunc}));
-            apiServer.all('/', async function (req, res, next) {
-                if (authorizer.checkAuthorization(req)) {
-                    next();
-                } else {
-                    res.status(401).send("Not Authorized");
-                }
-            });
+            try {
+                apiServer.use(basicAuth({authorizer: authfunc}));
+                apiServer.all('/ormapi', async function (req, res, next) {
+                    if (authorizer.checkAuthorization(req)) {
+                        next();
+                    } else {
+                        res.status(401).send("Not Authorized");
+                    }
+                });
+
+                apiServer.all('/api', async function (req, res, next) {
+                    if (authorizer.checkAuthorization(req)) {
+                        next();
+                    } else {
+                        res.status(401).send("Not Authorized");
+                    }
+                });
+
+                apiServer.all('/' + appConfiguration.context, async function (req, res, next) {
+                    if (authorizer.checkAuthorization(req)) {
+                        next();
+                    } else {
+                        res.status(401).send("Not Authorized");
+                    }
+                });
+            } catch (e) {
+                logger.logError(e);
+            }
         }
 
         server.listen(appConfiguration.apiPort || 8443, function () {
