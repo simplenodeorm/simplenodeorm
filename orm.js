@@ -215,7 +215,7 @@ function startApiServer() {
             };
 
             apiServer.use(basicAuth({authorizer: authfunc}));
-            apiServer.all('/ormapi', async function (req, res, next) {
+            apiServer.all('/ormapi*', async function (req, res, next) {
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("in /ormapi checkAuthorization");
                 }
@@ -227,7 +227,7 @@ function startApiServer() {
                 }
             });
 
-            apiServer.all('/api', async function (req, res, next) {
+            apiServer.all('/api*', async function (req, res, next) {
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("in /api checkAuthorization");
                 }
@@ -239,7 +239,7 @@ function startApiServer() {
                 }
             });
 
-            apiServer.all('/' + appConfiguration.context, async function (req, res, next) {
+            apiServer.all('/' + appConfiguration.context + '*', async function (req, res, next) {
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("in /" + appConfiguration.contextcheckAuthorization);
                 }
