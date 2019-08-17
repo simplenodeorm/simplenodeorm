@@ -216,7 +216,7 @@ function startApiServer() {
 
             try {
                 apiServer.use(basicAuth({authorizer: authfunc}));
-                apiServer.all('/ormapi', async function (req, res, next) {
+                apiServer.get('/ormapi', async function (req, res, next) {
                     if (authorizer.checkAuthorization(req)) {
                         next();
                     } else {
@@ -224,7 +224,7 @@ function startApiServer() {
                     }
                 });
 
-                apiServer.all('/api', async function (req, res, next) {
+                apiServer.get('/api', async function (req, res, next) {
                     if (authorizer.checkAuthorization(req)) {
                         next();
                     } else {
@@ -232,7 +232,7 @@ function startApiServer() {
                     }
                 });
 
-                apiServer.all('/' + appConfiguration.context, async function (req, res, next) {
+                apiServer.get('/' + appConfiguration.context, async function (req, res, next) {
                     if (authorizer.checkAuthorization(req)) {
                         next();
                     } else {
