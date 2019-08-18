@@ -2722,12 +2722,14 @@ function loadReportDocumentGroups() {
             return customization.loadReportDocumentGroups(orm);
         }
     } catch(e) {
+
         logger.logError(e);
     }
 }
 
 function loadQueryDocumentGroups() {
     try {
+        logger.logInfo('------------->' + orm);
         if (appConfiguration.queryDocumentGroupsDefinition && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
