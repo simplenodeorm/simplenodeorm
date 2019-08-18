@@ -811,9 +811,7 @@ function startApiServer() {
     }
 
     catch (e) {
-        if (e) {
-            logger.logError(e);
-        }
+        logger.logError('error occurred during api server start - ' + e);
         apiServer = null;
     }
 
@@ -2722,8 +2720,7 @@ function loadReportDocumentGroups() {
             return customization.loadReportDocumentGroups(orm);
         }
     } catch(e) {
-
-        logger.logError(e);
+        logger.logError('error ocurred during document reports definition load - ' + e);
     }
 }
 
@@ -2735,6 +2732,6 @@ function loadQueryDocumentGroups() {
             return customization.loadQueryDocumentGroups(orm);
         }
     } catch (e) {
-        logger.logError(e);
+        logger.logError('error ocurred during document groups definition load - ' + e);
     }
 }
