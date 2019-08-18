@@ -2719,9 +2719,7 @@ function loadReportDocumentGroups() {
         if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            logger.logInfo('------------->1');
             return customization.loadReportDocumentGroups(orm);
-            logger.logInfo('------------->2');
         }
     } catch(e) {
 
