@@ -2726,17 +2726,25 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 }
 
 function loadReportDocumentGroups() {
-    if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
-        return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
-    } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-        return customization.loadReportDocumentGroups(orm);
+    try {
+        if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+            return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
+        } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
+            return customization.loadReportDocumentGroups(orm);
+        }
+    } catch(e) {
+        logger.logError(e);
     }
 }
 
 function loadQueryDocumentGroups() {
-    if (appConfiguration.queryDocumentGroupsDefinition && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
-        return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
-    } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-        return customization.loadQueryDocumentGroups(orm);
+    try {
+        if (appConfiguration.queryDocumentGroupsDefinition && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
+            return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
+        } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
+            return customization.loadQueryDocumentGroups(orm);
+        }
+    } catch (e) {
+        logger.logError(e);
     }
 }
