@@ -190,6 +190,7 @@ function startApiServer() {
         const bodyParser = require('body-parser');
         const https = require('https');
         apiServer = express();
+        logger.logInfo('--------------------->1');
 
         const reportDocumentGroups = loadReportDocumentGroups();
         const queryDocumentGroups = loadQueryDocumentGroups();
@@ -198,6 +199,7 @@ function startApiServer() {
         apiServer.use(bodyParser.json({limit: '5MB'}));
         apiServer.use(cors());
 
+        logger.logInfo('--------------------->2');
         let options = {
             key: fs.readFileSync(appConfiguration.certKeyPath),
             cert: fs.readFileSync(appConfiguration.certPath),
@@ -205,9 +207,11 @@ function startApiServer() {
             rejectUnauthorized: false
         };
 
+        logger.logInfo('--------------------->3');
         let server = https.createServer(options, apiServer);
 
         const authorizer = new (require(appConfiguration.authorizer));
+        logger.logInfo('--------------------->4');
 
         apiServer.use(basicAuth({authorizer: function (user, pass) {
                 return authorizer.isAuthorized(user, pass);
@@ -216,6 +220,7 @@ function startApiServer() {
         server.listen(appConfiguration.apiPort || 8443, function () {
             logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
         });
+        logger.logInfo('--------------------->5');
 
         apiServer.all('/ormapi*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
@@ -243,7 +248,7 @@ function startApiServer() {
 
         apiServer.all('/' + appConfiguration.context + '*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
-                logger.logDebug("in /" + appConfiguration.contextcheckAuthorization);
+                logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
             if (authorizer.checkAuthorization(req)) {
                 next();
@@ -251,6 +256,8 @@ function startApiServer() {
                 res.status(401).send("Not Authorized");
             }
         });
+        logger.logInfo('--------------------->5');
+
         apiServer.get('/api/query/login', async function (req, res) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /design/login");
@@ -285,24 +292,6 @@ function startApiServer() {
             } catch (e) {
                 logger.logError('error occured while loading query documents', e);
                 res.status(500).send('error occured while loading query documents');
-            }
-        });
-
-        apiServer.get('/api/query/authorizers', async function (req, res) {
-            try {
-                res.status(200).send(loadAuthorizers());
-            } catch (e) {
-                logger.logError('error occured while loading available authorizers', e);
-                res.status(500).send('error occured while loading available authorizers');
-            }
-        });
-
-        apiServer.get('/api/report/authorizers', async function (req, res) {
-            try {
-                res.status(200).send(loadAuthorizers());
-            } catch (e) {
-                logger.logError('error occured while loading available authorizers', e);
-                res.status(500).send('error occured while loading available authorizers');
             }
         });
 
@@ -366,6 +355,7 @@ function startApiServer() {
             }
         });
 
+        logger.logInfo('--------------------->6');
         apiServer.post('/api/query/save', async function (req, res) {
             try {
                 saveQuery(req.body);
@@ -453,6 +443,7 @@ function startApiServer() {
                 res.status(500).send('eerror occured while checking user input required  ' + req.params.queryDocumentId + ' - ' + e);
             }
         });
+        logger.logInfo('--------------------->7');
 
 
         apiServer.get('/api/query/delete/:docid', async function (req, res) {
@@ -580,6 +571,7 @@ function startApiServer() {
                 res.status(500).send('error occured while loading query documents');
             }
         });
+        logger.logInfo('--------------------->8');
 
         apiServer.get('/ormapi/:module/:method', async function (req, res) {
             let repo = repositoryMap.get(req.params.module);
@@ -787,6 +779,7 @@ function startApiServer() {
 
             res.end();
         });
+        logger.logInfo('--------------------->9');
 
         apiServer.delete('/ormapi/:module/:method', function (req, res) {
             let repo = repositoryMap.get(req.params.module);
