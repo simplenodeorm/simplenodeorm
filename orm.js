@@ -12,7 +12,7 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const dbTypeMap = new Map();
-
+const orm = this;
 
 
 // These are variables setup via the app configuration. The default configuration
@@ -2716,7 +2716,6 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 
 function loadReportDocumentGroups() {
     try {
-        logger.logInfo('------------------->' + customization.loadReportDocumentGroups)
         if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
