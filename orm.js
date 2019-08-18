@@ -63,7 +63,8 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
             await suite.run();
         }
 
-        serverStartedCallback(startApiServer(), logger);
+        let server = await startApiServer();
+        serverStartedCallback(server, logger);
     });
 
     // setup database pool and fire off orm load
@@ -181,7 +182,7 @@ function loadModelFiles(dir, modelFiles) {
     }
 }
 
-function startApiServer() {
+async function startApiServer() {
     logger.logInfo('starting api server...');
     let apiServer;
     try {
