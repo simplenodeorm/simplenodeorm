@@ -829,6 +829,7 @@ function startApiServer() {
     }
 
     catch (e) {
+        logger.logError(e);
         apiServer = null;
     }
 
