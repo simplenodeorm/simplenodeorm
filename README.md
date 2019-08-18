@@ -98,16 +98,16 @@ is shown below:
  in the database you can implement the following methods in the Customization module:
 
 ```
- module.exports.loadReportDocumentGroups = function(orm) {}
- module.exports.loadQueryDocumentGroups = function(orm) {}
- module.exports.loadReportDocuments = function(orm) {}
- module.exports.loadReport = function(orm, documentId) {}
- module.exports.saveReport = function(orm, reportDocument) {}
- module.exports.deleteReport = function(orm, reportId) {}
- module.exports.loadQueryDocuments = function(orm) {}
- module.exports.loadQuery = function(orm, queryId) {}
- module.exports.saveQuery = function(orm, queryDocument) {}
- module.exports.deleteQuery = function(orm, queryId) {};
+  module.exports.loadReportDocumentGroups = async function(orm) {}
+  module.exports.loadQueryDocumentGroups = async function(orm) {}
+  module.exports.loadReportDocuments = async function(orm) {}
+  module.exports.loadReport =  async function(orm, documentId) {}
+  module.exports.saveReport =  async function(orm, reportDocument) {}
+  module.exports.deleteReport =  async function(orm, reportId) {}
+  module.exports.loadQueryDocuments =  async function(orm) {}
+  module.exports.loadQuery =  async function(orm, queryId) {}
+  module.exports.saveQuery =  async function(orm, queryDicument) {}
+  module.exports.deleteQuery =  async function(orm, queryId) {};
 ```
 For more detailed information see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
 
