@@ -1,7 +1,7 @@
 "use strict";
 
 const poolAlias = 'sakila';
-const Repository = require('@simplenodeorm/simplenodeorm/main/Repository');
+const Repository = require('../../../main/Repository');
 
 class InventoryRepository extends Repository {
     constructor(metaData) {

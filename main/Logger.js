@@ -1,42 +1,28 @@
-const fs = require('fs');
-const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const ERROR = 'error';
 const WARN = 'warning';
 const INFO = 'info';
 const DEBUG = 'debug';
 
 const winston =  require('winston');
-var twoDigit = '2-digit';
-var options = {
-  day: twoDigit,
-  month: twoDigit,
-  year: twoDigit,
-  hour: twoDigit,
-  minute: twoDigit,
-  second: twoDigit
+let logger;
+
+module.exports.initialize = function(appConfiguration) {
+    logger = winston.createLogger({
+        level: appConfiguration.logLevel,
+        transports: [
+            new winston.transports.File({
+                filename: appConfiguration.logFile,
+                maxSize: 5000000,
+                maxFiles: 5,
+                handleExceptions: true,
+                format: winston.format.combine(
+                    winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
+                    winston.format.json())
+            }),
+            new winston.transports.Console({format: winston.format.simple(), handleExceptions: true})
+        ]
+    });
 };
-
-
-function formatter(args) {
-  var dateTimeComponents = new Date().toLocaleTimeString('en-us', options).split(',');
-  return dateTimeComponents[0] + dateTimeComponents[1] + ' - ' + args.level + ': ' + args.message;
-}
-
-const logger = winston.createLogger({
-  level: appConfiguration.logLevel,
-  transports: [
-    new winston.transports.File({ 
-        filename: appConfiguration.logFile, 
-        maxSize: 5000000, 
-        maxFiles: 5, 
-        handleExceptions: true,
-        format: winston.format.combine(
-            winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
-            winston.format.json()) 
-     }),
-    new winston.transports.Console({format: winston.format.simple(), handleExceptions: true})
-  ]
-});
 
 module.exports.ERROR = ERROR;
 module.exports.WARN = WARN;

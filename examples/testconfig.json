@@ -4,5 +4,5 @@
     "maxRowsForGetAll" : 50,
     "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId"],
     "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate"],
-    "testDataRootPath": "test/testdata"
+    "testDataRootPath": "examples/testdata"
 }

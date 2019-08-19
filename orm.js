@@ -46,7 +46,7 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
     module.exports.testConfiguration = testConfiguration;
 
     logger = require('./main/Logger.js');
-
+    logger.initialize(appConfiguration);
     module.exports.logger = logger;
 
     const poolCreatedEmitter = new events.EventEmitter();
@@ -269,24 +269,6 @@ function startApiServer() {
 
         apiServer.get('/api/report/document/groups', async function (req, res) {
             res.status(200).send(reportDocumentGroups);
-        });
-
-        apiServer.get('/api/report/documents', async function (req, res) {
-            try {
-                res.status(200).send(loadReportDocuments());
-            } catch (e) {
-                logger.logError('error occured while loading report documents', e);
-                res.status(500).send('error occured while loading report documents');
-            }
-        });
-
-        apiServer.get('/api/query/documents', async function (req, res) {
-            try {
-                res.status(200).send(loadQueryDocuments());
-            } catch (e) {
-                logger.logError('error occured while loading query documents', e);
-                res.status(500).send('error occured while loading query documents');
-            }
         });
 
         apiServer.post('/api/query/generatesql', async function (req, res) {
@@ -1533,7 +1515,7 @@ function loadQueryDocuments() {
         logger.logDebug('query documents: ' + JSON.stringify(retval));
     }
     
-    return JSON.stringify(retval);
+    return retval;
 }
 
 function loadReportDocuments() {
@@ -1566,28 +1548,8 @@ function loadReportDocuments() {
         logger.logDebug('report documents: ' + JSON.stringify(retval));
     }
     
-    return JSON.stringify(retval);
+    return retval;
 }
-
-
-function loadAuthorizers() {
-    let retval = [];
-    let files = fs.readdirSync('./auth');
-
-    for (let i = 0; i < files.length; ++i) {
-        if ((files[i] !== 'Authorizer.js') && files[i].endsWith('Authorizer.js')) {
-            retval.push(files[i].replace('.js', ''));
-        }
-    }
-    
-    retval.sort();
-    if (logger.isLogDebugEnabled()) {
-        logger.logDebug('autorizers: ' + JSON.stringify(retval));
-    }
-    
-    return JSON.stringify(retval);
-}
-
 
 function saveQuery(doc) {
     if (customization && (typeof customization.saveQuery === "function")) {
@@ -2713,25 +2675,87 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 }
 
 function loadReportDocumentGroups() {
+    let retval;
     try {
         if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
-            return JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
+            retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            return customization.loadReportDocumentGroups(orm);
+            retval = customization.loadReportDocumentGroups(orm);
         }
     } catch(e) {
         logger.logError('error ocurred during document reports definition load - ' + e);
     }
+
+    traverseDocumentGroups(retval, loadReportDocuments());
+
+    return retval;
 }
 
 function loadQueryDocumentGroups() {
+    let retval;
     try {
         if (appConfiguration.queryDocumentGroupsDefinition && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
-            return JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
+            retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-            return customization.loadQueryDocumentGroups(orm);
+            retval = customization.loadQueryDocumentGroups(orm);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
     }
+
+    traverseDocumentGroups(retval, loadQueryDocuments());
+
+    return retval;
 }
+
+function traverseDocumentGroups(grp,  documents) {
+    if (!grp.isLeaf) {
+        let canRecurse = grp.children;
+        if (documents) {
+            let docs = documents[grp.key];
+            if (docs) {
+                if (!grp.children) {
+                    grp.children = [];
+                    canRecurse = false;
+                }
+
+                for (let j = 0; j < docs.length; ++j) {
+                    let leaf = {
+                        title: docs[j].replace(/_/g, ' ').replace('.json', ''),
+                        isLeaf: true,
+                        key: (grp.key + '.' + docs[j])
+                    };
+                    grp.children.push(leaf);
+               }
+            }
+        }
+
+        if (canRecurse) {
+            for (let i = 0; i < grp.children.length; ++i) {
+                traverseDocumentGroups(grp.children[i], documents);
+            }
+        }
+    }
+}
+
+/* for local testing
+
+const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
+const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
+const customizations = require('./examples/Customization.js');
+
+
+// these are expected to be full paths so do this for eample purposes
+appConfig.queryDocumentRoot = __dirname + "/" + appConfig.queryDocumentRoot;
+appConfig.reportDocumentRoot = __dirname + "/" +  appConfig.reportDocumentRoot;
+appConfig.reportDocumentGroupsDefinition = __dirname + "/" + appConfig.reportDocumentGroupsDefinition;
+appConfig.queryDocumentReportsDefinition = __dirname + "/" + appConfig.queryDocumentReportssDefinition;
+
+module.exports.startOrm(__dirname, appConfig, testConfig,
+    function onServerStarted(server, logger) {
+        logger.logInfo("simplenodeorm server started for self test");
+    }
+    , customizations);
+*/
+
+

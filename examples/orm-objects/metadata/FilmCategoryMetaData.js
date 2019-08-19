@@ -1,6 +1,6 @@
 "use strict";
 
-let MetaData = require('@simplenodeorm/simplenodeorm/main/MetaData').MetaData;
+let MetaData = require('../../../main/MetaData').MetaData;
 
 class FilmCategoryMetaData extends MetaData {
     constructor() {

@@ -1,6 +1,6 @@
 "use strict";
 
-const Model = require('@simplenodeorm/simplenodeorm/main/Model');
+const Model = require('../../../main/Model');
 
 class Actor extends Model {
     constructor(metaData) {
