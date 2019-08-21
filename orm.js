@@ -2736,6 +2736,23 @@ function traverseDocumentGroups(grp,  documents) {
     }
 }
 
+module.exports.parseOrmResult = function(res, errorName) {
+    if (res) {
+        if (res.error) {
+            logger.logError(res.error);
+            if (errorName) {
+                throwError(errorName, res.error);
+            }
+        } else if (res.result) {
+            if (res.result.rows) {
+                return res.result.rows;
+            } else {
+                return res.result;
+            }
+        }
+    }
+};
+
 
 // self test mode if environment variable set
 if (process.env.RUN_SELF_TEST) {
