@@ -2735,7 +2735,7 @@ function traverseDocumentGroups(grp,  documents) {
     }
 }
 
-/* for local testing */
+/* for local testing
 
 const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
 const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
@@ -2753,6 +2753,6 @@ module.exports.startOrm(__dirname, appConfig, testConfig,
         logger.logInfo("simplenodeorm server started for self test");
     }
     , customizations);
-
+*/
 
 
