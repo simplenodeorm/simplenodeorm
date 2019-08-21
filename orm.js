@@ -24,6 +24,7 @@ let testConfiguration;
 let customization;
 let logger;
 
+module.exports.util = util;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback, customizations) {
