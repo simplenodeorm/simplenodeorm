@@ -191,8 +191,6 @@ function startApiServer() {
         const https = require('https');
         apiServer = express();
 
-        const reportDocumentGroups = loadReportDocumentGroups();
-        const queryDocumentGroups = loadQueryDocumentGroups();
 
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
@@ -264,11 +262,11 @@ function startApiServer() {
         });
 
         apiServer.get('/api/query/document/groups', async function (req, res) {
-            res.status(200).send(queryDocumentGroups);
+          res.status(200).send(await loadQueryDocumentGroups());
         });
 
         apiServer.get('/api/report/document/groups', async function (req, res) {
-            res.status(200).send(reportDocumentGroups);
+            res.status(200).send(loadReportDocumentGroups());
         });
 
         apiServer.post('/api/query/generatesql', async function (req, res) {
@@ -2674,14 +2672,14 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-function loadReportDocumentGroups() {
+async function loadReportDocumentGroups() {
     let retval;
     try {
         if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
             traverseDocumentGroups(retval, loadReportDocuments());
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            retval = customization.loadReportDocumentGroups(orm);
+            retval = await customization.loadReportDocumentGroups(orm);
         }
     } catch(e) {
         logger.logError('error ocurred during document reports definition load - ' + e);
@@ -2691,14 +2689,14 @@ function loadReportDocumentGroups() {
     return retval;
 }
 
-function loadQueryDocumentGroups() {
+async function loadQueryDocumentGroups() {
     let retval;
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
             traverseDocumentGroups(retval, loadQueryDocuments());
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-            retval = customization.loadQueryDocumentGroups(orm);
+            retval = await customization.loadQueryDocumentGroups(orm);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
@@ -2737,7 +2735,7 @@ function traverseDocumentGroups(grp,  documents) {
     }
 }
 
-/* for local testing
+/* for local testing */
 
 const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
 const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
@@ -2755,6 +2753,6 @@ module.exports.startOrm(__dirname, appConfig, testConfig,
         logger.logInfo("simplenodeorm server started for self test");
     }
     , customizations);
-*/
+
 
 
