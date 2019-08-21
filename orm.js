@@ -266,7 +266,7 @@ function startApiServer() {
         });
 
         apiServer.get('/api/report/document/groups', async function (req, res) {
-            res.status(200).send(loadReportDocumentGroups());
+            res.status(200).send(await loadReportDocumentGroups());
         });
 
         apiServer.post('/api/query/generatesql', async function (req, res) {
