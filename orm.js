@@ -274,7 +274,7 @@ function startApiServer() {
                 res.status(200).send(buildQueryDocumentSql(req.body, true));
             } catch (e) {
                 logger.logError('error occured while building sql from query document', e);
-                res.status(500).send('error occured while building sql from query document');
+                res.status(500).send(e);
             }
         });
 
@@ -315,17 +315,17 @@ function startApiServer() {
                                 res.status(200).send(retval);
                             } catch (e) {
                                 logger.logError('error occured while building result object graph', e);
-                                res.status(500).send('error occured while building result object graph - ' + e);
+                                res.status(500).send(e);
                             }
                         }
                     } catch (e) {
                         logger.logError('error occured while running query document', e);
-                        res.status(500).send('error occured while running query document - ' + e);
+                        res.status(500).send(e);
                     }
                 })(req, res);
             } catch (e) {
                 logger.logError('error occured while running query document', e);
-                res.status(500).send('error occured while running query document - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -335,7 +335,7 @@ function startApiServer() {
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.documentName, e);
-                res.status(500).send('error occured while saving query document ' + req.body.documentName + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -345,7 +345,7 @@ function startApiServer() {
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
-                res.status(500).send('error occured while saving query document ' + req.body.document.documentName + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -375,7 +375,7 @@ function startApiServer() {
                 }
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
-                res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -386,7 +386,7 @@ function startApiServer() {
                 res.status(200).send(await generateReport(report, query, req.body.parameters));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
-                res.status(500).send('error occured while running report ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -397,7 +397,7 @@ function startApiServer() {
                 res.status(200).send(await generateReport(report, query, req.body.parameters));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.body.report.reportName, e);
-                res.status(500).send('error occured while running report ' + req.body.report.reportName + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -413,7 +413,7 @@ function startApiServer() {
                 }
             } catch (e) {
                 logger.logError('error occured while checking user input required ' + req.params.queryDocumentId, e);
-                res.status(500).send('eerror occured while checking user input required  ' + req.params.queryDocumentId + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -423,7 +423,7 @@ function startApiServer() {
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting query document ' + req.params.docid, e);
-                res.status(500).send('error occured while deleting query document ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -433,7 +433,7 @@ function startApiServer() {
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting report ' + req.params.docid, e);
-                res.status(500).send('error occured while deleting report ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -442,7 +442,7 @@ function startApiServer() {
                 res.status(200).send(loadReport(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading report ' + req.params.docid, e);
-                res.status(500).send('error occured while loading report ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -471,7 +471,7 @@ function startApiServer() {
                 res.status(200).send(qcinfo);
             } catch (e) {
                 logger.logError('error occured while loading query columns for query ' + req.params.qdocid, e);
-                res.status(500).send('error occured while loading query columns for query ' + req.params.qdocid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -480,7 +480,7 @@ function startApiServer() {
                 res.status(200).send(loadQuery(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading document ' + req.params.docid, e);
-                res.status(500).send('error occured while loading document ' + req.params.docid + ' - ' + e);
+                res.status(500).send(e);
             }
         });
 
@@ -539,7 +539,7 @@ function startApiServer() {
                 res.status(200).send(JSON.stringify(retval));
             } catch (e) {
                 logger.logError('error occured while loading query documents', e);
-                res.status(500).send('error occured while loading query documents');
+                res.status(500).send(e);
             }
         });
 
@@ -633,7 +633,7 @@ function startApiServer() {
                 if (util.isUndefined(result)) {
                     res.status(404).send('not found');
                 } else if (util.isDefined(result.error)) {
-                    res.status(500).send(util.toString(result.error));
+                    res.status(500).send(result.error);
                 } else if (util.isDefined(result.result)) {
                     res.status(200).send(util.toDataTransferString(result.result));
                 } else {
@@ -689,7 +689,7 @@ function startApiServer() {
                 if (util.isUndefined(result)) {
                     res.status(404).send('not found');
                 } else if (util.isDefined(result.error)) {
-                    res.status(500).send(util.toString(result.error));
+                    res.status(500).send(result.error);
                 } else if (util.isDefined(result.result)) {
                     res.status(200).send(util.toDataTransferString(result.result));
                 } else if (util.isDefined(result.updatedValues)) {
@@ -737,7 +737,7 @@ function startApiServer() {
                 if (util.isUndefined(result)) {
                     res.status(404).send('not found');
                 } else if (util.isDefined(result.error)) {
-                    res.status(500).send(util.toString(result.error));
+                    res.status(500).send(result.error);
                 } else if (util.isDefined(result.updatedValues)) {
                     res.status(200).send(util.toDataTransferString(result.updatedValues));
                 } else if (util.isDefined(result.rowsAffected)) {
@@ -778,7 +778,7 @@ function startApiServer() {
                 }
 
                 if (util.isDefined(result.error)) {
-                    res.status(500).send(util.toString(result.error));
+                    res.status(500).send(result.error);
                 } else if (util.isDefined(result.rowsAffected)) {
                     res.status(200).send(util.toDataTransferString(result));
                 } else {
@@ -791,7 +791,7 @@ function startApiServer() {
     }
 
     catch (e) {
-        logger.logError('error occurred during api server start - ' + e);
+        logger.logError('error occurred during api server start', e);
         apiServer = null;
     }
 
@@ -2735,24 +2735,25 @@ function traverseDocumentGroups(grp,  documents) {
     }
 }
 
-/* for local testing
 
-const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
-const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
-const customizations = require('./examples/Customization.js');
+// self test mode if environment variable set
+if (process.env.RUN_SELF_TEST) {
+    const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
+    const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
+    const customizations = require('./examples/Customization.js');
 
 
-// these are expected to be full paths so do this for eample purposes
-appConfig.queryDocumentRoot = __dirname + "/" + appConfig.queryDocumentRoot;
-appConfig.reportDocumentRoot = __dirname + "/" +  appConfig.reportDocumentRoot;
-appConfig.reportDocumentGroupsDefinition = __dirname + "/" + appConfig.reportDocumentGroupsDefinition;
-appConfig.queryDocumentReportsDefinition = __dirname + "/" + appConfig.queryDocumentReportssDefinition;
+    // these are expected to be full paths so do this for eample purposes
+    appConfig.queryDocumentRoot = __dirname + "/" + appConfig.queryDocumentRoot;
+    appConfig.reportDocumentRoot = __dirname + "/" + appConfig.reportDocumentRoot;
+    appConfig.reportDocumentGroupsDefinition = __dirname + "/" + appConfig.reportDocumentGroupsDefinition;
+    appConfig.queryDocumentReportsDefinition = __dirname + "/" + appConfig.queryDocumentReportssDefinition;
 
-module.exports.startOrm(__dirname, appConfig, testConfig,
-    function onServerStarted(server, logger) {
-        logger.logInfo("simplenodeorm server started for self test");
-    }
-    , customizations);
-*/
+    module.exports.startOrm(__dirname, appConfig, testConfig,
+        function onServerStarted(server, logger) {
+            logger.logInfo("simplenodeorm server started for self test");
+        }
+        , customizations);
+}
 
 
