@@ -2679,6 +2679,7 @@ function loadReportDocumentGroups() {
     try {
         if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
+            traverseDocumentGroups(retval, loadReportDocuments());
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
             retval = customization.loadReportDocumentGroups(orm);
         }
@@ -2686,7 +2687,6 @@ function loadReportDocumentGroups() {
         logger.logError('error ocurred during document reports definition load - ' + e);
     }
 
-    traverseDocumentGroups(retval, loadReportDocuments());
 
     return retval;
 }
@@ -2696,14 +2696,13 @@ function loadQueryDocumentGroups() {
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
+            traverseDocumentGroups(retval, loadQueryDocuments());
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
             retval = customization.loadQueryDocumentGroups(orm);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
     }
-
-    traverseDocumentGroups(retval, loadQueryDocuments());
 
     return retval;
 }
