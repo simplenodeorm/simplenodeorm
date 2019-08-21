@@ -2677,7 +2677,7 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 function loadReportDocumentGroups() {
     let retval;
     try {
-        if (appConfiguration.reportDocumentGroupsDefinition && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+        if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
             retval = customization.loadReportDocumentGroups(orm);
@@ -2694,7 +2694,7 @@ function loadReportDocumentGroups() {
 function loadQueryDocumentGroups() {
     let retval;
     try {
-        if (appConfiguration.queryDocumentGroupsDefinition && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
+        if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
             retval = customization.loadQueryDocumentGroups(orm);
