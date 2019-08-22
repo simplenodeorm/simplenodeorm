@@ -507,7 +507,7 @@ function startApiServer() {
         apiServer.get('/api/report/querydocuments', async function (req, res) {
             try {
                 let groupMap = new Map();
-                let queryDocs = JSON.parse(loadQueryDocuments());
+                let queryDocs = JSON.parse(await loadQueryDocumentSummaries());
                 loadGroupMap(queryDocumentGroups, groupMap);
 
                 let retval = [];
@@ -1484,11 +1484,11 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     }
 }
 
-function loadQueryDocuments() {
+async function loadQueryDocumentSummaries() {
     let retval = {};
 
     if (customization && (typeof customization.loadQueryDocumentSummaries === "function")) {
-        retval = customization.loadQueryDocumentSummaries(orm);
+        retval = await customization.loadQueryDocumentSummaries(orm);
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
@@ -2695,7 +2695,7 @@ async function loadQueryDocumentGroups() {
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
-            traverseDocumentGroups(retval, loadQueryDocuments());
+            traverseDocumentGroups(retval, await loadQueryDocumentSummaries());
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
             retval = await customization.loadQueryDocumentGroups(orm);
         }
