@@ -452,20 +452,20 @@ function startApiServer() {
                 let qdoc = await loadQuery(req.params.qdocid);
                 let qcinfo = [];
 
-                for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
-                    let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
-                    let label = qdoc.document.selectedColumns[i].label;
+                for (let i = 0; i < qdoc.selectedColumns.length; ++i) {
+                    let fld = findField(repositoryMap.get(qdoc.rootModel.toLowerCase()).getMetaData(), qdoc.selectedColumns[i].path);
+                    let label = qdoc.selectedColumns[i].label;
                     if (!label) {
                         label = fld.fieldName;
                     }
 
                     // SIM-3 add function
                     qcinfo.push({
-                        path: qdoc.document.selectedColumns[i].path,
+                        path: qdoc.selectedColumns[i].path,
                         name: label,
                         type: fld.type,
-                        function: qdoc.document.selectedColumns[i].function,
-                        customInput: qdoc.document.selectedColumns[i].customInput,
+                        function: qdoc.selectedColumns[i].function,
+                        customInput: qdoc.selectedColumns[i].customInput,
                         length: fld.length
                     });
                 }
