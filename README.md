@@ -100,6 +100,7 @@ is shown below:
 ```
   module.exports.loadReportDocumentGroups = async function(orm) {}
   module.exports.loadQueryDocumentGroups = async function(orm) {}
+  module.exports.loadQueryDocumentSummaries = async function(orm) {}
   module.exports.loadReport =  async function(orm, documentId) {}
   module.exports.saveReport =  async function(orm, reportDocument) {}
   module.exports.deleteReport =  async function(orm, reportId) {}

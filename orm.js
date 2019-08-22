@@ -1488,7 +1488,7 @@ function loadQueryDocuments() {
     let retval = {};
 
     if (customization && (typeof customization.loadQueryDocuments === "function")) {
-        retval = customization.loadQueryDocuments(orm);
+        retval = customization.loadQueryDocumentSummaries(orm);
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
