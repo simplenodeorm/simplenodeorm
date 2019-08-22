@@ -1487,7 +1487,7 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 function loadQueryDocuments() {
     let retval = {};
 
-    if (customization && (typeof customization.loadQueryDocuments === "function")) {
+    if (customization && (typeof customization.loadQueryDocumentSummaries === "function")) {
         retval = customization.loadQueryDocumentSummaries(orm);
     } else {
         let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
