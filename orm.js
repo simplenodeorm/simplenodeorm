@@ -440,7 +440,7 @@ function startApiServer() {
 
         apiServer.get('/api/report/load/:docid', async function (req, res) {
             try {
-                res.status(200).send(loadReport(req.params.docid));
+                res.status(200).send(await loadReport(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading report ' + req.params.docid, e);
                 res.status(500).send(e);
@@ -478,7 +478,7 @@ function startApiServer() {
 
         apiServer.get('/api/query/load/:docid', async function (req, res) {
             try {
-                res.status(200).send(loadQuery(req.params.docid));
+                res.status(200).send(await loadQuery(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading document ' + req.params.docid, e);
                 res.status(500).send(e);
@@ -1606,9 +1606,9 @@ function deleteReport(docid) {
     }
 }
 
-function loadQuery(docid) {
+async function loadQuery(docid) {
     if (customization && (typeof customization.loadQuery === "function")) {
-        return customization.loadQuery(orm, docid);
+        return await customization.loadQuery(orm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1620,9 +1620,9 @@ function loadQuery(docid) {
     }
 }
 
-function loadReport(docid) {
+async function loadReport(docid) {
     if (customization && (typeof customization.loadReport === "function")) {
-        return customization.loadReport(rm, docid);
+        return await customization.loadReport(rm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
