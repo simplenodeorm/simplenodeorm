@@ -286,7 +286,7 @@ function startApiServer() {
                     try {
                         if (doc.documentName && !doc.interactive) {
                             let params = doc.parameters;
-                            doc = loadQuery(doc.groupId + '.' + doc.documentName + '.json');
+                            doc = await loadQuery(doc.groupId + '.' + doc.documentName + '.json');
                             doc.parameters = params;
 
                         }
@@ -352,8 +352,8 @@ function startApiServer() {
 
         apiServer.get('/api/report/run/:docid', async function (req, res) {
             try {
-                let report = loadReport(req.params.docid);
-                let query = loadQuery(report.document.queryDocumentId);
+                let report = await loadReport(req.params.docid);
+                let query = await loadQuery(report.document.queryDocumentId);
                 let authorizer;
                 try {
                     logger.logInfo('authorizer: ' + report.authenticator);
@@ -382,8 +382,8 @@ function startApiServer() {
 
         apiServer.post('/api/report/run/:docid', async function (req, res) {
             try {
-                let report = loadReport(req.params.docid);
-                let query = loadQuery(report.document.queryDocumentId);
+                let report = await loadReport(req.params.docid);
+                let query = await loadQuery(report.document.queryDocumentId);
                 res.status(200).send(await generateReport(report, query, req.body.parameters));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
@@ -394,7 +394,7 @@ function startApiServer() {
         apiServer.post('/api/report/runfordesign', async function (req, res) {
             try {
                 let report = req.body.report;
-                let query = loadQuery(report.document.queryDocumentId);
+                let query = await loadQuery(report.document.queryDocumentId);
                 res.status(200).send(await generateReport(report, query, req.body.parameters));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.body.report.reportName, e);
@@ -404,7 +404,7 @@ function startApiServer() {
 
         apiServer.get('/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
             try {
-                let query = loadQuery(req.params.queryDocumentId);
+                let query = await loadQuery(req.params.queryDocumentId);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
                 if (requiredInputs.length > 0) {
@@ -449,7 +449,7 @@ function startApiServer() {
 
         apiServer.get('/api/report/querycolumninfo/:qdocid', async function (req, res) {
             try {
-                let qdoc = loadQuery(req.params.qdocid);
+                let qdoc = await loadQuery(req.params.qdocid);
                 let qcinfo = [];
 
                 for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
@@ -2556,7 +2556,9 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 async function loadReportDocumentGroups() {
     let retval;
     try {
-        if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+        if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
+            retval = await customization.loadReportDocumentGroups(orm);
+        } else if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
             let reports = {};
             let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
@@ -2579,8 +2581,6 @@ async function loadReportDocumentGroups() {
             }
 
             traverseDocumentGroups(retval, reports);
-        } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            retval = await customization.loadReportDocumentGroups(orm);
         }
     } catch(e) {
         logger.logError('error ocurred during document reports definition load - ' + e);
