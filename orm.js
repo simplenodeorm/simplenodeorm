@@ -507,7 +507,7 @@ function startApiServer() {
         apiServer.get('/api/report/querydocuments', async function (req, res) {
             try {
                 let groupMap = new Map();
-                let queryDocs = JSON.parse(await loadQueryDocumentSummaries());
+                let queryDocs = await loadQueryDocumentSummaries();
                 loadGroupMap(queryDocumentGroups, groupMap);
 
                 let retval = [];
