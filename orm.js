@@ -1595,7 +1595,7 @@ function deleteQuery(docid) {
 
 function deleteReport(docid) {
     if (customization && (typeof customization.deleteReport === "function")) {
-        customization.deleteReport(orm, doc);
+        customization.deleteReport(orm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
