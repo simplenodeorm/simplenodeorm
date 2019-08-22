@@ -504,46 +504,6 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/report/querydocuments', async function (req, res) {
-            try {
-                let groupMap = new Map();
-                let queryDocs = await loadQueryDocumentSummaries();
-                loadGroupMap(queryDocumentGroups, groupMap);
-
-                let retval = [];
-
-                groupMap.forEach((v, k) => {
-                    if (queryDocs[k]) {
-                        for (let i = 0; i < queryDocs[k].length; ++i) {
-                            retval.push({key: k, group: v.title, documentName: queryDocs[k][i]});
-                        }
-                    }
-                });
-
-                retval.sort((a, b) => {
-                    let retval = 0;
-                    if (a.group > b.group) {
-                        retval = 1;
-                    } else if (a.group < b.group) {
-                        retval = -1;
-                    } else {
-                        if (a.documentName > b.documentName) {
-                            retval = 1;
-                        } else {
-                            retval = -1;
-                        }
-                    }
-
-                    return retval;
-                });
-
-                res.status(200).send(JSON.stringify(retval));
-            } catch (e) {
-                logger.logError('error occured while loading query documents', e);
-                res.status(500).send(e);
-            }
-        });
-
         apiServer.get('/ormapi/:module/:method', async function (req, res) {
             let repo = repositoryMap.get(req.params.module);
             let md = repo.getMetaData(req.params.module);
@@ -1484,72 +1444,6 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     }
 }
 
-async function loadQueryDocumentSummaries() {
-    let retval = {};
-
-    if (customization && (typeof customization.loadQueryDocumentSummaries === "function")) {
-        retval = await customization.loadQueryDocumentSummaries(orm);
-    } else {
-        let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
-
-        for (let i = 0; i < groups.length; ++i) {
-            let qpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
-            if (fs.lstatSync(qpath).isDirectory()) {
-                let files = fs.readdirSync(qpath);
-                retval[groups[i]] = [];
-                for (let j = 0; j < files.length; ++j) {
-                    if (files[j].endsWith('.json')) {
-                        retval[groups[i]].push(files[j]);
-                    }
-                }
-
-                if (retval[groups[i]].length > 0) {
-                    retval[groups[i]].sort();
-                }
-            }
-        }
-    }
-
-    if (logger.isLogDebugEnabled()) {
-        logger.logDebug('query documents: ' + JSON.stringify(retval));
-    }
-    
-    return retval;
-}
-
-function loadReportDocuments() {
-    let retval = {};
-
-    if (customization && (typeof customization.loadReportDocuments === "function")) {
-        retval = customization.loadReportDocuments(orm);
-    } else {
-        let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
-
-        for (let i = 0; i < groups.length; ++i) {
-            let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
-            if (fs.lstatSync(rpath).isDirectory()) {
-                let files = fs.readdirSync(rpath);
-                retval[groups[i]] = [];
-                for (let j = 0; j < files.length; ++j) {
-                    if (files[j].endsWith('.json')) {
-                        retval[groups[i]].push(files[j]);
-                    }
-                }
-
-                if (retval[groups[i]].length > 0) {
-                    retval[groups[i]].sort();
-                }
-            }
-        }
-    }
-    
-    if (logger.isLogDebugEnabled()) {
-        logger.logDebug('report documents: ' + JSON.stringify(retval));
-    }
-    
-    return retval;
-}
-
 function saveQuery(doc) {
     if (customization && (typeof customization.saveQuery === "function")) {
         customization.saveQuery(orm, doc);
@@ -1637,22 +1531,8 @@ async function loadReport(docid) {
     }
 }
 
-function loadGroupMap(curGroup, groupMap) {
-    let g = {
-        key: curGroup.key,
-        title: curGroup.title
-    };
-    
-    groupMap.set(g.key, g);
-    
-    if (curGroup.children) {
-        for (let i = 0; i < curGroup.children.length; ++i) {
-            loadGroupMap(curGroup.children[i], groupMap);
-        }
-    }
-}
-
 module.exports.buildResultObjectGraph = buildResultObjectGraph;
+
 function buildResultObjectGraph (doc, resultRows, asObject) {
     let retval = [];
     let positionMap = new Map();
@@ -2678,7 +2558,27 @@ async function loadReportDocumentGroups() {
     try {
         if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
-            traverseDocumentGroups(retval, loadReportDocuments());
+            let reports = {};
+            let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+
+            for (let i = 0; i < groups.length; ++i) {
+                let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
+                if (fs.lstatSync(rpath).isDirectory()) {
+                    let files = fs.readdirSync(rpath);
+                    reports[groups[i]] = [];
+                    for (let j = 0; j < files.length; ++j) {
+                        if (files[j].endsWith('.json')) {
+                            reports[groups[i]].push(files[j]);
+                        }
+                    }
+
+                    if (reports[groups[i]].length > 0) {
+                        reports[groups[i]].sort();
+                    }
+                }
+            }
+
+            traverseDocumentGroups(retval, reports);
         } else if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
             retval = await customization.loadReportDocumentGroups(orm);
         }
@@ -2695,7 +2595,27 @@ async function loadQueryDocumentGroups() {
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
-            traverseDocumentGroups(retval, await loadQueryDocumentSummaries());
+            let queries = {};
+            let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+
+            for (let i = 0; i < groups.length; ++i) {
+                let rpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
+                if (fs.lstatSync(rpath).isDirectory()) {
+                    let files = fs.readdirSync(rpath);
+                    queries[groups[i]] = [];
+                    for (let j = 0; j < files.length; ++j) {
+                        if (files[j].endsWith('.json')) {
+                            queries[groups[i]].push(files[j]);
+                        }
+                    }
+
+                    if (queries[groups[i]].length > 0) {
+                        queries[groups[i]].sort();
+                    }
+                }
+            }
+
+            traverseDocumentGroups(retval, queries);
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
             retval = await customization.loadQueryDocumentGroups(orm);
         }
