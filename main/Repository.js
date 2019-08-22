@@ -1477,7 +1477,11 @@ module.exports = class Repository {
             if (this.isStandardOqlSelect(oql)) {
                 op = this.getSelectClause(options.joinDepth);
             } else if (this.isDelete(oql)) {
-                op = 'delete';
+                if (orm.getDbType(this.poolAlias) === util.MYSQL) {
+                    op = 'delete t0';
+                } else {
+                    op = 'delete';
+                }
             } else {
                 op = oql.substring(0, oql.indexOf(' from '));
             }
