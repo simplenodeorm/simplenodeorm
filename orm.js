@@ -2661,7 +2661,7 @@ module.exports.parseOrmResult = function(res, errorName) {
         if (res.error) {
             logger.logError(res.error);
             if (errorName) {
-                throwError(errorName, res.error);
+                util.throwError(errorName, res.error);
             }
         } else if (res.result) {
             if (res.result.rows) {
