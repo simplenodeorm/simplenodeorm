@@ -450,22 +450,23 @@ function startApiServer() {
         apiServer.get('/api/report/querycolumninfo/:qdocid', async function (req, res) {
             try {
                 let qdoc = await loadQuery(req.params.qdocid);
+
                 let qcinfo = [];
 
-                for (let i = 0; i < qdoc.selectedColumns.length; ++i) {
-                    let fld = findField(repositoryMap.get(qdoc.rootModel.toLowerCase()).getMetaData(), qdoc.selectedColumns[i].path);
-                    let label = qdoc.selectedColumns[i].label;
+                for (let i = 0; i < qdoc.document.selectedColumns.length; ++i) {
+                    let fld = findField(repositoryMap.get(qdoc.document.rootModel.toLowerCase()).getMetaData(), qdoc.document.selectedColumns[i].path);
+                    let label = qdoc.document.selectedColumns[i].label;
                     if (!label) {
                         label = fld.fieldName;
                     }
 
                     // SIM-3 add function
                     qcinfo.push({
-                        path: qdoc.selectedColumns[i].path,
+                        path: qdoc.document.selectedColumns[i].path,
                         name: label,
                         type: fld.type,
-                        function: qdoc.selectedColumns[i].function,
-                        customInput: qdoc.selectedColumns[i].customInput,
+                        function: qdoc.document.selectedColumns[i].function,
+                        customInput: qdoc.document.selectedColumns[i].customInput,
                         length: fld.length
                     });
                 }
@@ -1510,6 +1511,9 @@ async function loadQuery(docid) {
 
         let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
 
+        if (!fname.endsWith('.json')) {
+            fname = fname + '.json';
+        }
         return JSON.parse(fs.readFileSync(fname));
     }
 }
@@ -2596,7 +2600,7 @@ async function loadQueryDocumentGroups() {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
             let queries = {};
-            let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+            let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
             for (let i = 0; i < groups.length; ++i) {
                 let rpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];

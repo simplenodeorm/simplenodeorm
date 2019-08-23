@@ -1,1 +1,0 @@
-{"distinct":false,"documentName":"new_document","group":["grp5"],"resultFormat":"object","document":{"rootModel":"Staff","selectedColumns":[{"path":"staffId"},{"path":"firstName"},{"path":"lastName"},{"path":"email"},{"path":"store.storeId"}],"whereComparisons":[{"fieldName":"staffId","comparisonOperator":"is not null","fieldType":"int","logicalOperator":""}]}}
