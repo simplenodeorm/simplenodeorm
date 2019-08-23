@@ -1520,7 +1520,7 @@ async function loadQuery(docid) {
 
 async function loadReport(docid) {
     if (customization && (typeof customization.loadReport === "function")) {
-        return await customization.loadReport(rm, docid);
+        return await customization.loadReport(orm, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
