@@ -1,11 +1,11 @@
 "use strict";
 
 class Authorizer {
-    isAuthorized(user, pass) {
+    isAuthorized(orm, user, pass) {
         return false;
     }
     
-    checkAuthorization(req) {
+    checkAuthorization(orm, req) {
         return false;
     }
 }

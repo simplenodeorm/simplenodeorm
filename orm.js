@@ -209,7 +209,7 @@ function startApiServer() {
         const authorizer = new (require(appConfiguration.authorizer));
 
         apiServer.use(basicAuth({authorizer: function (user, pass) {
-                return authorizer.isAuthorized(user, pass);
+                return authorizer.isAuthorized(orm, user, pass);
         }}));
 
         server.listen(appConfiguration.apiPort || 8443, function () {
@@ -221,7 +221,7 @@ function startApiServer() {
                 logger.logDebug("in /ormapi checkAuthorization");
             }
 
-            if (authorizer.checkAuthorization(req)) {
+            if (authorizer.checkAuthorization(orm, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
@@ -233,7 +233,7 @@ function startApiServer() {
                 logger.logDebug("in /api checkAuthorization");
             }
 
-            if (authorizer.checkAuthorization(req)) {
+            if (authorizer.checkAuthorization(orm, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
@@ -244,7 +244,7 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
-            if (authorizer.checkAuthorization(req)) {
+            if (authorizer.checkAuthorization(orm, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
@@ -354,25 +354,12 @@ function startApiServer() {
             try {
                 let report = await loadReport(req.params.docid);
                 let query = await loadQuery(report.document.queryDocumentId);
-                let authorizer;
-                try {
-                    logger.logInfo('authorizer: ' + report.authenticator);
-                    let Authenticator = require('./auth/' + report.authenticator + '.js');
-                    authorizer = new Authenticator();
-                } catch (e) {
-                }
-
-                if (!authorizer || !authorizer.checkAuthorization(req)) {
-                    logger.logInfo('unauthorized access attempted');
-                    res.status(401).send('unauthorized');
+                let requiredInputs = getRequiredInputFields(query.document);
+                // see if we need user input
+                if (requiredInputs.length > 0) {
+                    res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
                 } else {
-                    let requiredInputs = getRequiredInputFields(query.document);
-                    // see if we need user input
-                    if (requiredInputs.length > 0) {
-                        res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
-                    } else {
-                        res.status(200).send(await generateReport(report, query));
-                    }
+                    res.status(200).send(await generateReport(report, query));
                 }
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
@@ -677,10 +664,7 @@ function startApiServer() {
                 }
             }
 
-            if (!saveAuthorizer.checkAuthorization(req)) {
-                logger.logInfo('unauthorized access attempted');
-                res.status(401).send('unauthorized');
-            } else if (util.isUndefined(repo) || util.isUndefined(md)) {
+            if (util.isUndefined(repo) || util.isUndefined(md)) {
                 res.status(400).send('invalid module \'' + req.params.module + '\' specified');
             } else {
                 let result;

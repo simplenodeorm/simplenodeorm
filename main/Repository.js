@@ -1217,6 +1217,8 @@ module.exports = class Repository {
         try {
             if (util.isValidObject(options.conn)) {
                 conn = options.conn;
+            } else if (options.poolAlias) {
+                conn = await orm.getConnection(options.poolAlias);
             } else {
                 conn = await orm.getConnection(this.getPoolAlias());
             }
@@ -1413,6 +1415,8 @@ module.exports = class Repository {
         try {
             if (util.isDefined(options.conn)) {
                 conn = options.conn;
+            } else if (options.poolAlias) {
+                conn = await orm.getConnection(options.poolAlias);
             } else {
                 conn = await orm.getConnection(this.getPoolAlias());
             }

@@ -1,6 +1,5 @@
 "use strict";
 
-const logger = require('../main/Logger.js');
 const Authorizer = require('./Authorizer.js');
 
 class DefaultAuthorizer extends Authorizer {
@@ -8,14 +7,14 @@ class DefaultAuthorizer extends Authorizer {
         super();
     }
     
-    isAuthorized(username, password) {
-        if (logger.isLogDebugEnabled()) {
-            logger.logDebug("username: " + username);
+    isAuthorized(orm, username, password) {
+        if (orm.logger.isLogDebugEnabled()) {
+            orm.logger.logDebug("username: " + username);
         }
         return true;
     }
     
-    checkAuthorization(req) {
+    checkAuthorization(orm, req) {
         return true;
     }
 }
