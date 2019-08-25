@@ -12,7 +12,7 @@ class Authorizer {
         if (this.isLoggedIn(context + '.' + user)) {
             retval = true;
         } else {
-            let retval = this.authenticate(orm, req, user, pass);
+            retval = this.authenticate(orm, req, user, pass);
             if (retval) {
                 loginCache.add(context + '.' + user);
             }

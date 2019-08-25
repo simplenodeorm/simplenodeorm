@@ -246,9 +246,6 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/query/login', async function (req, res) {
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("in /design/login");
-            }
             let user = basicAuth(req);
             if (!user || !user.name || !user.pass) {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
