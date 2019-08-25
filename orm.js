@@ -2572,11 +2572,11 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-async function loadReportDocumentGroups() {
+async function loadReportDocumentGroups(options) {
     let retval;
     try {
         if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            retval = await customization.loadReportDocumentGroups(orm);
+            retval = await customization.loadReportDocumentGroups(orm, options);
         } else if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
             let reports = {};
