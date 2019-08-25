@@ -254,7 +254,7 @@ function startApiServer() {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
             } else if (authorizer.isAuthenticated(orm, req, user.name, user.pass)) {
-                next();
+                res.status(200).send("success");
             } else {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
