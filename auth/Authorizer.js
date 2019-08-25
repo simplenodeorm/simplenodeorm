@@ -2,16 +2,19 @@
 
 const util = require('../main/util.js');
 
-const loginCache = new Map();
+const loginCache = new Set();
 let clearCount = 0;
 
 class Authorizer {
     isAuthenticated(orm, req, user, pass) {
-        let schema = util.getContextFromUrl(req);
-        if (this.isLoggedIn(schema + '.' + user)) {
+        let context = util.getContextFromUrl(req);
+        if (this.isLoggedIn(context + '.' + user)) {
             return true;
         } else {
-            return this.authenticate(orm, req, user, pass);
+            let retval = this.authenticate(orm, req, user, pass);
+            if (retval) {
+                loginCache.add(context + '.' + user);
+            }
         }
     }
 
@@ -35,7 +38,6 @@ class Authorizer {
         } else {
             clearCount = 0;
         }
-
     }
 }
 
