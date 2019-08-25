@@ -5,7 +5,7 @@ const util = require('./main/util.js');
 const modelList = [];
 const repositoryMap = new Map();
 const events = require('events');
-const basicAuth = require('express-basic-auth');
+const basicAuth = require('basic-auth');
 const uuidv1 = require('uuid/v1');
 const path = require('path');
 const fspath = require('fs-path');
@@ -142,25 +142,23 @@ function loadOrmDefinitions() {
         let md = new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
             let repo = require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/repository').replace('.js', 'Repository.js'))(md);
-            if (dbTypeMap.get(repo.getPoolAlias())) {
-                modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
-                repositoryMap.set(modelName.toLowerCase(), repo);
-                if (md.getOneToOneDefinitions()) {
-                    for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
-                        md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
-                    }
+            modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
+            repositoryMap.set(modelName.toLowerCase(), repo);
+            if (md.getOneToOneDefinitions()) {
+                for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
+                    md.getOneToOneDefinitions()[k].alias = ('t' + (indx++));
                 }
+            }
 
-                if (md.getOneToManyDefinitions()) {
-                    for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
-                        md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
-                    }
+            if (md.getOneToManyDefinitions()) {
+                for (let k = 0; k < md.getOneToManyDefinitions().length; ++k) {
+                    md.getOneToManyDefinitions()[k].alias = ('t' + (indx++));
                 }
+            }
 
-                if (md.getOneToManyDefinitions()) {
-                    for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
-                        md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
-                    }
+            if (md.getOneToManyDefinitions()) {
+                for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
+                    md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
                 }
             }
         }
@@ -208,85 +206,96 @@ function startApiServer() {
 
         const authorizer = new (require(appConfiguration.authorizer));
 
-        apiServer.use(basicAuth({authorizer: function (user, pass) {
-                return authorizer.isAuthorized(orm, user, pass);
-        }}));
+        apiServer.use(function (req, res, next) {
+            let user = basicAuth(req);
+            if (!user || !user.name || !user.pass) {
+                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                res.sendStatus(401);
+            } else if (authorizer.isAuthenticated(orm, req, user.username, user.pass)) {
+                next();
+            } else {
+                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                res.sendStatus(401);
+            }
+        });
 
         server.listen(appConfiguration.apiPort || 8443, function () {
             logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
         });
 
-        apiServer.all('/ormapi*', async function (req, res, next) {
+        apiServer.all('/*/ormapi*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /ormapi checkAuthorization");
             }
 
-            if (authorizer.checkAuthorization(orm, req)) {
+            if (authorizer.isAuthorized(orm, {poolAlias: util.getContextFromUrl(req)}, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
             }
         });
 
-        apiServer.all('/api*', async function (req, res, next) {
+        apiServer.all('/*/api*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /api checkAuthorization");
             }
 
-            if (authorizer.checkAuthorization(orm, req)) {
+            if (authorizer.isAuthorized(orm, {poolAlias: util.getContextFromUrl(req)}, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
             }
         });
 
-        apiServer.all('/' + appConfiguration.context + '*', async function (req, res, next) {
+        apiServer.all('/*/' + appConfiguration.context + '/*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
-            if (authorizer.checkAuthorization(orm, req)) {
+            if (authorizer.isAuthorized(orm, {poolAlias: util.getContextFromUrl(req)}, req)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
             }
         });
 
-        apiServer.get('/api/query/login', async function (req, res) {
+        apiServer.get('/*/api/query/login', async function (req, res) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /design/login");
             }
             res.status(200).send("success");
         });
 
-        apiServer.get('/api/query/modelnames', async function (req, res) {
+        apiServer.get('/*/api/query/modelnames', async function (req, res) {
             res.status(200).send(modelList);
         });
 
-        apiServer.get('/api/query/document/groups', async function (req, res) {
-          res.status(200).send(await loadQueryDocumentGroups());
+        apiServer.get('/*/api/query/document/groups', async function (req, res) {
+          res.status(200).send(await loadQueryDocumentGroups({poolAlias: util.getContextFromUrl(req)}));
         });
 
-        apiServer.get('/api/report/document/groups', async function (req, res) {
-            res.status(200).send(await loadReportDocumentGroups());
+        apiServer.get('/*/api/report/document/groups', async function (req, res) {
+            res.status(200).send(await loadReportDocumentGroups({poolAlias: util.getContextFromUrl(req)}));
         });
 
-        apiServer.post('/api/query/generatesql', async function (req, res) {
+        apiServer.post('/*/api/query/generatesql', async function (req, res) {
             try {
-                res.status(200).send(buildQueryDocumentSql(req.body, true));
+                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req)}, true));
             } catch (e) {
                 logger.logError('error occured while building sql from query document', e);
                 res.status(500).send(e);
             }
         });
 
-        apiServer.post('/api/query/run', async function (req, res) {
+        apiServer.post('/*/api/query/run', async function (req, res) {
             try {
                 (async function () {
                     let doc = req.body;
                     try {
+                        let options = {poolAlias: util.getContextFromUrl(req)};
+
                         if (doc.documentName && !doc.interactive) {
                             let params = doc.parameters;
-                            doc = await loadQuery(doc.groupId + '.' + doc.documentName + '.json');
+                            doc = await loadQuery(doc.groupId + '.' + doc.documentName, options);
                             doc.parameters = params;
 
                         }
@@ -299,7 +308,8 @@ function startApiServer() {
                         }
 
                         let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
-                        let result = await repo.executeSqlQuery(sql, doc.parameters);
+
+                        let result = await repo.executeSqlQuery(sql, doc.parameters, options);
                         if (result.error) {
                             if (doc.validityCheckOnly) {
                                 res.status(200).send('generated sql is invalid');
@@ -330,9 +340,9 @@ function startApiServer() {
             }
         });
 
-        apiServer.post('/api/query/save', async function (req, res) {
+        apiServer.post('/*/api/query/save', async function (req, res) {
             try {
-                saveQuery(req.body);
+                saveQuery(req.body, {poolAlias: util.getContextFromUrl(req)});
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.documentName, e);
@@ -340,9 +350,9 @@ function startApiServer() {
             }
         });
 
-        apiServer.post('/api/report/save', async function (req, res) {
+        apiServer.post('/*/api/report/save', async function (req, res) {
             try {
-                saveReport(req.body);
+                saveReport(req.body, {poolAlias: util.getContextFromUrl(req)});
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
@@ -350,16 +360,17 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/report/run/:docid', async function (req, res) {
+        apiServer.get('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let report = await loadReport(req.params.docid);
-                let query = await loadQuery(report.document.queryDocumentId);
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                let report = await loadReport(req.params.docid, options);
+                let query = await loadQuery(report.document.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
                 if (requiredInputs.length > 0) {
                     res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
                 } else {
-                    res.status(200).send(await generateReport(report, query));
+                    res.status(200).send(await generateReport(report, query, options));
                 }
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
@@ -367,31 +378,34 @@ function startApiServer() {
             }
         });
 
-        apiServer.post('/api/report/run/:docid', async function (req, res) {
+        apiServer.post('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let report = await loadReport(req.params.docid);
-                let query = await loadQuery(report.document.queryDocumentId);
-                res.status(200).send(await generateReport(report, query, req.body.parameters));
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                let report = await loadReport(req.params.docid, options);
+                let query = await loadQuery(report.document.queryDocumentId, options);
+                res.status(200).send(await generateReport(report, query, req.body.parameters, options));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
                 res.status(500).send(e);
             }
         });
 
-        apiServer.post('/api/report/runfordesign', async function (req, res) {
+        apiServer.post('/*/api/report/runfordesign', async function (req, res) {
             try {
                 let report = req.body.report;
-                let query = await loadQuery(report.document.queryDocumentId);
-                res.status(200).send(await generateReport(report, query, req.body.parameters));
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                let query = await loadQuery(report.document.queryDocumentId, options);
+                res.status(200).send(await generateReport(report, query, req.body.parameters, options));
             } catch (e) {
                 logger.logError('error occured while running report ' + req.body.report.reportName, e);
                 res.status(500).send(e);
             }
         });
 
-        apiServer.get('/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
+        apiServer.get('/*/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
             try {
-                let query = await loadQuery(req.params.queryDocumentId);
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                let query = await loadQuery(req.params.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
                 if (requiredInputs.length > 0) {
@@ -405,9 +419,10 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/query/delete/:docid', async function (req, res) {
+        apiServer.get('/*/api/query/delete/:docid', async function (req, res) {
             try {
-                deleteQuery(req.params.docid);
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                deleteQuery(req.params.docid, options);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting query document ' + req.params.docid, e);
@@ -415,9 +430,10 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/report/delete/:docid', async function (req, res) {
+        apiServer.get('/*/api/report/delete/:docid', async function (req, res) {
             try {
-                deleteReport(req.params.docid);
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                deleteReport(req.params.docid, options);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting report ' + req.params.docid, e);
@@ -425,18 +441,20 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/report/load/:docid', async function (req, res) {
+        apiServer.get('/*/api/report/load/:docid', async function (req, res) {
             try {
-                res.status(200).send(await loadReport(req.params.docid));
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                res.status(200).send(await loadReport(req.params.docid, options));
             } catch (e) {
                 logger.logError('error occured while loading report ' + req.params.docid, e);
                 res.status(500).send(e);
             }
         });
 
-        apiServer.get('/api/report/querycolumninfo/:qdocid', async function (req, res) {
+        apiServer.get('/*/api/report/querycolumninfo/:qdocid', async function (req, res) {
             try {
-                let qdoc = await loadQuery(req.params.qdocid);
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                let qdoc = await loadQuery(req.params.qdocid, options);
 
                 let qcinfo = [];
 
@@ -464,35 +482,36 @@ function startApiServer() {
             }
         });
 
-        apiServer.get('/api/query/load/:docid', async function (req, res) {
+        apiServer.get('/*/api/query/load/:docid', async function (req, res) {
             try {
-                res.status(200).send(await loadQuery(req.params.docid));
+                let options = {poolAlias: util.getContextFromUrl(req)};
+                res.status(200).send(await loadQuery(req.params.docid, options));
             } catch (e) {
                 logger.logError('error occured while loading document ' + req.params.docid, e);
                 res.status(500).send(e);
             }
         });
 
-        apiServer.get('/api/query/modeltree/:modelname', async function (req, res) {
-            let modelname = req.params.modelname;
-            let repo = repositoryMap.get(modelname.toLowerCase());
-            if (repo && repo.metaData) {
+        apiServer.get('/*/api/query/modeltree/:modelname', async function (req, res) {
+            let repo = orm.getRepository(req.params.modelname);
+            if (repo && repo.getMetaData()) {
                 let data = {};
                 data.key = 't0';
-                data.title = modelname;
-                loadModelData(data, repo.metaData, [], '', false);
+                data.title = req.params.modelname;
+                loadModelData(data, repo.getMetaData(), [], '', false);
                 if (data.title) {
                     res.status(200).json(data);
                 } else {
                     res.status(404).send('not found');
                 }
             } else {
-                logger.logError('no metadata found for' + modelname);
-                res.status(500).send('no metadata found for' + modelname);
+                logger.logError('no model data found for ' + req.params.modelname);
+                res.status(500).send('no model data found for ' + req.params.modelname);
             }
         });
 
-        apiServer.get('/ormapi/:module/:method', async function (req, res) {
+        apiServer.get('/*/ormapi/:module/:method', async function (req, res) {
+            let options = {poolAlias: util.getContextFromUrl(req)};
             let repo = repositoryMap.get(req.params.module);
             let md = repo.getMetaData(req.params.module);
             if (util.isUndefined(repo)) {
@@ -516,10 +535,10 @@ function startApiServer() {
                         for (let i = 0; i < pk.length; ++i) {
                             params.push(req.query[pk[i].fieldName]);
                         }
-                        result = await repo.findOne(params);
+                        result = await repo.findOne(params, options);
                         break;
                     case util.GET_ALL.toLowerCase():
-                        result = await repo.getAll();
+                        result = await repo.getAll(options);
                         break;
                     case util.FIND.toLowerCase():
                         for (let i = 0; i < fields.length; ++i) {
@@ -527,7 +546,7 @@ function startApiServer() {
                                 params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
                             }
                         }
-                        result = await repo.find(params);
+                        result = await repo.find(params, options);
                         break;
                     case util.COUNT.toLowerCase():
                         for (let i = 0; i < fields.length; ++i) {
@@ -535,22 +554,22 @@ function startApiServer() {
                                 params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
                             }
                         }
-                        result = await repo.count(params);
+                        result = await repo.count(params, options);
                         break;
                     case util.EXISTS.toLowerCase():
                         for (let i = 0; i < pk.length; ++i) {
                             params.push(req.query[pk[i].fieldName]);
                         }
-                        result = await repo.exists(params);
+                        result = await repo.exists(params, options);
                         break;
                     case util.FIND_ONE_SYNC.toLowerCase():
                         for (let i = 0; i < pk.length; ++i) {
                             params.push(req.query[pk[i].fieldName]);
                         }
-                        result = await repo.findOneSync(params);
+                        result = await repo.findOneSync(params, options);
                         break;
                     case util.GET_ALL_SYNC.toLowerCase():
-                        result = await repo.getAllSync(params);
+                        result = await repo.getAllSync(params, options);
                         break;
                     case util.FIND_SYNC.toLowerCase():
                         for (let i = 0; i < fields.length; ++i) {
@@ -558,7 +577,7 @@ function startApiServer() {
                                 params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
                             }
                         }
-                        result = await repo.findSync(params);
+                        result = await repo.findSync(params, options);
                         break;
                     case util.COUNT_SYNC.toLowerCase():
                         for (let i = 0; i < fields.length; ++i) {
@@ -566,13 +585,13 @@ function startApiServer() {
                                 params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
                             }
                         }
-                        result = await repo.countSync(params);
+                        result = await repo.countSync(params, options);
                         break;
                     case util.EXISTS_SYNC.toLowerCase():
                         for (let i = 0; i < pk.length; ++i) {
                             params.push(req.query[pk[i].fieldName]);
                         }
-                        result = await repo.existsSync(params);
+                        result = await repo.existsSync(params, options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -593,8 +612,14 @@ function startApiServer() {
             res.end();
         });
 
-        apiServer.post('/ormapi/:module/:method', async function (req, res) {
+        apiServer.post('/*/ormapi/:module/:method', async function (req, res) {
             let repo = repositoryMap.get(req.params.module);
+            let options = populateOptionsFromRequestInput(req.body.options);
+            if (!options) {
+                options = {poolAlias: util.getContextFromUrl(req)};
+            } else {
+                options.poolAlias = util.getContextFromUrl(req);
+            }
             let md = repo.getMetaData(req.params.module);
             if (util.isUndefined(repo)) {
                 // support for using an alias for long module names
@@ -611,24 +636,24 @@ function startApiServer() {
 
                 switch (req.params.method.toLowerCase()) {
                     case util.FIND_ONE.toLowerCase():
-                        result = await repo.findOne(req.body.primaryKeyValues);
+                        result = await repo.findOne(req.body.primaryKeyValues, options);
                         break;
                     case util.FIND.toLowerCase():
                         result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
-                            populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
+                            populateOrderByFromRequestInput(req.body.orderByEntries), options);
                         break;
                     case util.SAVE.toLowerCase():
-                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
+                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     case util.FIND_ONE_SYNC.toLowerCase():
                         result = await repo.findOneSYnc(req.body.primaryKeyValues);
                         break;
                     case util.FIND_SYNC.toLowerCase():
                         result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
-                            populateOrderByFromRequestInput(req.body.orderByEntries), populateOptionsFromRequestInput(req.body.options));
+                            populateOrderByFromRequestInput(req.body.orderByEntries), options);
                         break;
                     case util.SAVE_SYNC.toLowerCase():
-                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), req.body.options);
+                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -653,8 +678,14 @@ function startApiServer() {
             res.end();
         });
 
-        apiServer.put('/ormapi/:module/:method', function (req, res) {
+        apiServer.put('/*/ormapi/:module/:method', function (req, res) {
             let repo = repositoryMap.get(req.params.module);
+            let options = populateOptionsFromRequestInput(req.body.options);
+            if (!options) {
+                options = {poolAlias: util.getContextFromUrl(req)};
+            } else {
+                options.poolAlias = util.getContextFromUrl(req);
+            }
             let md = repo.getMetaData(req.params.module);
             if (util.isUndefined(repo)) {
                 // support for using an alias for long module names
@@ -670,10 +701,10 @@ function startApiServer() {
                 let result;
                 switch (req.params.method.toLowerCase()) {
                     case util.SAVE.toLowerCase():
-                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     case util.SAVE_SYNC.toLowerCase():
-                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -696,7 +727,13 @@ function startApiServer() {
             res.end();
         });
 
-        apiServer.delete('/ormapi/:module/:method', function (req, res) {
+        apiServer.delete('/*/ormapi/:module/:method', function (req, res) {
+            let options = populateOptionsFromRequestInput(req.body.options);
+            if (!options) {
+                options = {poolAlias: util.getContextFromUrl(req)};
+            } else {
+                options.poolAlias = util.getContextFromUrl(req);
+            }
             let repo = repositoryMap.get(req.params.module);
             let md = repo.getMetaData(req.params.module);
             if (util.isUndefined(repo)) {
@@ -713,10 +750,10 @@ function startApiServer() {
                 let result;
                 switch (req.params.method.toLowerCase()) {
                     case util.DELETE.toLowerCase():
-                        result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     case util.DELETE_SYNC.toLowerCase():
-                        result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), populateOptionsFromRequestInput(req.body.options));
+                        result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -1429,9 +1466,9 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     }
 }
 
-function saveQuery(doc) {
+function saveQuery(doc, options) {
     if (customization && (typeof customization.saveQuery === "function")) {
-        customization.saveQuery(orm, doc);
+        customization.saveQuery(orm, optionsdoc);
     } else {
         let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1444,9 +1481,9 @@ function saveQuery(doc) {
     }
 }
 
-function saveReport(doc) {
+function saveReport(doc, options) {
     if (customization && (typeof customization.saveReport === "function")) {
-        customization.saveReport(orm, doc);
+        customization.saveReport(orm, options, doc);
     } else {
         let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
@@ -1459,9 +1496,9 @@ function saveReport(doc) {
     }
 }
 
-function deleteQuery(docid) {
+function deleteQuery(docid, options) {
     if (customization && (typeof customization.deleteQuery === "function")) {
-        customization.deleteQuery(orm, docid);
+        customization.deleteQuery(orm, options, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1472,9 +1509,9 @@ function deleteQuery(docid) {
     }
 }
 
-function deleteReport(docid) {
+function deleteReport(docid, options) {
     if (customization && (typeof customization.deleteReport === "function")) {
-        customization.deleteReport(orm, docid);
+        customization.deleteReport(orm, options, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1485,9 +1522,9 @@ function deleteReport(docid) {
     }
 }
 
-async function loadQuery(docid) {
+async function loadQuery(docid, options) {
     if (customization && (typeof customization.loadQuery === "function")) {
-        return await customization.loadQuery(orm, docid);
+        return await customization.loadQuery(orm, options, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1502,9 +1539,9 @@ async function loadQuery(docid) {
     }
 }
 
-async function loadReport(docid) {
+async function loadReport(docid, options) {
     if (customization && (typeof customization.loadReport === "function")) {
-        return await customization.loadReport(orm, docid);
+        return await customization.loadReport(orm, options, docid);
     } else {
         let pos = docid.indexOf('.');
         let group = docid.substring(0, pos);
@@ -1692,7 +1729,7 @@ function isUnaryOperator(op) {
     return (op && ((op === 'is null') || (op === 'is not null')));
 }
 
-async function generateReport(report, query, parameters) {
+async function generateReport(report, query, parameters, options) {
     let retval = '';
     
     // SIM-4 all reports will run from object graphs
@@ -1708,7 +1745,7 @@ async function generateReport(report, query, parameters) {
     if (!parameters) {
         parameters = [];
     }
-    let result = await repo.executeSqlQuery(sql, parameters);
+    let result = await repo.executeSqlQuery(sql, parameters, options);
     if (result.error) {
         throw new Error(result.error);
     } else {
@@ -2578,7 +2615,7 @@ async function loadReportDocumentGroups() {
     return retval;
 }
 
-async function loadQueryDocumentGroups() {
+async function loadQueryDocumentGroups(options) {
     let retval;
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
@@ -2605,7 +2642,7 @@ async function loadQueryDocumentGroups() {
 
             traverseDocumentGroups(retval, queries);
         } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-            retval = await customization.loadQueryDocumentGroups(orm);
+            retval = await customization.loadQueryDocumentGroups(orm, options);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);

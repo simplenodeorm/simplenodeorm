@@ -1,22 +1,17 @@
 "use strict";
 
+
 const Authorizer = require('./Authorizer.js');
 
 class DefaultAuthorizer extends Authorizer {
-     constructor() {
-        super();
-    }
-    
-    isAuthorized(orm, username, password) {
-        if (orm.logger.isLogDebugEnabled()) {
-            orm.logger.logDebug("username: " + username);
-        }
+    authenticate(orm, req, user, pass) {
         return true;
     }
-    
-    checkAuthorization(orm, req) {
-        return true;
+
+    authorize(orm, options, req) {
+        return true
     }
+
 }
 
 module.exports = DefaultAuthorizer;

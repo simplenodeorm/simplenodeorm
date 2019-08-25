@@ -1271,7 +1271,11 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
         let retval;
-        switch(orm.getDbType(this.poolAlias)) {
+        let poolAlias = this.poolAlias;
+        if (options.poolAlias) {
+            poolAlias = options.poolAlias;
+        }
+        switch(orm.getDbType(poolAlias)) {
             case util.ORACLE:
                 retval = await conn.execute(sql, parameters, options);
                 break;

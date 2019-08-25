@@ -286,3 +286,8 @@ module.exports.toColumnMetaData = function(infoArray) {
     return retval;
 };
 
+module.exports.getContextFromUrl = function(req) {
+    let pos = req.url.indexOf('/', 2);
+    return req.url.substring(1, pos);
+};
+

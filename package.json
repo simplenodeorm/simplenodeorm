@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.9.11",
+  "version": "1.9.12",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -11,26 +11,26 @@
   "license": "ISC",
   "dependencies": {
     "JSONPath": "^0.11.2",
+    "basic-auth": ">=2.0.1",
     "body-parser": ">=1.15",
     "chai": ">=4.1",
     "cors": ">=2.8.4",
     "deasync": ">=0.1.13",
-    "events": ">=2.0.0",
+    "events": "^3.0.0",
     "express": ">=4.14",
-    "express-basic-auth": ">=1.1.5",
     "express-session": ">=1.15.6",
     "fs-path": ">=0.0.24",
     "jsonpath-plus": "^0.18.0",
     "mysql": "^2.16.0",
     "oracledb": "^3.1.2",
-    "pg": "^7.10.0",
+    "pg": "^7.12.1",
     "pg-pool": "^2.0.6",
     "promise-mysql": "^3.3.1",
-    "properties-reader": ">=0.0.16",
+    "properties-reader": "^0.3.1",
     "randomcolor": "^0.5.4",
     "tinycolor2": "^1.4.1",
-    "uuid": ">=3.2.1",
-    "winston": ">=2.4"
+    "uuid": "^3.3.3",
+    "winston": "^3.2.1"
   },
   "bugs": {
     "url": "https://github.com/simplenodeorm/simplenodeorm/issues"
