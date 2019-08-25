@@ -6,16 +6,19 @@ const loginCache = new Set();
 let clearCount = 0;
 
 class Authorizer {
-    async isAuthenticated(orm, req, user, pass) {
+    isAuthenticated(orm, req, user, pass) {
+        let retval;
         let context = util.getContextFromUrl(req);
         if (this.isLoggedIn(context + '.' + user)) {
-            return true;
+            retval = true;
         } else {
             let retval = this.authenticate(orm, req, user, pass);
             if (retval) {
                 loginCache.add(context + '.' + user);
             }
         }
+
+        return retval;
     }
 
     authenticate(orm, req, user, pass) {
@@ -26,7 +29,7 @@ class Authorizer {
         return this.authorize(orm, options, req);
     }
 
-    async authorize(orm, req) {
+    authorize(orm, req) {
         return false
     }
 
@@ -36,7 +39,7 @@ class Authorizer {
             loginCache.clear();
             clearCount = 0;
         } else {
-            clearCount = 0;
+            clearCount++;
         }
     }
 }
