@@ -267,7 +267,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/report/document/groups', async function (req, res) {
-            res.status(200).send(await loadReportDocumentGroups({poolAlias: util.getContextFromUrl(req)}));
+            res.status(200).send(await loadReportDocumentGroups({poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}));
         });
 
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
