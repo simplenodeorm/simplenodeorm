@@ -206,19 +206,6 @@ function startApiServer() {
 
         const authorizer = new (require(appConfiguration.authorizer));
 
-        apiServer.use(function (req, res, next) {
-            let user = basicAuth(req);
-            if (!user || !user.name || !user.pass) {
-                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
-                res.sendStatus(401);
-            } else if (authorizer.isAuthenticated(orm, req, user.username, user.pass)) {
-                next();
-            } else {
-                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
-                res.sendStatus(401);
-            }
-        });
-
         server.listen(appConfiguration.apiPort || 8443, function () {
             logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
         });
@@ -262,7 +249,16 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /design/login");
             }
-            res.status(200).send("success");
+            let user = basicAuth(req);
+            if (!user || !user.name || !user.pass) {
+                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                res.sendStatus(401);
+            } else if (authorizer.isAuthenticated(orm, req, user.name, user.pass)) {
+                next();
+            } else {
+                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                res.sendStatus(401);
+            }
         });
 
         apiServer.get('/*/api/query/modelnames', async function (req, res) {

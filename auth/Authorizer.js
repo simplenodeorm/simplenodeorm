@@ -6,7 +6,7 @@ const loginCache = new Set();
 let clearCount = 0;
 
 class Authorizer {
-    isAuthenticated(orm, req, user, pass) {
+    async isAuthenticated(orm, req, user, pass) {
         let context = util.getContextFromUrl(req);
         if (this.isLoggedIn(context + '.' + user)) {
             return true;
@@ -26,7 +26,7 @@ class Authorizer {
         return this.authorize(orm, options, req);
     }
 
-    authorize(orm, req) {
+    async authorize(orm, req) {
         return false
     }
 
