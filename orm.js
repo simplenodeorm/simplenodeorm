@@ -1462,7 +1462,7 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 
 function saveQuery(doc, options) {
     if (customization && (typeof customization.saveQuery === "function")) {
-        customization.saveQuery(orm, optionsdoc);
+        customization.saveQuery(orm, options, doc);
     } else {
         let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
         fspath.writeFile(fname, JSON.stringify(doc), function (err) {
