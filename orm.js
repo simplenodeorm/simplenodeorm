@@ -254,7 +254,7 @@ function startApiServer() {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
             } else if (authorizer.isAuthenticated(orm, req, user.name, user.pass)) {
-                res.status(200).send("success");
+                res.status(200).send("authnticated");
             } else {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
@@ -266,7 +266,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/query/document/groups', async function (req, res) {
-          res.status(200).send(await loadQueryDocumentGroups({poolAlias: util.getContextFromUrl(req)}));
+          res.status(200).send(await loadQueryDocumentGroups({poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}));
         });
 
         apiServer.get('/*/api/report/document/groups', async function (req, res) {
@@ -275,7 +275,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
             try {
-                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req)}, true));
+                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}, true));
             } catch (e) {
                 logger.logError('error occured while building sql from query document', e);
                 res.status(500).send(e);
@@ -287,7 +287,7 @@ function startApiServer() {
                 (async function () {
                     let doc = req.body;
                     try {
-                        let options = {poolAlias: util.getContextFromUrl(req)};
+                        let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
 
                         if (doc.documentName && !doc.interactive) {
                             let params = doc.parameters;
@@ -338,7 +338,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/query/save', async function (req, res) {
             try {
-                saveQuery(req.body, {poolAlias: util.getContextFromUrl(req)});
+                saveQuery(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')});
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.documentName, e);
@@ -348,7 +348,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/save', async function (req, res) {
             try {
-                saveReport(req.body, {poolAlias: util.getContextFromUrl(req)});
+                saveReport(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')});
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
@@ -358,7 +358,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 let report = await loadReport(req.params.docid, options);
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
@@ -376,7 +376,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 let report = await loadReport(req.params.docid, options);
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 res.status(200).send(await generateReport(report, query, req.body.parameters, options));
@@ -389,7 +389,7 @@ function startApiServer() {
         apiServer.post('/*/api/report/runfordesign', async function (req, res) {
             try {
                 let report = req.body.report;
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 res.status(200).send(await generateReport(report, query, req.body.parameters, options));
             } catch (e) {
@@ -400,7 +400,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 let query = await loadQuery(req.params.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
@@ -417,7 +417,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/query/delete/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 deleteQuery(req.params.docid, options);
                 res.status(200).send('success');
             } catch (e) {
@@ -428,7 +428,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/delete/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 deleteReport(req.params.docid, options);
                 res.status(200).send('success');
             } catch (e) {
@@ -439,7 +439,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/load/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 res.status(200).send(await loadReport(req.params.docid, options));
             } catch (e) {
                 logger.logError('error occured while loading report ' + req.params.docid, e);
@@ -449,7 +449,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/querycolumninfo/:qdocid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 let qdoc = await loadQuery(req.params.qdocid, options);
 
                 let qcinfo = [];
@@ -480,7 +480,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/query/load/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req)};
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 res.status(200).send(await loadQuery(req.params.docid, options));
             } catch (e) {
                 logger.logError('error occured while loading document ' + req.params.docid, e);
@@ -507,7 +507,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/ormapi/:module/:method', async function (req, res) {
-            let options = {poolAlias: util.getContextFromUrl(req)};
+            let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
             let repo = repositoryMap.get(req.params.module);
             let md = repo.getMetaData(req.params.module);
             if (util.isUndefined(repo)) {
@@ -612,7 +612,7 @@ function startApiServer() {
             let repo = repositoryMap.get(req.params.module);
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req)};
+                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
             }
@@ -678,7 +678,7 @@ function startApiServer() {
             let repo = repositoryMap.get(req.params.module);
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req)};
+                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
             }
@@ -726,9 +726,10 @@ function startApiServer() {
         apiServer.delete('/*/ormapi/:module/:method', function (req, res) {
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req)};
+                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
+                options.mySession = req.header('my-session');
             }
             let repo = repositoryMap.get(req.params.module);
             let md = repo.getMetaData(req.params.module);
