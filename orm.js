@@ -36,8 +36,10 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
     // to absolute path for current installation
     appConfiguration.dbConfiguration = installdir + "/" + appConfiguration.dbConfiguration;
     appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
-    appConfiguration.certKeyPath = installdir + "/" + appConfiguration.certKeyPath;
-    appConfiguration.certPath = installdir + "/" + appConfiguration.certPath;
+    if (appConfiguration.certKeyPath) {
+        appConfiguration.certKeyPath = installdir + "/" + appConfiguration.certKeyPath;
+        appConfiguration.certPath = installdir + "/" + appConfiguration.certPath;
+    }
     appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
     testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
     testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
@@ -187,28 +189,31 @@ function startApiServer() {
         const cors = require('cors');
         const express = require('express');
         const bodyParser = require('body-parser');
-        const https = require('https');
         apiServer = express();
 
 
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
         apiServer.use(cors());
-
-        let options = {
-            key: fs.readFileSync(appConfiguration.certKeyPath),
-            cert: fs.readFileSync(appConfiguration.certPath),
-            requestCert: false,
-            rejectUnauthorized: false
-        };
-
-        let server = https.createServer(options, apiServer);
-
         const authorizer = new (require(appConfiguration.authorizer));
 
-        server.listen(appConfiguration.apiPort || 8443, function () {
-            logger.logInfo('api server is live on port ' + (appConfiguration.apiPort || 8443));
-        });
+        let server;
+        if (appConfiguration.certKeyPath) {
+            let options = {
+                key: fs.readFileSync(appConfiguration.certKeyPath),
+                cert: fs.readFileSync(appConfiguration.certPath),
+                requestCert: false,
+                rejectUnauthorized: false
+            };
+            server = require('https').createServer(options, apiServer);
+            server.listen(appConfiguration.apiPort, function () {
+                logger.logInfo('api server is live on port ' + appConfiguration.apiPort);
+            });
+        } else {
+            apiServer.listen(appConfiguration.apiPort, function () {
+                logger.logInfo('api server is live on port ' + appConfiguration.apiPort);
+            });
+        }
 
         apiServer.all('/*/ormapi*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
