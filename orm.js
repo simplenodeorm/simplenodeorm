@@ -34,12 +34,7 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
 
     // convert application relative paths in configuration files
     // to absolute path for current installation
-    appConfiguration.dbConfiguration = installdir + "/" + appConfiguration.dbConfiguration;
     appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
-    if (appConfiguration.certKeyPath) {
-        appConfiguration.certKeyPath = installdir + "/" + appConfiguration.certKeyPath;
-        appConfiguration.certPath = installdir + "/" + appConfiguration.certPath;
-    }
     appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
     testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
     testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
