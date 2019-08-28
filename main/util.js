@@ -116,6 +116,10 @@ module.exports.toDataTransferString = function(inputObject) {
     return this.toString(inputObject, this.modelJSONReplacer);
 };
 
+module.exports.toDataTransferObject = function(inputObject) {
+    return JSON.parse(this.toString(inputObject, this.modelJSONReplacer));
+};
+
 module.exports.toGetter = function(fieldName) {
     return ('get' + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
 };
