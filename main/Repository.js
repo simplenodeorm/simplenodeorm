@@ -1105,6 +1105,9 @@ module.exports = class Repository {
     async executeNamedDbOperation(operationName, parameters, options) {
         options = checkOptions(options);
         let sql = this.getNamedDbOperationSql(operationName, options);
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("executeNamedDbOperation[" + JSON.stringify(parameters) + "]: " + sql);
+        }
         if (this.isSelect(sql)) {
             return await this.executeQuery(sql, parameters, options);
         } else {
