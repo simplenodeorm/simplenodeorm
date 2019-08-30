@@ -228,8 +228,14 @@ module.exports = class Repository {
         let repo = this;
         (async function() {
             try {
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("findOneSync: before findOne");
+                }
                 let result = await repo.findOne(primaryKey, options);
-                
+
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("findOneSync: after findOne - " + result);
+                }
                 resultWrapper.result = result.result;
                 resultWrapper.error = result.error;
             } catch (e) { resultWrapper.error = e;}
