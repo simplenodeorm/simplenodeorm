@@ -234,7 +234,7 @@ module.exports = class Repository {
                 let result = await repo.findOne(primaryKey, options);
 
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("findOneSync: after findOne - " + result);
+                    logger.logDebug("findOneSync: after findOne - " + JSON.stringify(result));
                 }
                 resultWrapper.result = result.result;
                 resultWrapper.error = result.error;
