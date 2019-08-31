@@ -1567,6 +1567,9 @@ module.exports = class Repository {
      */
     getColumnNameFromFieldName(fieldName) {
         let retval = null;
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug('fieldName=' + fieldName);
+        }
         if (util.isDefined(fieldName)) {
             if (fieldName.trim().startsWith('o.')) {
                 fieldName = fieldName.trim().substring(2);
