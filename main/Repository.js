@@ -333,6 +333,9 @@ module.exports = class Repository {
         if (util.isDefined(orderByEntries)) {
             let comma = '';
             for (let i = 0; i < orderByEntries.length; ++i) {
+                if (i === 0) {
+                    sql += ' order by ';
+                }
                 sql += (comma + this.getColumnNameFromFieldName(orderByEntries[i].getFieldName()));
                 if (orderByEntries[i].isDescending()) {
                     sql += ' desc';
