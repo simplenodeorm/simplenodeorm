@@ -606,7 +606,7 @@ function startApiServer() {
                             result = await repo.existsSync(params, options);
                             break;
                         case util.NEW_MODEL.toLowerCase():
-                            result = util.toDataTransferObject(new (require(appConfiguration.ormModuleRootPath + '/model/' + req.params.module)(md)));
+                            result = util.toDataTransferObject(new (require(appConfiguration.ormModuleRootPath + '/model/' + req.params.module))(md));
                             break;
                         default:
                             res.status(400).send('invalid method \'' + req.params.method + '\' specified');
