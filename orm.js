@@ -622,7 +622,7 @@ function startApiServer() {
 
                 res.end();
             } catch (err) {
-                res.status(500).send(result.error);
+                res.status(500).send({result: { error: err}});
             }
         });
 
@@ -697,7 +697,7 @@ function startApiServer() {
 
                 res.end();
             } catch (err) {
-                res.status(500).send(result.error);
+                res.status(500).send({result: { error: err}});
             }
         });
 
