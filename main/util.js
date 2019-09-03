@@ -15,6 +15,7 @@ const GET_ALL_SYNC = 'getAllSync';
 const EXISTS_SYNC = 'existsSync';
 const SAVE_SYNC = 'saveSync';
 const DELETE_SYNC = 'deleteSync';
+const NEW_MODEL = 'newModel';
 
 const ENABLED = "enabled";
 const DISABLED = "disabled";
@@ -77,6 +78,7 @@ module.exports.GET_ALL_SYNC = GET_ALL_SYNC;
 module.exports.EXISTS_SYNC = EXISTS_SYNC;
 module.exports.SAVE_SYNC = SAVE_SYNC;
 module.exports.DELETE_SYNC = DELETE_SYNC;
+module.exports.NEW_MODEL = NEW_MODEL;
 module.exports.ENABLED = ENABLED;
 module.exports.DISABLED = DISABLED;
 module.exports.LAZY_LOAD = LAZY_LOAD;
