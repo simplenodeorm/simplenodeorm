@@ -624,6 +624,7 @@ function startApiServer() {
             } catch (err) {
                 logger.logError("module: " + req.params.module);
                 logger.logError("method: " + req.params.method);
+                logger.logError("poolAlias: " + util.getContextFromUrl(req));
                 logger.logError("unexpected error caught", err);
                 res.status(500).send({result: { error: err}});
             }
@@ -702,6 +703,7 @@ function startApiServer() {
             } catch (err) {
                 logger.logError("module: " + req.params.module);
                 logger.logError("method: " + req.params.method);
+                logger.logError("poolAlias: " + util.getContextFromUrl(req));
                 logger.logError("unexpected error caught", err);
                 res.status(500).send({result: { error: err}});
             }
