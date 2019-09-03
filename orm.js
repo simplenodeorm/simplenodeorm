@@ -622,6 +622,9 @@ function startApiServer() {
 
                 res.end();
             } catch (err) {
+                logger.logError("module: " + req.params.module);
+                logger.logError("method: " + req.params.method);
+                logger.logError("unexpected error caught", err);
                 res.status(500).send({result: { error: err}});
             }
         });
@@ -697,6 +700,9 @@ function startApiServer() {
 
                 res.end();
             } catch (err) {
+                logger.logError("module: " + req.params.module);
+                logger.logError("method: " + req.params.method);
+                logger.logError("unexpected error caught", err);
                 res.status(500).send({result: { error: err}});
             }
         });
