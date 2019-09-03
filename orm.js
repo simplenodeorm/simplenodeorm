@@ -507,184 +507,198 @@ function startApiServer() {
         });
 
         apiServer.get('/*/ormapi/:module/:method', async function (req, res) {
-            let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+            try {
+                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
 
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("module: " + req.params.module);
-                logger.logDebug("method: " + req.params.method);
-                logger.logDebug("poolAlias: " + options.poolAlias);
-            }
-
-            let repo = repositoryMap.get(req.params.module);
-            let md;
-            if (util.isUndefined(repo)) {
-                // support for using an alias for long module names
-                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-                }
-            }
-
-            md = repo.getMetaData(req.params.module);
-            let params = [];
-            let pk = md.getPrimaryKeyFields();
-            let fields = md.getFields();
-
-            if (util.isUndefined(repo) || util.isUndefined(md)) {
-                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-            } else {
-                var result;
-                switch (req.params.method.toLowerCase()) {
-                    case util.FIND_ONE.toLowerCase():
-                        for (let i = 0; i < pk.length; ++i) {
-                            params.push(req.query[pk[i].fieldName]);
-                        }
-                        result = await repo.findOne(params, options);
-                        break;
-                    case util.GET_ALL.toLowerCase():
-                        result = await repo.getAll(options);
-                        break;
-                    case util.FIND.toLowerCase():
-                        for (let i = 0; i < fields.length; ++i) {
-                            if (util.isDefined(req.query[fields[i].fieldName])) {
-                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                            }
-                        }
-                        result = await repo.find(params, options);
-                        break;
-                    case util.COUNT.toLowerCase():
-                        for (let i = 0; i < fields.length; ++i) {
-                            if (util.isDefined(req.query[fields[i].fieldName])) {
-                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                            }
-                        }
-                        result = await repo.count(params, options);
-                        break;
-                    case util.EXISTS.toLowerCase():
-                        for (let i = 0; i < pk.length; ++i) {
-                            params.push(req.query[pk[i].fieldName]);
-                        }
-                        result = await repo.exists(params, options);
-                        break;
-                    case util.FIND_ONE_SYNC.toLowerCase():
-                        for (let i = 0; i < pk.length; ++i) {
-                            params.push(req.query[pk[i].fieldName]);
-                        }
-                        result = await repo.findOneSync(params, options);
-                        break;
-                    case util.GET_ALL_SYNC.toLowerCase():
-                        result = await repo.getAllSync(params, options);
-                        break;
-                    case util.FIND_SYNC.toLowerCase():
-                        for (let i = 0; i < fields.length; ++i) {
-                            if (util.isDefined(req.query[fields[i].fieldName])) {
-                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                            }
-                        }
-                        result = await repo.findSync(params, options);
-                        break;
-                    case util.COUNT_SYNC.toLowerCase():
-                        for (let i = 0; i < fields.length; ++i) {
-                            if (util.isDefined(req.query[fields[i].fieldName])) {
-                                params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                            }
-                        }
-                        result = await repo.countSync(params, options);
-                        break;
-                    case util.EXISTS_SYNC.toLowerCase():
-                        for (let i = 0; i < pk.length; ++i) {
-                            params.push(req.query[pk[i].fieldName]);
-                        }
-                        result = await repo.existsSync(params, options);
-                        break;
-                    case util.NEW_MODEL.toLowerCase():
-                        result = util.toDataTransferObject(new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model/' + req.params.module))));
-                        break;
-                    default:
-                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                        break;
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("module: " + req.params.module);
+                    logger.logDebug("method: " + req.params.method);
+                    logger.logDebug("poolAlias: " + options.poolAlias);
                 }
 
-                if (util.isUndefined(result)) {
-                    res.status(404).send('not found');
-                } else if (util.isDefined(result.error)) {
-                    res.status(500).send(result.error);
-                } else if (util.isDefined(result.result)) {
-                    res.status(200).send(util.toDataTransferString(result.result));
+                let repo = repositoryMap.get(req.params.module);
+                let md;
+                if (util.isUndefined(repo)) {
+                    // support for using an alias for long module names
+                    if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                        repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                        md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                    }
+                }
+
+                if (!md) {
+                    md = repo.getMetaData(req.params.module);
+                }
+
+                let params = [];
+                let pk = md.getPrimaryKeyFields();
+                let fields = md.getFields();
+
+                if (util.isUndefined(repo) || util.isUndefined(md)) {
+                    res.status(400).send('invalid module \'' + req.params.module + '\' specified');
                 } else {
-                    res.status(200).send(result);
-                }
-            }
+                    var result;
+                    switch (req.params.method.toLowerCase()) {
+                        case util.FIND_ONE.toLowerCase():
+                            for (let i = 0; i < pk.length; ++i) {
+                                params.push(req.query[pk[i].fieldName]);
+                            }
+                            result = await repo.findOne(params, options);
+                            break;
+                        case util.GET_ALL.toLowerCase():
+                            result = await repo.getAll(options);
+                            break;
+                        case util.FIND.toLowerCase():
+                            for (let i = 0; i < fields.length; ++i) {
+                                if (util.isDefined(req.query[fields[i].fieldName])) {
+                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                                }
+                            }
+                            result = await repo.find(params, options);
+                            break;
+                        case util.COUNT.toLowerCase():
+                            for (let i = 0; i < fields.length; ++i) {
+                                if (util.isDefined(req.query[fields[i].fieldName])) {
+                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                                }
+                            }
+                            result = await repo.count(params, options);
+                            break;
+                        case util.EXISTS.toLowerCase():
+                            for (let i = 0; i < pk.length; ++i) {
+                                params.push(req.query[pk[i].fieldName]);
+                            }
+                            result = await repo.exists(params, options);
+                            break;
+                        case util.FIND_ONE_SYNC.toLowerCase():
+                            for (let i = 0; i < pk.length; ++i) {
+                                params.push(req.query[pk[i].fieldName]);
+                            }
+                            result = await repo.findOneSync(params, options);
+                            break;
+                        case util.GET_ALL_SYNC.toLowerCase():
+                            result = await repo.getAllSync(params, options);
+                            break;
+                        case util.FIND_SYNC.toLowerCase():
+                            for (let i = 0; i < fields.length; ++i) {
+                                if (util.isDefined(req.query[fields[i].fieldName])) {
+                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                                }
+                            }
+                            result = await repo.findSync(params, options);
+                            break;
+                        case util.COUNT_SYNC.toLowerCase():
+                            for (let i = 0; i < fields.length; ++i) {
+                                if (util.isDefined(req.query[fields[i].fieldName])) {
+                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
+                                }
+                            }
+                            result = await repo.countSync(params, options);
+                            break;
+                        case util.EXISTS_SYNC.toLowerCase():
+                            for (let i = 0; i < pk.length; ++i) {
+                                params.push(req.query[pk[i].fieldName]);
+                            }
+                            result = await repo.existsSync(params, options);
+                            break;
+                        case util.NEW_MODEL.toLowerCase():
+                            result = util.toDataTransferObject(new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model/' + req.params.module))));
+                            break;
+                        default:
+                            res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                            break;
+                    }
 
-            res.end();
+                    if (util.isUndefined(result)) {
+                        res.status(404).send('not found');
+                    } else if (util.isDefined(result.error)) {
+                        res.status(500).send(result.error);
+                    } else if (util.isDefined(result.result)) {
+                        res.status(200).send(util.toDataTransferString(result.result));
+                    } else {
+                        res.status(200).send(result);
+                    }
+                }
+
+                res.end();
+            } catch (err) {
+                res.status(500).send(result.error);
+            }
         });
 
         apiServer.post('/*/ormapi/:module/:method', async function (req, res) {
-            let repo = repositoryMap.get(req.params.module);
-            let options = populateOptionsFromRequestInput(req.body.options);
-            if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
-            } else {
-                options.poolAlias = util.getContextFromUrl(req);
-            }
-
-            let md;
-            if (util.isUndefined(repo)) {
-                // support for using an alias for long module names
-                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-                }
-            }
-            md = repo.getMetaData(req.params.module);
-
-            if (util.isUndefined(repo) || util.isUndefined(md)) {
-                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-            } else {
-                let result;
-
-                switch (req.params.method.toLowerCase()) {
-                    case util.FIND_ONE.toLowerCase():
-                        result = await repo.findOne(req.body.primaryKeyValues, options);
-                        break;
-                    case util.FIND.toLowerCase():
-                        result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
-                            populateOrderByFromRequestInput(req.body.orderByEntries), options);
-                        break;
-                    case util.SAVE.toLowerCase():
-                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        break;
-                    case util.FIND_ONE_SYNC.toLowerCase():
-                        result = await repo.findOneSYnc(req.body.primaryKeyValues);
-                        break;
-                    case util.FIND_SYNC.toLowerCase():
-                        result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
-                            populateOrderByFromRequestInput(req.body.orderByEntries), options);
-                        break;
-                    case util.SAVE_SYNC.toLowerCase():
-                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        break;
-                    default:
-                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                        break;
-                }
-
-                if (util.isUndefined(result)) {
-                    res.status(404).send('not found');
-                } else if (util.isDefined(result.error)) {
-                    res.status(500).send(result.error);
-                } else if (util.isDefined(result.result)) {
-                    res.status(200).send(util.toDataTransferString(result.result));
-                } else if (util.isDefined(result.updatedValues)) {
-                    res.status(200).send(util.toDataTransferString(result.updatedValues));
-                } else if (util.isDefined(result.rowsAffected)) {
-                    res.status(200).send(util.toDataTransferString(result));
+            try {
+                let repo = repositoryMap.get(req.params.module);
+                let options = populateOptionsFromRequestInput(req.body.options);
+                if (!options) {
+                    options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
                 } else {
-                    res.status(200).send(result);
+                    options.poolAlias = util.getContextFromUrl(req);
                 }
-            }
 
-            res.end();
+                let md;
+                if (util.isUndefined(repo)) {
+                    // support for using an alias for long module names
+                    if (util.isDefined(appConfiguration.aliases[req.params.module])) {
+                        repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
+                        md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
+                    }
+                }
+
+                if (!md) {
+                    md = repo.getMetaData(req.params.module);
+                }
+
+                if (util.isUndefined(repo) || util.isUndefined(md)) {
+                    res.status(400).send('invalid module \'' + req.params.module + '\' specified');
+                } else {
+                    let result;
+
+                    switch (req.params.method.toLowerCase()) {
+                        case util.FIND_ONE.toLowerCase():
+                            result = await repo.findOne(req.body.primaryKeyValues, options);
+                            break;
+                        case util.FIND.toLowerCase():
+                            result = await repo.find(populateWhereFromRequestInput(req.body.whereComparisons),
+                                populateOrderByFromRequestInput(req.body.orderByEntries), options);
+                            break;
+                        case util.SAVE.toLowerCase():
+                            result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            break;
+                        case util.FIND_ONE_SYNC.toLowerCase():
+                            result = await repo.findOneSYnc(req.body.primaryKeyValues);
+                            break;
+                        case util.FIND_SYNC.toLowerCase():
+                            result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
+                                populateOrderByFromRequestInput(req.body.orderByEntries), options);
+                            break;
+                        case util.SAVE_SYNC.toLowerCase():
+                            result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            break;
+                        default:
+                            res.status(400).send('invalid method \'' + req.params.method + '\' specified');
+                            break;
+                    }
+
+                    if (util.isUndefined(result)) {
+                        res.status(404).send('not found');
+                    } else if (util.isDefined(result.error)) {
+                        res.status(500).send(result.error);
+                    } else if (util.isDefined(result.result)) {
+                        res.status(200).send(util.toDataTransferString(result.result));
+                    } else if (util.isDefined(result.updatedValues)) {
+                        res.status(200).send(util.toDataTransferString(result.updatedValues));
+                    } else if (util.isDefined(result.rowsAffected)) {
+                        res.status(200).send(util.toDataTransferString(result));
+                    } else {
+                        res.status(200).send(result);
+                    }
+                }
+
+                res.end();
+            } catch (err) {
+                res.status(500).send(result.error);
+            }
         });
 
         apiServer.put('/*/ormapi/:module/:method', function (req, res) {
