@@ -516,7 +516,7 @@ function startApiServer() {
                     logger.logDebug("poolAlias: " + options.poolAlias);
                 }
 
-                let repo = repositoryMap.get(req.params.module);
+                let repo = getRepository(req.params.module);
                 let md;
                 if (util.isUndefined(repo)) {
                     // support for using an alias for long module names
@@ -527,7 +527,7 @@ function startApiServer() {
                 }
 
                 if (!md) {
-                    md = repo.getMetaData(req.params.module);
+                    md = repo.getMetaData();
                 }
 
                 let params = [];
@@ -632,7 +632,7 @@ function startApiServer() {
 
         apiServer.post('/*/ormapi/:module/:method', async function (req, res) {
             try {
-                let repo = repositoryMap.get(req.params.module);
+                let repo = getRepository(req.params.module);
                 let options = populateOptionsFromRequestInput(req.body.options);
                 if (!options) {
                     options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
@@ -650,7 +650,7 @@ function startApiServer() {
                 }
 
                 if (!md) {
-                    md = repo.getMetaData(req.params.module);
+                    md = repo.getMetaData();
                 }
 
                 if (util.isUndefined(repo) || util.isUndefined(md)) {
