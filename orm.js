@@ -89,13 +89,17 @@ module.exports.newModelInstance = function (metaData) {
     return require(appConfiguration.ormModuleRootPath + '/' + metaData.module)(metaData);
 };
 
-module.exports.getMetaData = function (modelName) {
+function getMetaData(modelName) {
     return this.getRepository(modelName).getMetaData();
-};
+}
 
-module.exports.getRepository = function (modelName) {
+module.exports.getMetaData = getMetaData;
+
+function getRepository(modelName) {
     return repositoryMap.get(modelName.toLowerCase());
-};
+}
+
+module.exports.getRepository = getRepository;
 
 module.exports.getModelList = function () {
     return modelList;
