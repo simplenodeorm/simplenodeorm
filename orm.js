@@ -508,8 +508,15 @@ function startApiServer() {
 
         apiServer.get('/*/ormapi/:module/:method', async function (req, res) {
             let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("module: " + req.params.module);
+                logger.logDebug("method: " + req.params.method);
+                logger.logDebug("poolAlias: " + options.poolAlias);
+            }
+
             let repo = repositoryMap.get(req.params.module);
-            let md = repo.getMetaData(req.params.module);
+            let md;
             if (util.isUndefined(repo)) {
                 // support for using an alias for long module names
                 if (util.isDefined(appConfiguration.aliases[req.params.module])) {
@@ -518,6 +525,7 @@ function startApiServer() {
                 }
             }
 
+            md = repo.getMetaData(req.params.module);
             let params = [];
             let pk = md.getPrimaryKeyFields();
             let fields = md.getFields();
@@ -619,7 +627,8 @@ function startApiServer() {
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
             }
-            let md = repo.getMetaData(req.params.module);
+
+            let md;
             if (util.isUndefined(repo)) {
                 // support for using an alias for long module names
                 if (util.isDefined(appConfiguration.aliases[req.params.module])) {
@@ -627,6 +636,7 @@ function startApiServer() {
                     md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
                 }
             }
+            md = repo.getMetaData(req.params.module);
 
             if (util.isUndefined(repo) || util.isUndefined(md)) {
                 res.status(400).send('invalid module \'' + req.params.module + '\' specified');
