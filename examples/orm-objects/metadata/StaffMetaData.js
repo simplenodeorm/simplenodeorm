@@ -113,7 +113,7 @@ class StaffMetaData extends MetaData {
                 }
             ],
             [], // one-to-many definitions
-            []); // many-to-one definitions
+            []); // many-to-many definitions
     
     }
 }

@@ -7,20 +7,20 @@ class FilmCategory extends Model {
         super(metaData);
     }
     
-    getFilmId() { return this.getFieldValue("filmId"); }
-    setFilmId(value) { this.setFieldValue("filmId", value); }
+    getFilmId() { return this.__getFieldValue("filmId"); }
+    setFilmId(value) { this.__setFieldValue("filmId", value); }
     
-    getCategoryId() { return this.getFieldValue("categoryId"); }
-    setCategoryId(value) { this.setFieldValue("categoryId", value); }
+    getCategoryId() { return this.__getFieldValue("categoryId"); }
+    setCategoryId(value) { this.__setFieldValue("categoryId", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 
-    getCategory() { return this.getFieldValue("category"); }
-    setCategory(value) { this.setFieldValue("category", value); }
+    getCategory() { return this.__getFieldValue("category"); }
+    setCategory(value) { this.__setFieldValue("category", value); }
     
-    getFilms() { return this.getFieldValue("films"); }
-    setFilms(value) { this.setFieldValue("films", value); }
+    getFilms() { return this.__getFieldValue("films"); }
+    setFilms(value) { this.__setFieldValue("films", value); }
 }
 
 module.exports = function(metaData) {

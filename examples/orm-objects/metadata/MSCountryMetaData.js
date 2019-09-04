@@ -34,7 +34,7 @@ class MSCountryMetaData extends MetaData {
             ],
             [], // one-to-one definitions
             [], // one-to-many definitions
-            []); // many-to-one definitions
+            []); // many-to-many definitions
     }
 }
 

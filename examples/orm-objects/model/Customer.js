@@ -7,38 +7,38 @@ class Customer extends Model {
         super(metaData);
     }
    
-    getCustomerId() { return this.getFieldValue("customerId"); }
-    setCustomerId(value) { this.setFieldValue("customerId", value); }
+    getCustomerId() { return this.__getFieldValue("customerId"); }
+    setCustomerId(value) { this.__setFieldValue("customerId", value); }
     
-    getStoreId() { return this.getFieldValue("storeId"); }
-    setStoreId(value) { this.setFieldValue("storeId", value); }
+    getStoreId() { return this.__getFieldValue("storeId"); }
+    setStoreId(value) { this.__setFieldValue("storeId", value); }
     
-    getFirstName() { return this.getFieldValue("firstName"); }
-    setFirstName(value) { this.setFieldValue("firstName", value); }
+    getFirstName() { return this.__getFieldValue("firstName"); }
+    setFirstName(value) { this.__setFieldValue("firstName", value); }
     
-    getLastName() { return this.getFieldValue("lastName"); }
-    setLastName(value) { this.setFieldValue("lastName", value); }
+    getLastName() { return this.__getFieldValue("lastName"); }
+    setLastName(value) { this.__setFieldValue("lastName", value); }
 
-    getEmail() { return this.getFieldValue("email"); }
-    setEmail(value) { this.setFieldValue("email", value); }
+    getEmail() { return this.__getFieldValue("email"); }
+    setEmail(value) { this.__setFieldValue("email", value); }
 
-    getAddressId() { return this.getFieldValue("addressId"); }
-    setAddressId(value) { this.setFieldValue("addressId", value); }
+    getAddressId() { return this.__getFieldValue("addressId"); }
+    setAddressId(value) { this.__setFieldValue("addressId", value); }
 
-    getActive() { return this.getFieldValue("active"); }
-    setActive(value) { this.setFieldValue("active", value); }
+    getActive() { return this.__getFieldValue("active"); }
+    setActive(value) { this.__setFieldValue("active", value); }
 
-    getCreateDate() { return this.getFieldValue("createDate"); }
-    setCreateDate(value) { this.setFieldValue("createDate", value); }
+    getCreateDate() { return this.__getFieldValue("createDate"); }
+    setCreateDate(value) { this.__setFieldValue("createDate", value); }
 
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
     
-    getAddress() { return this.getFieldValue("address"); }
-    setAddress(value) { this.setFieldValue("address", value); }
+    getAddress() { return this.__getFieldValue("address"); }
+    setAddress(value) { this.__setFieldValue("address", value); }
     
-    getStore() { return this.getFieldValue("store"); }
-    setStore(value) { this.setFieldValue("store", value); }
+    getStore() { return this.__getFieldValue("store"); }
+    setStore(value) { this.__setFieldValue("store", value); }
 }
 
 module.exports = function(metaData) {

@@ -10,7 +10,18 @@
 		"supportBigNumbers": true,
 		"waitForConnections": true,
 		"connectionLimit": 20
-	}
+	},
+		{
+			"dbtype": "mysql",
+			"host": "localhost",
+			"user": "root",
+			"poolAlias": "example",
+			"password": "password",
+			"database": "sakila",
+			"supportBigNumbers": true,
+			"waitForConnections": true,
+			"connectionLimit": 20
+		}
 	]
 }
 

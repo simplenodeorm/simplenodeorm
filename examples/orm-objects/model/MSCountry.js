@@ -7,14 +7,14 @@ class MSCountry extends Model {
         super(metaData);
     }
     
-    getCountryId() { return this.getFieldValue("countryId"); }
-    setCountryId(value) { this.setFieldValue("countryId", value); }
+    getCountryId() { return this.__getFieldValue("countryId"); }
+    setCountryId(value) { this.__setFieldValue("countryId", value); }
     
-    getCountry() { return this.getFieldValue("country"); }
-    setCountry(value) { this.setFieldValue("country", value); }
+    getCountry() { return this.__getFieldValue("country"); }
+    setCountry(value) { this.__setFieldValue("country", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 
 module.exports = function(metaData) {

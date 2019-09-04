@@ -7,23 +7,23 @@ class Inventory extends Model {
         super(metaData);
     }
     
-    getInventoryId() { return this.getFieldValue("inventoryId"); }
-    setInventoryId(value) { this.setFieldValue("inventoryId", value); }
+    getInventoryId() { return this.__getFieldValue("inventoryId"); }
+    setInventoryId(value) { this.__setFieldValue("inventoryId", value); }
     
-    getFilmId() { return this.getFieldValue("filmId"); }
-    setFilmId(value) { this.setFieldValue("filmId", value); }
+    getFilmId() { return this.__getFieldValue("filmId"); }
+    setFilmId(value) { this.__setFieldValue("filmId", value); }
     
-    getStoreId() { return this.getFieldValue("storeId"); }
-    setStoreId(value) { this.setFieldValue("storeId", value); }
+    getStoreId() { return this.__getFieldValue("storeId"); }
+    setStoreId(value) { this.__setFieldValue("storeId", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
     
-    getFilm() { return this.getFieldValue("film"); }
-    setFilm(value) { this.setFieldValue("film", value); }
+    getFilm() { return this.__getFieldValue("film"); }
+    setFilm(value) { this.__setFieldValue("film", value); }
     
-    getStore() { return this.getFieldValue("store"); }
-    setStore(value) { this.setFieldValue("store", value); }
+    getStore() { return this.__getFieldValue("store"); }
+    setStore(value) { this.__setFieldValue("store", value); }
 }
 
 module.exports = function(metaData) {

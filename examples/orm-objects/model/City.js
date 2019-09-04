@@ -7,20 +7,20 @@ class City extends Model {
         super(metaData);
     }
     
-    getCityId() { return this.getFieldValue("cityId"); }
-    setCityId(value) { this.setFieldValue("cityId", value); }
+    getCityId() { return this.__getFieldValue("cityId"); }
+    setCityId(value) { this.__setFieldValue("cityId", value); }
     
-    getCity() { return this.getFieldValue("city"); }
-    setCity(value) { this.setFieldValue("city", value); }
+    getCity() { return this.__getFieldValue("city"); }
+    setCity(value) { this.__setFieldValue("city", value); }
     
-    getCountryId() { return this.getFieldValue("countryId"); }
-    setCountryId(value) { this.setFieldValue("countryId", value); }
+    getCountryId() { return this.__getFieldValue("countryId"); }
+    setCountryId(value) { this.__setFieldValue("countryId", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 
-    getCountry() { return this.getFieldValue("country"); }
-    setCountry(value) { this.setFieldValue("country", value); }
+    getCountry() { return this.__getFieldValue("country"); }
+    setCountry(value) { this.__setFieldValue("country", value); }
 }
 
 module.exports = function(metaData) {

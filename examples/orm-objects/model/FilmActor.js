@@ -7,20 +7,20 @@ class FilmActor extends Model {
         super(metaData);
     }
     
-    getActorId() { return this.getFieldValue("actorId"); }
-    setActorId(value) { this.setFieldValue("actorId", value); }
+    getActorId() { return this.__getFieldValue("actorId"); }
+    setActorId(value) { this.__setFieldValue("actorId", value); }
     
-    getFilmId() { return this.getFieldValue("filmId"); }
-    setFilmId(value) { this.setFieldValue("filmId", value); }
+    getFilmId() { return this.__getFieldValue("filmId"); }
+    setFilmId(value) { this.__setFieldValue("filmId", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
     
-    getActor() { return this.getFieldValue("actor"); }
-    setActor(value) { this.setFieldValue("actor", value); }
+    getActor() { return this.__getFieldValue("actor"); }
+    setActor(value) { this.__setFieldValue("actor", value); }
     
-    getFilms() { return this.getFieldValue("films"); }
-    setFilms(value) { this.setFieldValue("films", value); }
+    getFilms() { return this.__getFieldValue("films"); }
+    setFilms(value) { this.__setFieldValue("films", value); }
 }
 
 module.exports = function(metaData) {

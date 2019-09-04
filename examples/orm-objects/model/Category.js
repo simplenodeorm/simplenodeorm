@@ -7,14 +7,14 @@ class Category extends Model {
         super(metaData);
     }
 
-    getCategoryId() { return this.getFieldValue("categoryId"); }
-    setCategoryId(value) { this.setFieldValue("categoryId", value); }
+    getCategoryId() { return this.__getFieldValue("categoryId"); }
+    setCategoryId(value) { this.__setFieldValue("categoryId", value); }
     
-    getName() { return this.getFieldValue("name"); }
-    setName(value) { this.setFieldValue("name", value); }
+    getName() { return this.__getFieldValue("name"); }
+    setName(value) { this.__setFieldValue("name", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 
 module.exports = function(metaData) {

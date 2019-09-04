@@ -7,14 +7,14 @@ class Language extends Model {
         super(metaData);
     }
     
-    getLanguageId() { return this.getFieldValue("languageId"); }
-    setLanguageId(value) { this.setFieldValue("languageId", value); }
+    getLanguageId() { return this.__getFieldValue("languageId"); }
+    setLanguageId(value) { this.__setFieldValue("languageId", value); }
     
-    getName() { return this.getFieldValue("name"); }
-    setName(value) { this.setFieldValue("name", value); }
+    getName() { return this.__getFieldValue("name"); }
+    setName(value) { this.__setFieldValue("name", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 
 module.exports = function(metaData) {

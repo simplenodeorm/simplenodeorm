@@ -3,6 +3,6 @@
     "testDbConfiguration" : "examples/exampledb.json",
     "maxRowsForGetAll" : 50,
     "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId"],
-    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate"],
+    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate","rentalDate"],
     "testDataRootPath": "examples/testdata"
 }

@@ -243,7 +243,7 @@ module.exports.designJSONReplacer = function(key, value) {
         case 'autoIncrementGenerator':
         case 'oneToManyDefinitions':
         case 'oneToOneDefinitions':
-        case 'manyToOneDefinitions':
+        case 'manyToManyDefinitions':
             return undefined;
         default:
             return value;

@@ -7,17 +7,17 @@ class Actor extends Model {
         super(metaData);
     }
     
-    getActorId() { return this.getFieldValue("actorId"); }
-    setActorId(value) { this.setFieldValue("actorId", value); }
+    getActorId() { return this.__getFieldValue("actorId"); }
+    setActorId(value) { this.__setFieldValue("actorId", value); }
     
-    getFirstName() { return this.getFieldValue("firstName"); }
-    setFirstName(value) { this.setFieldValue("firstName", value); }
+    getFirstName() { return this.__getFieldValue("firstName"); }
+    setFirstName(value) { this.__setFieldValue("firstName", value); }
     
-    getLastName() { return this.getFieldValue("lastName"); }
-    setLastName(value) { this.setFieldValue("lastName", value); }
+    getLastName() { return this.__getFieldValue("lastName"); }
+    setLastName(value) { this.__setFieldValue("lastName", value); }
     
-    getLastUpdate() { return this.getFieldValue("lastUpdate"); }
-    setLastUpdate(value) { this.setFieldValue("lastUpdate", value); }
+    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 
 module.exports = function(metaData) {

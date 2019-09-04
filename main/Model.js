@@ -6,46 +6,37 @@ var lazyLoader;
 class Model {
     constructor(metaData) {
         this.__model__ = metaData.objectName;
-        this.metaData = metaData;
-        this.modified = false;
-        this.newModel = true;
-        this.constraintsEnabled = false;
-        this.data = {};
-        this.initializeData();
+        this.__metaData__ = metaData;
+        this.__modified__ = false;
+        this.__new__ = true;
+        this.__constraintsEnabled__ = false;
+        this.__initializeData();
     }
 
-    isModified() {
-        return this.modified;
+    __isModified() {
+        return this.__modified__;
     }
 
-    setModified(modified) {
-        this.modified = modified;
+    __setModified(modified) {
+        this.__modified__ = modified;
     }
 
-    isNew() {
-        return this.newModel;
+    __isNew() {
+        return this.__new__;
     }
 
-    setNew(newModel) {
-        this.newModel = newModel;
+    __setNew(newModel) {
+        this.__new__ = newModel;
     }
     
-    getData() {
-        return this.data;
-    }
-
-    setData(data) {
-        this.data = data;
-    }
-
-    getFieldValue(fieldName, ignoreLazyLoad) {
-        let retval =  this.data[fieldName];
+    __getFieldValue(fieldName, ignoreLazyLoad) {
+        let retval =  this[fieldName];
 
         // only lazy load when running under node
         if (!ignoreLazyLoad 
             && util.isUndefined(retval) 
             && util.isNodeEnv() 
-            && this.metaData.isLazyLoad(fieldName)) {
+            && this.__metaData__.isLazyLoad(fieldName)) {
             if (util.isUndefined(lazyLoader)) {
                 lazyLoader = require('./LazyLoader.js');
             }
@@ -56,103 +47,69 @@ class Model {
         return retval;
     }
 
-    setFieldValue(fieldName, value) {
+    __setFieldValue(fieldName, value) {
         // if constraints are enabled then check incoming data
-        if (this.metaData && this.constraintsEnabled) {
-            let constraints = this.metaData.getFieldConstraints(fieldName);
-        
+
+        if (this.__metaData__ && this.__constraintsEnabled__) {
+            let constraints = this.__metaData__.getFieldConstraints(fieldName);
+
             if (util.isValidObject(constraints)) {
                 for (let i = 0; i < constraints.length; ++i) {
-                    constraints[i].check(this.metaData.getObjectName(), fieldName, value);
+                    constraints[i].check(this.__metaData__.getObjectName(), fieldName, value);
                 }
             }
         }
 
-        if (!this.modified) {
-            this.modified = (this.data[fieldName] !== value);
+        if (!this.__modified__) {
+            this.__modified__ = (this[fieldName] !== value);
         }
-        
-        this.data[fieldName] = value;
+
+        this[fieldName] = value;
     }
 
-    getFields() {
-        return this.metaData.getFields();
-    }
-    
-    beforeLoad() {};
-    beforeSave() {};
-    afterLoad() {};
-    afterSave() {};
-    enableConstraints(enabled) { this.constraintsEnabled = enabled; };
+    __beforeLoad() {};
+    __beforeSave() {};
+    __afterLoad() {};
+    __afterSave() {};
 
-    addFieldConstraint(fieldName, constraint) {
-        this.metaData.addFieldConstraint(fieldName, constraint);
-    };
+    __enableConstraints(enabled) { this.__constraintsEnabled__ = enabled; };
 
-    isLengthConstraintRequired(field) {
-        return this.metaData.isLengthConstraintRequired(field);
+    __getMetaData() {
+        return this.__metaData__;
     }
 
-    getMaxLength(field) {
-        return this.metaData.getMaxLength(field);
-    }
-    
-    getObjectName() {
-        return this.metaData.getObjectName();
+    __setMetaData(metaData) {
+        return this.__metaData__ = metaData;
     }
 
-    getTableName() {
-        return this.metaData.getTableName();
-    }
-
-    getModule() {
-        return this.metaData.getModule();
-    }
-    
-    getMetaData() {
-        return this.metaData;
-    }
-
-    getOneToOneDefinitions() {
-        return this.metaData.getOneToOneDefinitions();
-    }
-    
-    getOneToManyDefinitions() {
-        return this.metaData.getOneToManyDefinitions();
-    }
-
-    getManyToOneDefinitions() {
-        return this.metaData.getManyToOneDefinitions();
-    }
-
-    initializeData() {
+    __initializeData() {
         // initialize related reference fields to undefined for
         // lazy load check later
-        let reldefs = this.metaData.getOneToOneDefinitions();
+        let reldefs = this.__metaData__.getOneToOneDefinitions();
         if (util.isValidObject(reldefs)) {
             for (let i = 0; i < reldefs.length; ++i) {
-                this.data[reldefs[i].fieldName] = undefined;
+                this[reldefs[i].fieldName] = undefined;
             }
         }
 
-        reldefs = this.metaData.getOneToManyDefinitions();
+        reldefs = this.__metaData__.getOneToManyDefinitions();
         if (util.isValidObject(reldefs)) {
             for (let i = 0; i < reldefs.length; ++i) {
-                this.data[reldefs[i].fieldName] = undefined;
+                this[reldefs[i].fieldName] = undefined;
             }
         }
         
-        reldefs = this.metaData.getManyToOneDefinitions();
+        reldefs = this.__metaData__.getManyToManyDefinitions();
         if (util.isValidObject(reldefs)) {
             for (let i = 0; i < reldefs.length; ++i) {
-                this.data[reldefs[i].fieldName] = undefined;
+                this[reldefs[i].fieldName] = undefined;
             }
         }
         
-        let fields = this.metaData.getFields();
+        let fields = this.__metaData__.fields;
         for (let i = 0; i < fields.length; ++i) {
             if (fields[i].lazyLoad) {
-                this.data[fields[i].fieldName] = undefined;
+                this[fields[i].fieldName] = undefined;
             }
         }
     }

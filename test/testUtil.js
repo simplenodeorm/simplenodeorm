@@ -401,10 +401,9 @@ module.exports.findExampleData = async function(poolAlias, modelDef, maxRows) {
 
 function buildExampleSelect(modelDef, dbType, maxRows) {
     let retval = "select ";
-    if (util.isUndefined(modelDef)) { 
+    if (util.isUndefined(modelDef)) {
         util.throwError("UndefinedModelDefinition", 'Undefined model definition passed to method');
-
-    } else if (util.isUndefined(modelDef.getFields())) {
+    } else if (util.isUndefined(modelDef.fields)) {
         util.throwError("UndefinedFieldDefinition", util.toString(modelDef) + '.fields is undefined');
     }
     
@@ -415,7 +414,7 @@ function buildExampleSelect(modelDef, dbType, maxRows) {
     }
 
     let comma = "";
-    let fields = modelDef.getFields();
+    let fields = modelDef.fields;
     for (let i = 0; i < fields.length; ++i) {
         retval += (comma + fields[i].columnName);
         comma = ",";
@@ -924,14 +923,14 @@ module.exports.testInsert = async function (repository, conn, testResults) {
 };
 
 function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
-    let repo = orm.getRepository(modelBeforeSave.getObjectName());
+    let repo = orm.getRepository(modelBeforeSave.__model__);
 
     let md = repo.getMetaData();
-    let fields = md.getFields();
+    let fields = md.fields;
     
     for (let i = 0; i < fields.length; ++i) {
-        let val1 = modelBeforeSave.getFieldValue(fields[i].fieldName);
-        let val2 = modelFromDbAfterSave.getFieldValue(fields[i].fieldName);
+        let val1 = modelBeforeSave.__getFieldValue(fields[i].fieldName);
+        let val2 = modelFromDbAfterSave.__getFieldValue(fields[i].fieldName);
         
         if (fields[i].columnName !== 'OBJ_ID') {
             let mismatch = ((util.isValidObject(val1) && util.isNotValidObject(val2)) || (util.isValidObject(val2) && util.isNotValidObject(val1)));
@@ -964,7 +963,7 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
     let onm = modelBeforeSave.getObjectName();
     let md = orm.getMetaData(onm);
     
-    let fields = md.getFields();
+    let fields = md.fields;
     
     for (let i = 0; i < fields.length; ++i) {
         
@@ -1264,7 +1263,7 @@ module.exports.outputTestResults = function(nm, testResults) {
 
 function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentFunction) {
     let retval = false;
-    let fields = modelObject.getFields();
+    let fields = modelObject.__getMetaData().getFields();
     if (fields) {
         let cmap = orm.getMetaData(modelObject.__model__).getColumnToFieldMap();
         let failed = false;
@@ -1278,7 +1277,7 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
                     rd = require('../converters/' + field.converter + '.js')(field, rd, true);
                 }
     
-                let fv = modelObject.getFieldValue(cmap.get(columnNames[i].name).fieldName);
+                let fv = modelObject.__getFieldValue(cmap.get(columnNames[i].name).fieldName);
                 if (util.isNotValidObject(fv)) {
                     fv = null;
                 }
@@ -1314,7 +1313,7 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
 }
 
 async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelObject, testResults, parentFunction) {
-    let otodefs = modelObject.getOneToOneDefinitions();
+    let otodefs = modelObject.__getMetaData().getOneToOneDefinitions();
     if (util.isValidObject(otodefs)) {
        for (let i = 0; i < otodefs.length; ++i) {
             if (repository.canJoin(curAlias, otodefs[i])) {
@@ -1368,7 +1367,7 @@ async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelOb
 }
 
 async function oneToManyRelationshipMatch(repository, curAlias, curDepth, modelObject, testResults, parentFunction) {
-    let otmdefs = modelObject.getOneToManyDefinitions();
+    let otmdefs = modelObject.__getMetaData().getOneToManyDefinitions();
     if (util.isValidObject(otmdefs)) {
        for (let i = 0; i < otmdefs.length; ++i) {
             if (repository.canJoin(curAlias, otmdefs[i])) {

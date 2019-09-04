@@ -55,7 +55,7 @@ class CityMetaData extends MetaData {
                 }
             ],
             [], // one-to-many definitions
-            []); // many-to-one definitions
+            []); // many-to-many definitions
     }
 }
 

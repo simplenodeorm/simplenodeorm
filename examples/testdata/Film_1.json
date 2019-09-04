@@ -1,1 +1,219 @@
-{"__model__":"Film","modified":true,"newModel":true,"constraintsEnabled":false,"data":{"language":{"__model__":"Language","modified":false,"newModel":false,"constraintsEnabled":false,"data":{"languageId":1,"name":"English","lastUpdate":"2006-02-15T12:02:19.000Z"}},"originalLanguage":null,"filmId":null,"title":"test filem","description":"test film text","releaseYear":2019,"languageId":1,"rentalDuration":6,"rentalRate":0.99,"length":86,"replacementCost":20.99,"rating":"PG","specialFeatures":"Deleted Scenes,Behind the Scenes","lastUpdate":"2006-02-15T12:03:42.000Z"}}
+{
+  "__model__":"Film",
+  "__metaData__":{
+    "objectName":"Film",
+    "module":"model/Film.js",
+    "tableName":"film",
+    "fields":[
+      {
+        "fieldName":"filmId",
+        "type":"SMALLINT UNSIGNED",
+        "columnName":"film_id",
+        "required":true,
+        "primaryKey":true,
+        "autoIncrementGenerator":"LAST_INSERT_ID()"
+      },
+      {
+        "fieldName":"title",
+        "type":"VARCHAR",
+        "length":255,
+        "columnName":"title",
+        "required":true
+      },
+      {
+        "fieldName":"description",
+        "type":"TEXT",
+        "lob":true,
+        "columnName":"description"
+      },
+      {
+        "fieldName":"releaseYear",
+        "type":"YEAR",
+        "columnName":"release_year"
+      },
+      {
+        "fieldName":"languageId",
+        "type":"TINYINT UNSIGNED",
+        "columnName":"language_id",
+        "required":true
+      },
+      {
+        "fieldName":"originalLanguageId",
+        "type":"TINYINT UNSIGNED",
+        "columnName":"original_language_id"
+      },
+      {
+        "fieldName":"rentalDuration",
+        "type":"TINYINT UNSIGNED",
+        "columnName":"rental_duration",
+        "required":true,
+        "defaultValue":"3"
+      },
+      {
+        "fieldName":"rentalRate",
+        "type":"DECIMAL(4,2)",
+        "length":20,
+        "columnName":"rental_rate",
+        "required":true,
+        "defaultValue":"4.99"
+      },
+      {
+        "fieldName":"length",
+        "type":"SMALLINT UNSIGNED",
+        "columnName":"length",
+        "required":true
+      },
+      {
+        "fieldName":"replacementCost",
+        "type":"DECIMAL(5,2)",
+        "columnName":"replacement_cost",
+        "required":true,
+        "defaultValue":"19.99"
+      },
+      {
+        "fieldName":"rating",
+        "type":"ENUM('G','PG','PG-13','R','NC-17')",
+        "columnName":"rating",
+        "required":true,
+        "defaultValue":"G"
+      },
+      {
+        "fieldName":"specialFeatures",
+        "type":"SET('Trailers','Commentaries','Deleted Scenes','Behind the Scenes')",
+        "columnName":"special_features"
+      },
+      {
+        "fieldName":"lastUpdate",
+        "type":"TIMESTAMP",
+        "columnName":"last_update",
+        "required":true,
+        "defaultValue":"CURRENT_TIMESTAMP()"
+      }
+    ],
+    "oneToOneDefinitions":[
+      {
+        "fieldName":"language",
+        "type":1,
+        "targetModelName":"Language",
+        "targetModule":"model/Language.js",
+        "targetTableName":"language",
+        "status":"enabled",
+        "joinColumns":{
+          "sourceColumns":"language_id",
+          "targetColumns":"language_id"
+        },
+        "alias":"t5"
+      },
+      {
+        "fieldName":"originalLanguage",
+        "type":1,
+        "targetModelName":"Language",
+        "targetModule":"model/Language.js",
+        "targetTableName":"language",
+        "status":"enabled",
+        "joinColumns":{
+          "sourceColumns":"original_language_id",
+          "targetColumns":"language_id"
+        },
+        "alias":"t6"
+      }
+    ],
+    "oneToManyDefinitions":[
+
+    ],
+    "manyToManyDefinitions":[
+
+    ],
+    "fieldConstraints":{
+
+    },
+    "lazyLoadFields":{
+
+    },
+    "columnToFieldMap":{
+
+    },
+    "fieldMap":{
+
+    },
+    "referenceMap":{
+
+    }
+  },
+  "__modified__":true,
+  "__new__":true,
+  "__constraintsEnabled__":false,
+  "language":{
+    "__model__":"Language",
+    "__metaData__":{
+      "objectName":"Language",
+      "module":"model/Language.js",
+      "tableName":"language",
+      "fields":[
+        {
+          "fieldName":"languageId",
+          "type":"TINYINT UNSIGNED",
+          "columnName":"language_id",
+          "required":true,
+          "primaryKey":true,
+          "autoIncrementGenerator":"LAST_INSERT_ID()"
+        },
+        {
+          "fieldName":"name",
+          "type":"VARCHAR",
+          "length":20,
+          "columnName":"name",
+          "required":true
+        },
+        {
+          "fieldName":"lastUpdate",
+          "type":"TIMESTAMP",
+          "columnName":"last_update",
+          "defaultValue":"CURRENT_TIMESTAMP()"
+        }
+      ],
+      "oneToOneDefinitions":[
+
+      ],
+      "oneToManyDefinitions":[
+
+      ],
+      "manyToManyDefinitions":[
+
+      ],
+      "fieldConstraints":{
+
+      },
+      "lazyLoadFields":{
+
+      },
+      "columnToFieldMap":{
+
+      },
+      "fieldMap":{
+
+      },
+      "referenceMap":{
+
+      }
+    },
+    "__modified__":false,
+    "__constraintsEnabled__":false,
+    "languageId":1,
+    "name":"English",
+    "lastUpdate":"2006-02-15T12:02:19.000Z",
+    "__new__":false
+  },
+  "originalLanguage":null,
+  "title":"EXAMPLE FILM",
+  "description":"Example file description",
+  "releaseYear":2019,
+  "languageId":1,
+  "rentalDuration":6,
+  "rentalRate":0.99,
+  "length":86,
+  "replacementCost":20.99,
+  "rating":"PG",
+  "specialFeatures":"Deleted Scenes,Behind the Scenes",
+  "lastUpdate":"2006-02-15T12:03:42.000Z"
+}

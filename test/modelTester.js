@@ -8,16 +8,16 @@ module.exports.test = function(model, metaData) {
         testFieldDataHandling(model, metaData, metaData.fields[i]);
     }
     
-    assert(model.isModified(), 'expected model to be modified but is not');
+    assert(model.__isModified(), 'expected model to be modified but is not');
     
         // test constraint handling
-    model.enableConstraints(true);
+    model.__enableConstraints(true);
     
     for (let i = 0; i < metaData.fields.length; ++i) {
         testFieldConstraints(model, metaData, metaData.fields[i]);
     }
     
-    model.enableConstraints(false);
+    model.__enableConstraints(false);
 
 };
 
@@ -31,14 +31,15 @@ function testFieldConstraints(model, metaData, field) {
         
         catch (e) {
            if (e.name !== 'NotNullConstraint') {
+               testUtil.logError(e.toString(), e);
                assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
            }
        }
     }
     
-    if (model.isLengthConstraintRequired(field)) {
+    if (model.__getMetaData().isLengthConstraintRequired(field)) {
         try {
-            let len = model.getMaxLength(field);
+            let len = model.__getMetaData().getMaxLength(field);
             let nm = testUtil.getSetFunctionName(field);
             model[nm](testUtil.fillString('x', len+2));
             assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.' + nm + ' to fail LengthConstraint(' + len + ') and throw Exception but it did not');
@@ -46,6 +47,7 @@ function testFieldConstraints(model, metaData, field) {
 
         catch (e) {
             if (e.name !== 'LengthConstraint') {
+                testUtil.logError(e.toString(), e);
                 assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
             }
         }
@@ -64,6 +66,7 @@ function testFieldDataHandling(model, metaData, field) {
     }
     
     catch (e) {
+        testUtil.logError(e.toString(), e);
         assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
     }
 }

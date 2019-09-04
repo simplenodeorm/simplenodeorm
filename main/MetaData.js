@@ -13,14 +13,14 @@ class MetaData {
         fields, 
         oneToOneDefinitions,
         oneToManyDefinitions, 
-        manyToOneDefinitions) {
+        manyToManyDefinitions) {
         this.objectName = objectName; 
         this.module = module; 
         this.tableName = tableName; 
         this.fields = fields; 
         this.oneToOneDefinitions = oneToOneDefinitions;
         this.oneToManyDefinitions = oneToManyDefinitions;
-        this.manyToOneDefinitions = manyToOneDefinitions;
+        this.manyToManyDefinitions = manyToManyDefinitions;
         this.fieldConstraints = new Map();
         this.lazyLoadFields = new Set();
         
@@ -74,9 +74,9 @@ class MetaData {
                 this.referenceMap.set(this.oneToManyDefinitions[i].fieldName, this.oneToManyDefinitions[i]);
             }
 
-            for (let i = 0; i < this.manyToOneDefinitions.length; ++i) {
-                this.lazyLoadFields.add(this.manyToOneDefinitions[i].fieldName);
-                this.referenceMap.set(this.manyToOneDefinitions[i].fieldName, this.manyToOneDefinitions[i]);
+            for (let i = 0; i < this.manyToManyDefinitions.length; ++i) {
+                this.lazyLoadFields.add(this.manyToManyDefinitions[i].fieldName);
+                this.referenceMap.set(this.manyToManyDefinitions[i].fieldName, this.manyToManyDefinitions[i]);
             }
             
             this.loadConstraints();
@@ -127,8 +127,8 @@ class MetaData {
         return this.oneToManyDefinitions;
     }
     
-    getManyToOneDefinitions() {
-        return this.manyToOneDefinitions;
+    getManyToManyDefinitions() {
+        return this.manyToManyDefinitions;
     }
 
     getFields() {
@@ -237,7 +237,7 @@ class MetaData {
         }
 
         if (util.isUndefined(retval)) {
-            def = this.getManyToOneDefinitions();
+            def = this.getManyToManyDefinitions();
             if (util.isValidObject(def)) {
                 for (let i = 0; i < def.length; ++i) {
                     if (nm === def[i].fieldName) {

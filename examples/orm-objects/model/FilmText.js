@@ -7,14 +7,14 @@ class FilmText extends Model {
         super(metaData);
     }
     
-    getFilmId() { return this.getFieldValue("filmId"); }
-    setFilmId(value) { this.setFieldValue("filmId", value); }
+    getFilmId() { return this.__getFieldValue("filmId"); }
+    setFilmId(value) { this.__setFieldValue("filmId", value); }
     
-    getTitle() { return this.getFieldValue("title"); }
-    setTitle(value) { this.setFieldValue("title", value); }
+    getTitle() { return this.__getFieldValue("title"); }
+    setTitle(value) { this.__setFieldValue("title", value); }
     
-    getDescription() { return this.getFieldValue("description"); }
-    setDescription(value) { this.setFieldValue("description", value); }
+    getDescription() { return this.__getFieldValue("description"); }
+    setDescription(value) { this.__setFieldValue("description", value); }
 }
 
 module.exports = function(metaData) {

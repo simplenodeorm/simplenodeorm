@@ -139,18 +139,18 @@ module.exports = class Repository {
         let showMessage = true;
         for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
             if (showMessage) {
-                logger.logInfo('        adding foreign keys for table ' + md.getTableName());
+                logger.logInfo('        adding foreign keys for table ' + md.tableName);
                 showMessage = false;
             }
             await this.createForeignKey(md.oneToOneDefinitions[i]);
         }
 
-        for (let i = 0; i < md.manyToOneDefinitions.length; ++i) {
+        for (let i = 0; i < md.manyToManyDefinitions.length; ++i) {
             if (showMessage) {
-                logger.logInfo('        adding foreign keys for table ' + md.getTableName());
+                logger.logInfo('        adding foreign keys for table ' + md.tableName);
                 showMessage = false;
             }
-            await this.createForeignKey(md.manyToOneDefinitions[i]);
+            await this.createForeignKey(md.manyToManyDefinitions[i]);
         }
     }
     
@@ -442,7 +442,7 @@ module.exports = class Repository {
                 if (util.isDefined(otodefs)) {
                     for (let j = 0; j < otodefs.length; ++j) {
                         if (util.isDefined(otodefs[j].cascadeDelete) && otodefs[j].cascadeDelete) {
-                            let rel = l[i].getFieldValue(otodefs[j].fieldName);
+                            let rel = l[i].__getFieldValue(otodefs[j].fieldName);
                             if (util.isDefined(rel)) {
                                 let ret = await this.delete(rel, options);
                                 if (util.isDefined(ret.error)) {
@@ -458,7 +458,7 @@ module.exports = class Repository {
                 if (util.isDefined(otmdefs)) {
                     for (let j = 0; j < otmdefs.length; ++j) {
                         if (util.isDefined(otmdefs[j].cascadeDelete) && otmdefs[j].cascadeDelete) {
-                            let rel = l[i].getFieldValue(otmdefs[j].fieldName);
+                            let rel = l[i].__getFieldValue(otmdefs[j].fieldName);
                             if (util.isDefined(rel)) {
                                 let ret2 = await this.delete(rel, options);
                                 if (util.isDefined(ret2.error)) {
@@ -521,13 +521,14 @@ module.exports = class Repository {
     async executeSave(model, sql, params, options) {
         let rowsAffected = 0;
         options = checkOptions(options);
-        
+
         let result = {rowsAffected: 0};
-        if (model.isNew() || !(await this.exists(model, options))) {
-            model.setNew(true);
+        if (model.__isNew() || !(await this.exists(model, options))) {
+            model.__setNew(true);
             result = await this.executeSql(sql, params, options);
-        } else if (model.isModified()) {
-            if (model.getMetaData().isVersioned()) {
+        } else if (model.__isModified()) {
+            logger.logInfo('------------------>1');
+            if (model.__getMetaData().isVersioned()) {
                 let currentVersion = await this.getCurrentVersion(model, options);
                 if (util.isNotValidObject(currentVersion)) {
                     currentVersion = -1;
@@ -536,17 +537,17 @@ module.exports = class Repository {
                 }
 
                 let verField = this.getVersionField(model);
-                let ver = model.getFieldValue(verField.fieldName);
+                let ver = model.__getFieldValue(verField.fieldName);
 
                 if (ver instanceof Date) {
                     ver = ver.getTime();
                 }
 
                 if ((currentVersion > -1) && (ver  < currentVersion)) {
-                    util.throwError('OptimisticLockException', model.getObjectName() + ' has been modified by another user');
+                    util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
                 }
             }
-            
+
             try {
                 result = await this.executeSql(sql, params, options);
             }
@@ -574,7 +575,7 @@ module.exports = class Repository {
             if (util.isValidObject(otodefs)) {
                 for (let i = 0; i < otodefs.length; ++i) {
                     if (otodefs[i].cascadeUpdate) {
-                        let oto = model.getFieldValue(otodefs[i].fieldName, true);
+                        let oto = model.__getFieldValue(otodefs[i].fieldName, true);
                         if (util.isValidObject(oto)) {
                             this.populateReferenceColumns(model, otodefs[i], oto);
                             let res  = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
@@ -593,7 +594,7 @@ module.exports = class Repository {
             if (util.isValidObject(otmdefs)) {
                 for (let i = 0; i < otmdefs.length; ++i) {
                     if (otmdefs[i].cascadeUpdate) {
-                        let otm = model.getFieldValue(otmdefs[i].fieldName, true);
+                        let otm = model.__getFieldValue(otmdefs[i].fieldName, true);
                         if (util.isValidObject(otm) ) {
                             this.populateReferenceColumns(model, otmdefs[i], otm);
                             let res = await orm.getRepository(otmdefs[i].targetModelName).save(otm, childOptions);
@@ -613,10 +614,10 @@ module.exports = class Repository {
     }
     
     setAutoIncrementIdIfRequired(model, id) {
-        let fields = model.getMetaData().fields;
+        let fields = model.__getMetaData().fields;
         for (let i = 0; i < fields.length; ++i) {
             if (fields[i].autoIncrementGenerator) {
-                model.data[fields[i].fieldName] = id;
+                model[fields[i].fieldName] = id;
                 break;
             }
         }
@@ -624,7 +625,7 @@ module.exports = class Repository {
     
     getVersionField(model) {
         let retval;
-        let fields = orm.getMetaData(model.getObjectName()).getFields();
+        let fields = model.__getMetaData().fields;
         
         if (util.isDefined(fields)) {
             for (let i = 0; i < fields.length; ++i) {
@@ -639,15 +640,15 @@ module.exports = class Repository {
     }
     
     async getCurrentVersion(model, options) {
-        let md = orm.getMetaData(model.getObjectName());
-        let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.getTableName() + ' where ');
+        let md = model.__getMetaData();
+        let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.tableName + ' where ');
 
         let params = [];
         let pkfields = md.getPrimaryKeyFields();
         let and = '';
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + pkfields[i].columnName + ' = :' + pkfields[i].fieldName);
-            params.push(model.getFieldValue(pkfields[i].fieldName));
+            params.push(model.__getFieldValue(pkfields[i].fieldName));
             and = ' and ';
         }
 
@@ -685,7 +686,7 @@ module.exports = class Repository {
        
         for (let i = 0; i < l.length; ++i) {
             for (let j = 0; j < scols.length; ++j) {
-                l[i].setFieldValue(ccmap.get(tcols[j]), pmodel.getFieldValue(pcmap.get(scols[j])));
+                l[i].__setFieldValue(ccmap.get(tcols[j]), pmodel.__getFieldValue(pcmap.get(scols[j])));
             }
         }
     }
@@ -703,60 +704,62 @@ module.exports = class Repository {
     async loadInsertParameters(model, options) {
         options = checkOptions(options);
         let retval = [];
-        let fields = orm.getMetaData(model.getObjectName()).getFields();
+        let fields = model.__getMetaData().fields;
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName, true), false);
-    
-            if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
-                if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                    if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
-                        val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
-                        model.setFieldValue(fields[i].fieldName, val);
-                    }
-                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
-                    val = fields[i].defaultValue;
-                    if (this.isDateType(fields[i])) {
-                        let dv = fields[i].defaultValue.toUpperCase();
-                        if (dv.includes('SYSDATE')
-                            || dv.includes('NOW')
-                            || dv.includes('CURRENT_TIMESTAMP')) {
+            if (model[fields[i].fieldName]) {
+                let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
+
+                if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
+                    if (util.isValidObject(fields[i].autoIncrementGenerator)) {
+                        if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
+                            val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
+                            model.__setFieldValue(fields[i].fieldName, val);
+                        }
+                    } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
+                        val = fields[i].defaultValue;
+                        if (this.isDateType(fields[i])) {
+                            let dv = fields[i].defaultValue.toUpperCase();
+                            if (dv.includes('SYSDATE')
+                                || dv.includes('NOW')
+                                || dv.includes('CURRENT_TIMESTAMP')) {
+                                val = new Date();
+                            } else {
+                                val = new Date(val);
+                            }
+                        }
+
+                        model.__setFieldValue(fields[i].fieldName, val);
+                    } else if (fields[i].versionColumn) {
+                        if (this.isDateType(fields[i])) {
                             val = new Date();
                         } else {
-                            val = new Date(val);
+                            val = 1;
                         }
+                        model.__setFieldValue(fields[i].fieldName, val);
                     }
-            
-                    model.setFieldValue(fields[i].fieldName, val);
-                } else if (fields[i].versionColumn) {
-                    if (this.isDateType(fields[i])) {
-                        val = new Date();
-                    } else {
-                        val = 1;
+                    if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                        val = new Date(val);
+                        model.__setFieldValue(fields[i].fieldName, val);
                     }
-                    model.setFieldValue(fields[i].fieldName, val);
-                }
-                if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                     val = new Date(val);
-                    model.setFieldValue(fields[i].fieldName, val);
+                    model.__setFieldValue(fields[i].fieldName, val);
+                } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
+                    && util.isDefined(val)) {
+                    val = 'POINT(' + val.x + ' ' + val.y + ')';
+                } else if (val && (typeof val === "object") // handle blobs in mysql
+                    && val.type && val.data
+                    && (val.type.toLowerCase() === 'buffer')) {
+                    val = val.toString();
                 }
-            } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
-                val = new Date(val);
-                model.setFieldValue(fields[i].fieldName, val);
-            } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
-                && util.isDefined(val)) {
-                val = 'POINT(' + val.x + ' ' + val.y + ')';
-            } else if (val && (typeof val === "object") // handle blobs in mysql
-                && val.type && val.data
-                && (val.type.toLowerCase() === 'buffer')) {
-                val = val.toString();
+
+                if (util.isNotValidObject(val)) {
+                    val = null;
+                }
+
+                retval.push(val);
             }
-    
-            if (util.isNotValidObject(val)) {
-                val = null;
-            }
-    
-            retval.push(val);
         }
         
         return retval;
@@ -771,10 +774,10 @@ module.exports = class Repository {
     async loadUpdateParameters(model, options) {
         let retval = [];
         let pkparams = [];
-        let md = orm.getMetaData(model.getObjectName());
-        let fields = md.getFields();
+        let md = model.__getMetaData();
+        let fields = md.fields;
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.getFieldValue(fields[i].fieldName), false);
+            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName), false);
             
             if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
                 pkparams.push(val);
@@ -852,15 +855,17 @@ module.exports = class Repository {
      * @returns insert sql string
      */
     getInsertSql(model) {
-        let retval = insertSqlMap.get(model.getObjectName());
+        let retval = insertSqlMap.get(model.__model__);
         if (util.isNotValidObject(retval)) {
-            let md = orm.getMetaData(model.getObjectName());
-            retval = ('insert into ' + md.getTableName() + '(');
-            let fields = md.getFields();
+            let md = model.__getMetaData();
+            retval = ('insert into ' + md.tableName+ '(');
+            let fields = md.fields;
             let comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                retval += (comma + fields[i].columnName);
-                comma = ',';
+                if (model[fields[i].fieldName]) {
+                    retval += (comma + fields[i].columnName);
+                    comma = ',';
+                }
             }
 
             retval += ') values (';
@@ -868,28 +873,30 @@ module.exports = class Repository {
             let dbType = orm.getDbType(this.poolAlias);
             comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                switch(dbType) {
-                    case util.ORACLE:
-                        retval += (comma + ' :' + (fields[i].fieldName));
-                        break;
-                    case util.MYSQL:
-                        if (this.isGeometryType(fields[i])) {
-                            retval += (comma + ' ST_GeomFromText(?)');
-                        } else {
-                            retval += (comma + ' ?');
-                        }
-                        break;
-                    case util.POSTGRES:
-                        retval += (comma + ' $' + (i+1));
-                        break
+                if (model[fields[i].fieldName]) {
+                    switch(dbType) {
+                        case util.ORACLE:
+                            retval += (comma + ' :' + (fields[i].fieldName));
+                            break;
+                        case util.MYSQL:
+                            if (this.isGeometryType(fields[i])) {
+                                retval += (comma + ' ST_GeomFromText(?)');
+                            } else {
+                                retval += (comma + ' ?');
+                            }
+                            break;
+                        case util.POSTGRES:
+                            retval += (comma + ' $' + (i+1));
+                            break
+                    }
+                    comma = ',';
                 }
-                comma = ',';
             }
 
             retval += ')';
-            insertSqlMap.set(model.getObjectName(), retval);
+            insertSqlMap.set(model.__model__, retval);
         }
-        
+
         return retval;
     }
     
@@ -899,13 +906,13 @@ module.exports = class Repository {
      * @returns update sql string
      */
     getUpdateSql(model) {
-        let nm = model.getObjectName();
+        let nm = model.__model__;
         let retval = updateSqlMap.get(nm);
         if (util.isNotValidObject(retval)) {
-            let md = orm.getMetaData(nm);
-            retval = ('update ' + md.getTableName() + ' ');
+            let md = model.__getMetaData();
+            retval = ('update ' + md.tableName + ' ');
             let where = ' where ';
-            let fields = md.getFields();
+            let fields = md.fields;
             let comma = '';
             let and = '';
             let set = ' set ';
@@ -978,7 +985,7 @@ module.exports = class Repository {
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
-            if (l[i].isNew()) {
+            if (l[i].__isNew()) {
                 newModel = true;
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
             } else {
@@ -996,6 +1003,8 @@ module.exports = class Repository {
             }
     
             if (wantReturnValues) {
+                let md = orm.getMetaData(l[i].__model__);
+                l[i].__setMetaData(md);
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
@@ -1060,7 +1069,7 @@ module.exports = class Repository {
             if (inputParams instanceof Array) {
                 params.push(inputParams[i]);
             } else {
-                params.push(inputParams.getFieldValue(pkfields[i].fieldName));
+                params.push(inputParams.__getFieldValue(pkfields[i].fieldName));
             }
         }
         
@@ -1174,9 +1183,9 @@ module.exports = class Repository {
     
     getPrimaryKeyValuesFromModel(model) {
         let retval = [];
-        let pkfields = orm.getMetaData(model.getObjectName()).getPrimaryKeyFields();
+        let pkfields = model.__getMetaData().getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            retval.push(model.getFieldValue(pkfields[i].fieldName));
+            retval.push(model.__getFieldValue(pkfields[i].fieldName));
         }
         
         return retval;
@@ -1239,10 +1248,9 @@ module.exports = class Repository {
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
             }
-    
+
             let result = await this.executeDatabaseSpecificQuery(conn, sql, parameters, options);
-    
-    
+
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("result: " + util.toString(result));
             }
@@ -1283,23 +1291,27 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
         let retval;
-        let poolAlias = this.poolAlias;
-        if (options.poolAlias) {
-            poolAlias = options.poolAlias;
+        try {
+            let poolAlias = this.poolAlias;
+            if (options.poolAlias) {
+                poolAlias = options.poolAlias;
+            }
+            switch (orm.getDbType(poolAlias)) {
+                case util.ORACLE:
+                    retval = await conn.execute(sql, parameters, options);
+                    break;
+                case util.MYSQL:
+                    retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
+                    break;
+                case util.POSTGRES:
+                    retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
+                    retval.metaData = util.toColumnMetaData(retval.fields);
+                    break;
+            }
+        } catch (e) {
+            logger.logError(e.toString(), e);
+            throw e;
         }
-        switch(orm.getDbType(poolAlias)) {
-            case util.ORACLE:
-                retval = await conn.execute(sql, parameters, options);
-                break;
-            case util.MYSQL:
-                retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
-                break;
-            case util.POSTGRES:
-                retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
-                retval.metaData = util.toColumnMetaData(retval.fields);
-                break;
-        }
-        
         return retval;
     
     }
@@ -1352,57 +1364,62 @@ module.exports = class Repository {
      * @returns model graph json result or error
      */
     async executeQuery(sql, parameters, options) {
-        options = checkOptions(options);
-        if (util.isDefined(options.distinct) && options.distinct) {
-            sql = 'select distinct ' + sql.substring(7);
-        }
-        let res = await this.executeSqlQuery(sql, parameters, options);
-        if (util.isUndefined(res.error)) {
-            let retval = [];
-            // load column positions by alias if needed
-            if (this.columnPositions[options.joinDepth].size === 0) {
-                for (let i = 0; i < this.selectedColumnFieldInfo[options.joinDepth].length; ++i) {
-                    let a = this.selectedColumnFieldInfo[options.joinDepth][i].alias;
-                    
-                    let cpos = this.columnPositions[options.joinDepth].get(a);
-                    if (util.isUndefined(cpos)) {
-                        cpos = [];
-                        this.columnPositions[options.joinDepth].set(a, cpos);
-                    }
-                    cpos.push(i);
+        try {
+            options = checkOptions(options);
+            if (util.isDefined(options.distinct) && options.distinct) {
+                sql = 'select distinct ' + sql.substring(7);
+            }
+            let res = await this.executeSqlQuery(sql, parameters, options);
+            if (util.isUndefined(res.error)) {
+                let retval = [];
+                // load column positions by alias if needed
+                if (this.columnPositions[options.joinDepth].size === 0) {
+                    for (let i = 0; i < this.selectedColumnFieldInfo[options.joinDepth].length; ++i) {
+                        let a = this.selectedColumnFieldInfo[options.joinDepth][i].alias;
 
-                    if (util.isDefined(this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)
-                        && (this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)) {
-                        let pkpos = this.pkPositions[options.joinDepth].get(a);
-                        if (util.isUndefined(pkpos)) {
-                            pkpos = [];
-                            this.pkPositions[options.joinDepth].set(a, pkpos);
+                        let cpos = this.columnPositions[options.joinDepth].get(a);
+                        if (util.isUndefined(cpos)) {
+                            cpos = [];
+                            this.columnPositions[options.joinDepth].set(a, cpos);
                         }
+                        cpos.push(i);
 
-                        pkpos.push(i);
+                        if (util.isDefined(this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)
+                            && (this.selectedColumnFieldInfo[options.joinDepth][i].field.primaryKey)) {
+                            let pkpos = this.pkPositions[options.joinDepth].get(a);
+                            if (util.isUndefined(pkpos)) {
+                                pkpos = [];
+                                this.pkPositions[options.joinDepth].set(a, pkpos);
+                            }
+
+                            pkpos.push(i);
+                        }
                     }
                 }
-            }
 
-            populateModel(this, 
-                    't0', 
-                    0, 
-                    0, 
-                    this.pkPositions, 
-                    new Map(), 
+                populateModel(this,
+                    't0',
+                    0,
+                    0,
+                    this.pkPositions,
+                    new Map(),
                     this.selectedColumnFieldInfo,
-                    res.result, 
-                    retval, 
-                    this.columnPositions, 
+                    res.result,
+                    retval,
+                    this.columnPositions,
                     options.joinDepth);
 
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("executed query: row count=" + res.result.rows.length + ", objects created=" + retval.length);
-                logger.logDebug("result: " + util.toString(retval));
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("executed query: row count=" + res.result.rows.length + ", objects created=" + retval.length);
+                    logger.logDebug("result: " + util.toString(retval));
+                }
+                return {result: retval};
+            } else {
+                return res;
             }
-            return {result: retval};
-        } else {
-            return res;
+        } catch (e) {
+            logger.logError(e.toString(), e);
+            return {error: e};
         }
     }
     
@@ -1680,7 +1697,7 @@ module.exports = class Repository {
             if (currentDepth < joinDepth) {
                 // only do this for top level table
                 if (isRootTable(tableAlias)) {
-                    let mtodefs = parentMetaData.getManyToOneDefinitions();
+                    let mtodefs = parentMetaData.getManyToManyDefinitions();
                     if (util.isDefined(mtodefs)) {
                        for (let i = 0; i < mtodefs.length; ++i) {
                            if (canJoin(mtodefs[i])) {
@@ -1742,7 +1759,7 @@ module.exports = class Repository {
             }
 
             if (isRootTable(tableAlias)) {
-                let mtodefs = parentMetaData.getManyToOneDefinitions();
+                let mtodefs = parentMetaData.getManyToManyDefinitions();
                 if (util.isDefined(mtodefs)) {
                     for (let i = 0; i < mtodefs.length; ++i) {
                         if (canJoin(mtodefs[i])) {
@@ -2095,10 +2112,10 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
             for (let j = 0; j < cpos.length; ++j) {
                 if (result.rows[i][cpos[j]] !== null) {
                     if (repo.isDateType(scInfo[joinDepth][cpos[j]].field)) {
-                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName, 
+                        curobj.__setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName,
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, new Date(result.rows[i][cpos[j]]), true));
                     } else {
-                        curobj.setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName,
+                        curobj.__setFieldValue(scInfo[joinDepth][cpos[j]].field.fieldName,
                             doConversionIfRequired(scInfo[joinDepth][cpos[j]].field, result.rows[i][cpos[j]], true));
                     }
                 }
@@ -2107,7 +2124,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
             if (curDepth < joinDepth)  {
                 // populate many-to-one child models
                 if (isRootTable(curAlias)) {
-                    let mtodefs = md.getManyToOneDefinitions();
+                    let mtodefs = md.getManyToManyDefinitions();
                     if (util.isDefined(mtodefs)) {
                         for (let j = 0; j < mtodefs.length; ++j) {
                             if (canJoin(mtodefs[j])) {
@@ -2127,7 +2144,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                     let obj = pkmap.get(key);
                                     if (util.isUndefined(obj)) {
                                         obj = require(mtodefs[j].targetModule)(orm.getMetaData(mtodefs[j].targetModelName));
-                                        curobj.setFieldValue(mtodefs[j].fieldName, obj);
+                                        curobj.__setFieldValue(mtodefs[j].fieldName, obj);
                                         pkmap.set(key, obj);
                                         populateModel(
                                             r, 
@@ -2142,10 +2159,10 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                             columnPos,
                                             joinDepth);
                                     } else {
-                                        curobj.setFieldValue(mtodefs[j].fieldName, obj);
+                                        curobj.__setFieldValue(mtodefs[j].fieldName, obj);
                                     }
                                 } else {
-                                    curobj.setFieldValue(mtodefs[j].fieldName, null);
+                                    curobj.__setFieldValue(mtodefs[j].fieldName, null);
                                 }
                             }
                         }
@@ -2172,7 +2189,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                     if (util.isUndefined(obj)) {
                                         obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otodefs[j].targetModule)(orm.getMetaData(otodefs[j].targetModelName));
                                         pkmap.set(key, obj);
-                                        curobj.setFieldValue(otodefs[j].fieldName, obj);
+                                        curobj.__setFieldValue(otodefs[j].fieldName, obj);
                                         populateModel(
                                             r, 
                                             a, 
@@ -2186,10 +2203,10 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                             columnPos,
                                             joinDepth);
                                     } else {
-                                       curobj.setFieldValue(otodefs[j].fieldName, obj);
+                                       curobj.__setFieldValue(otodefs[j].fieldName, obj);
                                     }
                                 } else {
-                                    curobj.setFieldValue(otodefs[j].fieldName, null);
+                                    curobj.__setFieldValue(otodefs[j].fieldName, null);
                                 }
                            }
                         }
@@ -2233,23 +2250,23 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         joinDepth);
                                 }
 
-                                let l = curobj.getFieldValue(otmdefs[j].fieldName, true);
+                                let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
 
                                 if (util.isUndefined(l)) {
                                     l = [];
-                                    curobj.setFieldValue(otmdefs[j].fieldName, l);
+                                    curobj.__setFieldValue(otmdefs[j].fieldName, l);
                                 }
                                 
                                 l.push(obj);
-                            } else if (util.isUndefined(curobj.getFieldValue(otmdefs[j].fieldName, true))) {
-                               curobj.setFieldValue(otmdefs[j].fieldName, null);
+                            } else if (util.isUndefined(curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
+                               curobj.__setFieldValue(otmdefs[j].fieldName, null);
                             }
                         }
                     }
                 }
 
-                curobj.setModified(false);
-                curobj.setNew(false);
+                curobj.__setModified(false);
+                curobj.__setNew(false);
             }
         }
     }

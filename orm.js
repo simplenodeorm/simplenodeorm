@@ -158,7 +158,7 @@ function loadOrmDefinitions() {
             }
 
             if (md.getOneToManyDefinitions()) {
-                for (let k = 0; k < md.getManyToOneDefinitions().length; ++k) {
+                for (let k = 0; k < md.getManyToManyDefinitions().length; ++k) {
                     md.getManyToOneDefinitions()[k].alias = ('t' + (indx++));
                 }
             }
@@ -868,7 +868,6 @@ function populateModelObjectsFromRequestInput(input) {
         let retval = [];
 
         if (input.length > 0) {
-
             let md = this.getMetaData(input[0].__model__.toLowerCase());
 
             for (let i = 0; i < input.length; ++i) {
@@ -876,6 +875,8 @@ function populateModelObjectsFromRequestInput(input) {
                 Object.assign(model, input[i]);
                 retval.push(model);
             }
+
+            model.__setMetaData(md);
         }
 
         return retval;
