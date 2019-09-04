@@ -1,6 +1,5 @@
 const orm = require('../orm.js');
 const util = require('./util.js');
-const logger = require('./Logger.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
 var deasync = require('deasync');
@@ -28,8 +27,7 @@ module.exports.lazyLoadData = function (model, fieldName) {
 
 async function loadData(model, fieldName, resultWrapper) {
     let retval = null;
-    let repo = orm.getRepository(model.getObjectName());
-    let md = repo.getMetaData();
+    let md = model.__getMetaData();
     
     let field = md.getField(fieldName);
     
@@ -41,10 +39,10 @@ async function loadData(model, fieldName, resultWrapper) {
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + pkfields[i].columnName + ' = ? ');
             and = ' and ';
-            params.push(model.getFieldValue(pkfields[i].fieldName));
+            params.push(model.__getFieldValue(pkfields[i].fieldName));
         }
 
-        let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1});
+        let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
         if (util.isDefined(ret.error)) {
             resultWrapper.error = ret.error;
         } else if (util.isDefined(ret.result)) {
@@ -68,7 +66,7 @@ async function loadData(model, fieldName, resultWrapper) {
                         let fnm = md.getFieldNameFromColumnName(srccols[i]);
                         
                         if (util.isDefined(fnm)) {
-                            let srcval = model.getFieldValue(fnm);
+                            let srcval = model.__getFieldValue(fnm);
                             
                             // no query if no reference key
                             if (util.isUndefined(srcval)) {

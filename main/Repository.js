@@ -1407,7 +1407,8 @@ module.exports = class Repository {
                     res.result,
                     retval,
                     this.columnPositions,
-                    options.joinDepth);
+                    options.joinDepth,
+                    options.poolAlias);
 
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("executed query: row count=" + res.result.rows.length + ", objects created=" + retval.length);
@@ -2085,8 +2086,9 @@ module.exports = class Repository {
  * @param {type} retval - object grapth array
  * @param {type} columnPos - array of maps defining column positions by alias
  * @param {type} joinDepth - max joinDepth
+ * @param {type} poolAlias - db pool used to pull this object
  */
-function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, result, retval, columnPos, joinDepth) {
+function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, result, retval, columnPos, joinDepth, poolAlias) {
     for (let i = curRow; i < result.rows.length; ++i) {
         
         let curpkp = pkp[joinDepth].get(curAlias);
@@ -2267,6 +2269,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
                 curobj.__setModified(false);
                 curobj.__setNew(false);
+                curobj.__poolAlias__ = poolAlias
             }
         }
     }

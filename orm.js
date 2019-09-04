@@ -308,7 +308,6 @@ function startApiServer() {
                         }
 
                         let repo = repositoryMap.get(doc.document.rootModel.toLowerCase());
-
                         let result = await repo.executeSqlQuery(sql, doc.parameters, options);
                         if (result.error) {
                             if (doc.validityCheckOnly) {
