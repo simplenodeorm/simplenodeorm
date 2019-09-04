@@ -11,6 +11,8 @@ const path = require('path');
 const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
+var md5 = require('md5');
+
 const dbTypeMap = new Map();
 const orm = this;
 
@@ -255,7 +257,7 @@ function startApiServer() {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
             } else {
-                let result = authorizer.isAuthenticated(orm, req, user.name, user.pass);
+                let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
                     res.status(200).send(result);
                 } else {
