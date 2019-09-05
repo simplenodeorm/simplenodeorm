@@ -608,7 +608,6 @@ module.exports = class Repository {
             }
         }
 
-        
         return {rowsAffected: rowsAffected, insertId: insertId};
     }
     
@@ -971,6 +970,17 @@ module.exports = class Repository {
      */
     async save(modelInstances, options) {
         options = checkOptions(options);
+        let connCreated = false;
+        if (!options.conn) {
+            if (options.poolAlias) {
+                options.conn = await orm.getConnection(options.poolAlias);
+            } else {
+                options.conn = await orm.getConnection(this.getPoolAlias());
+            }
+            connCreated = true;
+            options.conn.beginTransaction();
+        }
+
         let rowsAffected = 0;
         let l = modelInstances;
         let updatedValues = [];
@@ -998,6 +1008,9 @@ module.exports = class Repository {
             }
     
             if (util.isDefined(res.error)) {
+                if (connCreated) {
+                    options.conn.rollback();
+                }
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
@@ -1015,6 +1028,10 @@ module.exports = class Repository {
                     updatedValues.push(res2.result);
                 }
             }
+        }
+
+        if (connCreated) {
+            options.conn.commit();
         }
 
         if (updatedValues.length > 0) {
@@ -1304,7 +1321,6 @@ module.exports = class Repository {
                     retval = await conn.execute(sql, parameters, options);
                     break;
                 case util.MYSQL:
-                    logger.logInfo('---->' + sql);
                     retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
                     break;
                 case util.POSTGRES:
