@@ -646,7 +646,7 @@ module.exports = class Repository {
         let pkfields = md.getPrimaryKeyFields();
         let and = '';
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + pkfields[i].columnName + ' = :' + pkfields[i].fieldName);
+            sql += (and + pkfields[i].columnName + ' = ?');
             params.push(model.__getFieldValue(pkfields[i].fieldName));
             and = ' and ';
         }
