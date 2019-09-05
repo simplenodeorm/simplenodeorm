@@ -869,7 +869,7 @@ function populateModelObjectsFromRequestInput(input) {
         let retval = [];
 
         if (input.length > 0) {
-            let md = this.getRepository(input[0].__model__).getMetaData();
+            let md = getRepository(input[0].__model__).getMetaData();
 
             for (let i = 0; i < input.length; ++i) {
                 let model = require('./' + md.getModule())(md);
