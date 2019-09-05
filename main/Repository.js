@@ -993,17 +993,15 @@ module.exports = class Repository {
             l = [];
             l.push(modelInstances);
         }
-        
+
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("input: " + JSON.stringify(l));
+        }
+
         let wantReturnValues = options.returnValues;
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
-            if (!l[i].__isNew) {
-                let model = require('./' + __model__)(this.getMetaData());
-                Object.assign(model, l[i]);
-                l[i] = model;
-
-            }
             if (l[i].__isNew()) {
                 newModel = true;
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
@@ -1362,7 +1360,11 @@ module.exports = class Repository {
                 retval.rowsAffected = retval.rowCount;
                 break;
         }
-        
+
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("result: " + JSON.stringify(retval));
+        }
+
         return retval;
     }
 
@@ -1476,6 +1478,11 @@ module.exports = class Repository {
             parameters = {};
         }
 
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("parameters: " + JSON.stringify(parameters));
+            logger.logDebug("sql: " + sql);
+        }
+
         // declare these her for scope purposes to call inside promise
         let conn;
         try {
@@ -1487,11 +1494,6 @@ module.exports = class Repository {
                 conn = await orm.getConnection(this.getPoolAlias());
             }
 
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug('input parameters: ' + util.toString(parameters));
-                logger.logDebug('sql: ' + sql);
-            }
-    
             let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
     
             let rowsAffected = res.rowsAffected;
