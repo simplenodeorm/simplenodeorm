@@ -1306,6 +1306,7 @@ module.exports = class Repository {
                     retval = await conn.execute(sql, parameters, options);
                     break;
                 case util.MYSQL:
+                    logger.logInfo('---->' + sql);
                     retval = util.convertObjectArrayToResultSet(await conn.query(sql.replace(/"/g, "`"), parameters));
                     break;
                 case util.POSTGRES:
