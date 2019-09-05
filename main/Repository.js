@@ -644,8 +644,22 @@ module.exports = class Repository {
         let params = [];
         let pkfields = md.getPrimaryKeyFields();
         let and = '';
+        let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < pkfields.length; ++i) {
-            sql += (and + pkfields[i].columnName + ' = ?');
+            sql += (and + pkfields[i].columnName + ' = ');
+            switch(dbType) {
+                case util.ORACLE:
+                    sql += (':p' + pkfields[i].fieldName);
+                    break;
+                case util.MYSQL:
+                    sql += ' ?';
+                    break;
+                case util.POSTGRES:
+                    sql += ' $' + (i+1);
+                    bindex++;
+                    break;
+            }
+
             params.push(model.__getFieldValue(pkfields[i].fieldName));
             and = ' and ';
         }
@@ -970,16 +984,6 @@ module.exports = class Repository {
      */
     async save(modelInstances, options) {
         options = checkOptions(options);
-        let connCreated = false;
-        if (!options.conn) {
-            if (options.poolAlias) {
-                options.conn = await orm.getConnection(options.poolAlias);
-            } else {
-                options.conn = await orm.getConnection(this.getPoolAlias());
-            }
-            connCreated = true;
-            options.conn.beginTransaction();
-        }
 
         let rowsAffected = 0;
         let l = modelInstances;
@@ -1030,10 +1034,6 @@ module.exports = class Repository {
             }
         }
 
-        if (connCreated) {
-            options.conn.commit();
-        }
-
         if (updatedValues.length > 0) {
             return {rowsAffected: rowsAffected, updatedValues: updatedValues};
         } else {
@@ -1081,8 +1081,23 @@ module.exports = class Repository {
             let sql = 'select count(*) from ' + this.getMetaData().getTableName() + ' where  ';
             let and = '';
             let params = [];
+            let dbType = orm.getDbType(this.poolAlias);
             for (let i = 0; i < pkfields.length; ++i) {
-                sql += (and + pkfields[i].columnName + ' = ?');
+                sql += (and + pkfields[i].columnName  + ' = ');
+
+                switch(dbType) {
+                    case util.ORACLE:
+                        sql += (':p' + pkfields[i].fieldName);
+                        break;
+                    case util.MYSQL:
+                        sql += ' ?';
+                        break;
+                    case util.POSTGRES:
+                        sql += ' $' + (i+1);
+                        bindex++;
+                        break;
+                }
+
                 and = ' and ';
 
                 if (Array.isArray(inputParams)) {
@@ -2069,7 +2084,50 @@ module.exports = class Repository {
         }
         return retval;
     }
-    
+
+    async doBeginTransaction(conn) {
+        switch (orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                await conn.beginTransaction();
+                break;
+            case util.MYSQL:
+                await conn.beginTransaction();
+                break;
+            case util.POSTGRES:
+                await conn.query('BEGIN');
+                break;
+        }
+
+    }
+
+    async doRollback(conn) {
+        switch(orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                await conn.rollback();
+                break;
+            case util.MYSQL:
+                await conn.rollback();
+                break;
+            case util.POSTGRES:
+                await conn.query('ROLLBACK');
+                break;
+        }
+    }
+
+    async doCommit(conn) {
+        switch(orm.getDbType(this.poolAlias)) {
+            case util.ORACLE:
+                await conn.commit();
+                break;
+            case util.MYSQL:
+                await conn.commit();
+                break;
+            case util.POSTGRES:
+                await conn.query('COMMIT');
+                break;
+        }
+    }
+
     getJoinClause(depth) {
         return this.joinClauses[depth];
     }

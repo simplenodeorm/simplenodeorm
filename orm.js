@@ -672,7 +672,9 @@ function startApiServer() {
                                 populateOrderByFromRequestInput(req.body.orderByEntries), options);
                             break;
                         case util.SAVE.toLowerCase():
+                            startTransaction(repo, options);
                             result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            endTransaction(repo, result, options);
                             break;
                         case util.FIND_ONE_SYNC.toLowerCase():
                             result = await repo.findOneSYnc(req.body.primaryKeyValues);
@@ -682,7 +684,9 @@ function startApiServer() {
                                 populateOrderByFromRequestInput(req.body.orderByEntries), options);
                             break;
                         case util.SAVE_SYNC.toLowerCase():
+                            startTransaction(repo, options);
                             result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            endTransaction(repo, result, options);
                             break;
                         default:
                             res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -737,10 +741,14 @@ function startApiServer() {
                 let result;
                 switch (req.params.method.toLowerCase()) {
                     case util.SAVE.toLowerCase():
+                        startTransaction(repo, options);
                         result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        endTransaction(repo, result, options);
                         break;
                     case util.SAVE_SYNC.toLowerCase():
+                        startTransaction(repo, options);
                         result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        endTransaction(repo, result, options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -787,10 +795,14 @@ function startApiServer() {
                 let result;
                 switch (req.params.method.toLowerCase()) {
                     case util.DELETE.toLowerCase():
+                        startTransaction(repo, options);
                         result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        endTransaction(repo, result, options);
                         break;
                     case util.DELETE_SYNC.toLowerCase():
+                        startTransaction(repo, options);
                         result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        endTransaction(repo, result, options);
                         break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -817,6 +829,37 @@ function startApiServer() {
 
     return apiServer;
 }
+
+async function startTransaction(repo, options) {
+    let conn = await getConnection(repo.getPoolAlias());
+    await repo.doBeginTransaction(conn);
+    options.conn = conn;
+}
+
+async function endTransaction(repo, result, options) {
+    if (options.conn) {
+        if (result.error) {
+            repo.doRollback(options.conn);
+        } else {
+            repo.doCommit(options.conn);
+        }
+
+        switch(orm.getDbType(alias)) {
+            case util.ORACLE:
+                await options.conn.close();
+                break;
+            case util.MYSQL:
+                await options.conn.release();
+                break;
+            case util.POSTGRES:
+                await options.conn.release();
+                break;
+        }
+
+        options.conn = '';
+    }
+}
+
 
 function populateWhereFromRequestInput(input) {
     if (util.isUndefined(input)) {
