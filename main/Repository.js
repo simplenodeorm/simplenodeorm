@@ -1059,32 +1059,31 @@ module.exports = class Repository {
      */
     async exists(inputParams, options) {
         let retval = false;
-        let pkfields = this.getMetaData().getPrimaryKeyFields();
-        let sql = 'select 1 from dual where exists (select ';
-        let and = '';
-        let params = [];
-        for (let i = 0; i < pkfields.length; ++i) {
-            if (i === 0) {
-                sql += (pkfields[i].columnName + ' from ' + this.getMetaData().getTableName() + ' where ');
+        try {
+            let pkfields = this.getMetaData().getPrimaryKeyFields();
+            let sql = 'select count(*) from ' + this.getMetaData().getTableName() + ' where  ';
+            let and = '';
+            let params = [];
+            for (let i = 0; i < pkfields.length; ++i) {
+                sql += (and + pkfields[i].columnName + ' = ?');
+                and = ' and ';
+
+                if (Array.isArray(inputParams)) {
+                    params.push(inputParams[i]);
+                } else {
+                    params.push(inputParams.__getFieldValue(pkfields[i].fieldName));
+                }
             }
-            
-            sql += (and + pkfields[i].columnName + ' = :' + pkfields[i].fieldName);
-            and = ' and ';
-            
-            if (inputParams instanceof Array) {
-                params.push(inputParams[i]);
-            } else {
-                params.push(inputParams.__getFieldValue(pkfields[i].fieldName));
-            }
+
+            sql += ')';
+            let res = await this.executeSqlQuery(sql, params, options);
+            retval = (util.isUndefined(res.error)
+                && res.result
+                && (res.result.rows.length === 1)
+                && (res.result.rows[0][0] === 1));
         }
-        
-        sql += ')';
-        let res = await this.executeSqlQuery(sql, params, options);
-        retval = (util.isUndefined(res.error) 
-            && res.result 
-            && (res.result.rows.length === 1) 
-            && (res.result.rows[0][0] === 1));
-        
+        catch (e) {};
+
         return retval;
     }
 
