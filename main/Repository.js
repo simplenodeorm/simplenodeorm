@@ -1012,9 +1012,6 @@ module.exports = class Repository {
             }
     
             if (util.isDefined(res.error)) {
-                if (connCreated) {
-                    options.conn.rollback();
-                }
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
