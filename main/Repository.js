@@ -1075,7 +1075,6 @@ module.exports = class Repository {
                 }
             }
 
-            sql += ')';
             let res = await this.executeSqlQuery(sql, params, options);
             retval = (util.isUndefined(res.error)
                 && res.result
