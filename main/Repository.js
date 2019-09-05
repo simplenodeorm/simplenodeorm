@@ -975,7 +975,7 @@ module.exports = class Repository {
         let l = modelInstances;
         let updatedValues = [];
         // allow a single model or an array of models
-        if (!(l instanceof Array)) {
+        if (!Array.isArray(l)) {
             l = [];
             l.push(modelInstances);
         }
