@@ -876,8 +876,6 @@ function populateModelObjectsFromRequestInput(input) {
                 Object.assign(model, input[i]);
                 retval.push(model);
             }
-
-            model.__setMetaData(md);
         }
 
         return retval;
