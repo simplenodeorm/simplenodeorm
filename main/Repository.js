@@ -527,7 +527,7 @@ module.exports = class Repository {
             model.__setNew(true);
             result = await this.executeSql(sql, params, options);
         } else if (model.__isModified()) {
-            if (model.__getMetaData().isVersioned()) {
+            if (this.metaData.isVersioned()) {
                 let currentVersion = await this.getCurrentVersion(model, options);
                 if (util.isNotValidObject(currentVersion)) {
                     currentVersion = -1;
