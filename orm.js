@@ -677,7 +677,7 @@ function startApiServer() {
                             break;
                         case util.SAVE.toLowerCase():
                             startTransaction(repo, options);
-                            result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                             endTransaction(repo, result, options);
                             break;
                         case util.FIND_ONE_SYNC.toLowerCase():
@@ -722,7 +722,7 @@ function startApiServer() {
             }
         });
 
-        apiServer.put('/*/ormapi/:module/:method', function (req, res) {
+        apiServer.put('/*/ormapi/:module/:method', async function (req, res) {
             let repo = repositoryMap.get(req.params.module);
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
@@ -746,7 +746,7 @@ function startApiServer() {
                 switch (req.params.method.toLowerCase()) {
                     case util.SAVE.toLowerCase():
                         startTransaction(repo, options);
-                        result = repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         endTransaction(repo, result, options);
                         break;
                     case util.SAVE_SYNC.toLowerCase():
@@ -775,7 +775,7 @@ function startApiServer() {
             res.end();
         });
 
-        apiServer.delete('/*/ormapi/:module/:method', function (req, res) {
+        apiServer.delete('/*/ormapi/:module/:method', async function (req, res) {
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
                 options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
@@ -800,7 +800,7 @@ function startApiServer() {
                 switch (req.params.method.toLowerCase()) {
                     case util.DELETE.toLowerCase():
                         startTransaction(repo, options);
-                        result = repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                        result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         endTransaction(repo, result, options);
                         break;
                     case util.DELETE_SYNC.toLowerCase():
