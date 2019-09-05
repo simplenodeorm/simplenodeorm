@@ -848,7 +848,7 @@ async function endTransaction(repo, result, options) {
             repo.doCommit(options.conn);
         }
 
-        switch(orm.getDbType(alias)) {
+        switch(orm.getDbType(repo.poolAlias)) {
             case util.ORACLE:
                 await options.conn.close();
                 break;
