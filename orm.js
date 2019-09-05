@@ -107,7 +107,7 @@ module.exports.getModelList = function () {
     return modelList;
 };
 
-module.exports.getConnection = async function(poolAlias) {
+async function getConnection(poolAlias) {
     let pool = dbTypeMap.get(poolAlias + '.pool');
     switch(dbTypeMap.get(poolAlias)) {
         case util.POSTGRES:
@@ -115,13 +115,17 @@ module.exports.getConnection = async function(poolAlias) {
         default:
             return await pool.getConnection();
     }
-};
+}
 
-module.exports.getDbType = function(poolAlias) {
+module.exports.getConnection = getConnection;
+
+function getDbType(poolAlias) {
     return dbTypeMap.get(poolAlias);
-};
+}
 
-function getModelNameFromPath(path) {
+module.exports.getDbType = getDbType;
+
+    function getModelNameFromPath(path) {
     let retval = path;
     let pos = path.lastIndexOf('/');
     let pos2 = path.lastIndexOf('.');

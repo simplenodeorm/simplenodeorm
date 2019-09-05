@@ -1,0 +1,1 @@
+{"distinct":false,"documentName":"testing","group":["grp4"],"document":{"rootModel":"Film","selectedColumns":[{"path":"filmId"},{"path":"title"},{"path":"releaseYear"},{"path":"languageId"},{"path":"rentalRate"}],"whereComparisons":[{"fieldName":"filmId","comparisonOperator":"is not null","fieldType":"int","logicalOperator":""}]}}
