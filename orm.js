@@ -872,7 +872,7 @@ function populateModelObjectsFromRequestInput(input) {
             let md = getRepository(input[0].__model__).getMetaData();
 
             for (let i = 0; i < input.length; ++i) {
-                let model = require('./' + md.getModule())(md);
+                let model = require(appConfiguration.ormModuleRootPath + "/model/" + md.getModule())(md);
                 Object.assign(model, input[i]);
                 retval.push(model);
             }
