@@ -946,17 +946,17 @@ module.exports = class Repository {
                 } else {
                     switch(dbType) {
                         case util.ORACLE:
-                            retval += (comma + 'set ' + fields[i].columnName + ' = :' + fields[i].fieldName);
+                            retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
                             break;
                         case util.MYSQL:
                             if (this.isGeometryType(fields[i])) {
-                                retval += (comma + 'set ' + fields[i].columnName + ' = ST_GeomFromText(?)');
+                                retval += (comma + set + fields[i].columnName + ' = ST_GeomFromText(?)');
                             } else {
-                                retval += (comma + 'set ' + fields[i].columnName + ' = ?');
+                                retval += (comma + set + fields[i].columnName + ' = ?');
                             }
                             break;
                         case util.POSTGRES:
-                            retval += (comma + 'set ' + fields[i].columnName + ' = $' + (i+1));
+                            retval += (comma + set + fields[i].columnName + ' = $' + (i+1));
                             break;
                     }
                     comma = ', ';
