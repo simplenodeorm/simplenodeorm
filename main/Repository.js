@@ -639,7 +639,7 @@ module.exports = class Repository {
     }
     
     async getCurrentVersion(model, options) {
-        let md = model.__getMetaData();
+        let md = this.metaData;
         let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.tableName + ' where ');
 
         let params = [];
