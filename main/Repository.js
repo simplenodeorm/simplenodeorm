@@ -1302,7 +1302,7 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                this.closeDatabaseConnection(conn);
+                await this.closeDatabaseConnection(conn);
             }
         }
     }
@@ -1518,7 +1518,7 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                this.closeDatabaseConnection(conn);
+                await this.closeDatabaseConnection(conn);
             }
         }
     }
