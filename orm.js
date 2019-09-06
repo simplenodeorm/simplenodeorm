@@ -109,6 +109,12 @@ module.exports.getModelList = function () {
 
 async function getConnection(poolAlias) {
     let pool = dbTypeMap.get(poolAlias + '.pool');
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug("poolAlias: " + poolAlias);
+        logger.logDebug("pool: " + pool);
+        logger.logDebug("type: " + dbTypeMap.get(poolAlias));
+    }
+
     switch(dbTypeMap.get(poolAlias)) {
         case util.POSTGRES:
             return await pool.connect();
