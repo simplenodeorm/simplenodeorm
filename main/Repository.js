@@ -1285,6 +1285,10 @@ module.exports = class Repository {
                 logger.logDebug("result: " + util.toString(result));
             }
 
+            if (!options.conn) {
+                this.closeDatabaseConnection(conn);
+            }
+
             return {result: result};
         }
 
@@ -1501,7 +1505,10 @@ module.exports = class Repository {
                 rowsAffected = res.affectedRows;
             }
  
-            
+            if (!options.conn) {
+                this.closeDatabaseConnection(conn);
+            }
+
             return {rowsAffected: rowsAffected, insertId: res.insertId};
         }
 
