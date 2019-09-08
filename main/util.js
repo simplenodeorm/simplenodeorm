@@ -173,7 +173,7 @@ module.exports.isDefined = isDefined;
 
 module.exports.modelJSONReplacer = function(key, value) {
     switch(key) {
-        case 'metaData':
+        case '__metaData__':
             return undefined;
         default:
             return value;
