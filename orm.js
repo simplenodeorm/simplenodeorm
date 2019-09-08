@@ -629,7 +629,11 @@ function startApiServer() {
                     } else if (util.isDefined(result.error)) {
                         res.status(500).send(result.error);
                     } else if (util.isDefined(result.result)) {
-                        res.status(200).send(util.toDataTransferString(result.result));
+                        if (options.includeMetaData) {
+                            res.status(200).send(result.result);
+                        } else {
+                            res.status(200).send(util.toDataTransferString(result.result));
+                        }
                     } else {
                         res.status(200).send(result);
                     }
@@ -708,7 +712,11 @@ function startApiServer() {
                     } else if (util.isDefined(result.error)) {
                         res.status(500).send(result.error);
                     } else if (util.isDefined(result.result)) {
-                        res.status(200).send(util.toDataTransferString(result.result));
+                        if (options.includeMetaData) {
+                            res.status(200).send(result.result);
+                        } else {
+                            res.status(200).send(util.toDataTransferString(result.result));
+                        }
                     } else if (util.isDefined(result.updatedValues)) {
                         res.status(200).send(util.toDataTransferString(result.updatedValues));
                     } else if (util.isDefined(result.rowsAffected)) {
