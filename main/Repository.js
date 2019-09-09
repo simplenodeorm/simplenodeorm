@@ -2100,7 +2100,7 @@ module.exports = class Repository {
                 await conn.beginTransaction();
                 break;
             case util.MYSQL:
-                await conn.beginTransaction();
+                await conn.query('START TRANSACTION');
                 break;
             case util.POSTGRES:
                 await conn.query('BEGIN');
@@ -2115,7 +2115,7 @@ module.exports = class Repository {
                 await conn.rollback();
                 break;
             case util.MYSQL:
-                await conn.rollback();
+                await conn.query('ROLLBACK');
                 break;
             case util.POSTGRES:
                 await conn.query('ROLLBACK');
@@ -2129,7 +2129,7 @@ module.exports = class Repository {
                 await conn.commit();
                 break;
             case util.MYSQL:
-                await conn.commit();
+                await conn.query('COMMIT');
                 break;
             case util.POSTGRES:
                 await conn.query('COMMIT');
