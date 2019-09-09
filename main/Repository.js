@@ -1004,7 +1004,7 @@ module.exports = class Repository {
             let newModel = false;
             if (!l[i].__isNew) {
                 let md = this.getMetaData();
-                let model = require(appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
+                let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
                 Object.assign(model, l[i]);
                 l[i] = model;
             }
