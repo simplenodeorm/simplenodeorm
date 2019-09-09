@@ -1002,6 +1002,13 @@ module.exports = class Repository {
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
+            if (!l[i].__isNew) {
+                let md = this.getMetaData();
+                let model = require(appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
+                Object.assign(model, l[i]);
+                l[i] = model;
+            }
+
             if (l[i].__isNew()) {
                 newModel = true;
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
