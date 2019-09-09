@@ -998,7 +998,6 @@ module.exports = class Repository {
             logger.logDebug("input: " + JSON.stringify(l));
         }
 
-        let wantReturnValues = options.returnValues;
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
@@ -1020,17 +1019,22 @@ module.exports = class Repository {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
-                
+   logger.logInfo('----------------->res=' + res.insertId);
                 if (newModel && res.insertId) {
-                    this.setAutoIncrementIdIfRequired(l[i], res.insertId)
+                    this.setAutoIncrementIdIfRequired(l[i], res.insertId);
+
+                    logger.logInfo('----------------->res2=' + logger.logInfo(JSON.stringify(l[i])))
+
                 }
             }
     
-            if (wantReturnValues) {
+            if (options.returnValues) {
+                logger.logInfo('----------------->res3=' + this.getPrimaryKeyValuesFromModel(l[i]));
                 let md = orm.getMetaData(l[i].__model__);
                 l[i].__setMetaData(md);
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
                 if (util.isDefined(res2.result)) {
+                    logger.logInfo('----------------->res4=');
                     updatedValues.push(res2.result);
                 }
             }
@@ -1361,7 +1365,6 @@ module.exports = class Repository {
                 break;
             case util.MYSQL:
                 retval =  await conn.query(sql.replace(/"/g, "`"), parameters);
-                logger.logInfo('--------------->' + JSON.stringify(retval));
                 break;
             case util.POSTGRES:
                 retval = await conn.query({text: sql, values: parameters});
