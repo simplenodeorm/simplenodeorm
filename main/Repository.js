@@ -988,9 +988,7 @@ module.exports = class Repository {
      * @returns return json error or result: {error: <result> } or { result: <data> }
      */
     async save(modelInstances, options) {
-        logger.logInfo('------------->op1=' + options.returnValues);
         options = checkOptions(options);
-        logger.logInfo('------------->op2=' + options.returnValues);
 
         let rowsAffected = 0;
         let l = modelInstances;
@@ -1000,7 +998,6 @@ module.exports = class Repository {
             l = [];
             l.push(modelInstances);
         }
-        logger.logInfo('------------->op3=' + options.returnValues);
 
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("input: " + JSON.stringify(l));
@@ -1015,7 +1012,6 @@ module.exports = class Repository {
                 Object.assign(model, l[i]);
                 l[i] = model;
             }
-            logger.logInfo('------------->op4=' + options.returnValues);
 
             if (l[i].__isNew()) {
                 newModel = true;
@@ -1023,7 +1019,6 @@ module.exports = class Repository {
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
-            logger.logInfo('------------->op5=' + options.returnValues);
             if (util.isDefined(res.error)) {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
@@ -1032,11 +1027,10 @@ module.exports = class Repository {
                     this.setAutoIncrementIdIfRequired(l[i], res.insertId);
                 }
             }
-            logger.logInfo('------------->op6=' + options.returnValues);
+            logger.logInfo('------------->op1=' + options.returnValues);
 
-            if (returnValues) {
-                logger.logInfo('-------------->save5=');
-                l[i].__setMetaData(md);
+            if (options.returnValues) {
+                 l[i].__setMetaData(md);
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
                 logger.logInfo('-------------->save6=' + JSON.stringify(res2));
                 if (util.isDefined(res2.result)) {
