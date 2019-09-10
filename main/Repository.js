@@ -684,35 +684,40 @@ module.exports = class Repository {
      * @param {type} cmodel - child model isntance to pupulate
      */
     populateReferenceColumns(pmodel, refdef, cmodel) {
-        let pcmap = orm.getMetaData(pmodel.__model__).getColumnToFieldMap();
-        let ccmap = orm.getMetaData(refdef.targetModelName).getColumnToFieldMap();
-        
-        let l;
-        logger.logInfo('----------------->1')
+        try {
+            let pcmap = orm.getMetaData(pmodel.__model__).getColumnToFieldMap();
+            let ccmap = orm.getMetaData(refdef.targetModelName).getColumnToFieldMap();
 
-        // allow a single model or an array of models
-        if (Array.isArray(cmodal)) {
-            l = cmodel;
-        } else {
-            l = [];
-            l.push(cmodel);
-        }
-        logger.logInfo('----------------->2=' + JSON.stringify(l))
+            let l;
+            logger.logInfo('----------------->1')
 
-        let scols = refdef.joinColumns.sourceColumns.split(',');
-        let tcols = refdef.joinColumns.targetColumns.split(',');
-
-        logger.logInfo('----------------->3=' + refdef.joinColumns.sourceColumns)
-        logger.logInfo('----------------->4=' + refdef.joinColumns.targetColumns)
-        for (let i = 0; i < l.length; ++i) {
-            logger.logInfo('----------------->5=')
-            for (let j = 0; j < scols.length; ++j) {
-                logger.logInfo('----------------->6=')
-                logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]))
-
-                logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j])])
-                l[i][ccmap.get(tcols[j])] =  pmodel[pcmap.get(scols[j])];
+            // allow a single model or an array of models
+            if (Array.isArray(cmodal)) {
+                l = cmodel;
+            } else {
+                l = [];
+                l.push(cmodel);
             }
+            logger.logInfo('----------------->2=' + l)
+
+            let scols = refdef.joinColumns.sourceColumns.split(',');
+            let tcols = refdef.joinColumns.targetColumns.split(',');
+
+            logger.logInfo('----------------->3=' + refdef.joinColumns.sourceColumns)
+            logger.logInfo('----------------->4=' + refdef.joinColumns.targetColumns)
+            for (let i = 0; i < l.length; ++i) {
+                logger.logInfo('----------------->5=')
+                for (let j = 0; j < scols.length; ++j) {
+                    logger.logInfo('----------------->6=')
+                    logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]))
+
+                    logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j])])
+                    l[i][ccmap.get(tcols[j])] = pmodel[pcmap.get(scols[j])];
+                }
+            }
+        }
+        catch(e) {
+        logger.logInfo('error-------->' + e);
         }
     }
     
