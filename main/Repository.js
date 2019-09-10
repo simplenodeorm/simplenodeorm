@@ -1027,12 +1027,10 @@ module.exports = class Repository {
                     this.setAutoIncrementIdIfRequired(l[i], res.insertId);
                 }
             }
-            logger.logInfo('------------->op1=' + options.returnValues);
 
             if (options.returnValues) {
-                 l[i].__setMetaData(md);
+                l[i].__setMetaData(this.getMetaData());
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
-                logger.logInfo('-------------->save6=' + JSON.stringify(res2));
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
                 }
