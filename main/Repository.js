@@ -572,8 +572,11 @@ module.exports = class Repository {
                 for (let i = 0; i < otodefs.length; ++i) {
                     if (otodefs[i].cascadeUpdate) {
                         let oto = model[otodefs[i].fieldName];
+                        logger.logInfo('------->otoname=' + otodefs[i].fieldName);
+                        logger.logInfo('------->orm1=' + JSON.stringify(orm));
                         if (util.isValidObject(oto)) {
                             this.populateReferenceColumns(model, otodefs[i], oto);
+                            logger.logInfo('------->orm2=' + JSON.stringify(orm));
                             let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
 
                             if (util.isDefined(res.error)) {
