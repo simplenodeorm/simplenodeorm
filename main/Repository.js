@@ -1007,7 +1007,6 @@ module.exports = class Repository {
                 Object.assign(model, l[i]);
                 l[i] = model;
             }
-            logger.logInfo('-------------->a')
 
             if (l[i].__isNew()) {
                 newModel = true;
@@ -1015,7 +1014,6 @@ module.exports = class Repository {
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
-            logger.logInfo('-------------->b='+ JSON.stringify(res));
 
             if (util.isDefined(res.error)) {
                 return {error: res.error};
@@ -1026,13 +1024,9 @@ module.exports = class Repository {
                 }
             }
 
-            logger.logInfo('-------------->1')
             if (options.returnValues) {
-                logger.logInfo('-------------->2')
                 l[i].__setMetaData(md);
-                logger.logInfo('-------------->3')
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
-logger.logInfo('-------------->' + JSON.stringify(res))
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
                 }
@@ -1505,7 +1499,7 @@ logger.logInfo('-------------->' + JSON.stringify(res))
             }
 
             let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
-    
+ logger.logInfo('------------->' + JSON.stringify(res)) ;
             let rowsAffected = res.rowsAffected;
             if (!rowsAffected) {
                 rowsAffected = res.affectedRows;
