@@ -689,7 +689,7 @@ module.exports = class Repository {
         let l;
 
         // allow a single model or an array of models
-        if (cmodel instanceof Array) {
+        if (Array.isArray(cmodal)) {
             l = cmodel;
         } else {
             l = [];
@@ -701,6 +701,9 @@ module.exports = class Repository {
        
         for (let i = 0; i < l.length; ++i) {
             for (let j = 0; j < scols.length; ++j) {
+                logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]))
+
+                logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j])])
                 l[i][ccmap.get(tcols[j])] =  pmodel[pcmap.get(scols[j])];
             }
         }
