@@ -552,7 +552,6 @@ module.exports = class Repository {
             }
             
             catch (e) {
- logger.logInfo('------------------>error=' + e)
                 result.error = e;
             }
         }
@@ -561,11 +560,13 @@ module.exports = class Repository {
         if (util.isDefined(result.error)) {
             return {error: result.error};
         } else {
-            logger.logInfo('------------------>insertId=' + result.insertId)
             insertId = result.insertId;
             if (util.isDefined(result.rowsAffected)) {
                 rowsAffected += result.rowsAffected;
+            } else if (util.isDefined(result.affectedRows)) {
+                rowsAffected += result.affectedRows;
             }
+
 
             // do this to prevent returning child objects
             // if return values true
@@ -614,13 +615,9 @@ module.exports = class Repository {
     }
     
     setAutoIncrementIdIfRequired(model, id) {
- logger('-------->1=' + id)
         let fields = model.__getMetaData().fields;
-        logger('-------->2=' + fields)
         for (let i = 0; i < fields.length; ++i) {
-            logger('-------->3=' + fields[i].fieldName)
             if (fields[i].autoIncrementGenerator) {
-                logger('-------->4=' + fields[i].fieldName)
                 model[fields[i].fieldName] = id;
                 break;
             }
