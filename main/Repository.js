@@ -525,7 +525,9 @@ module.exports = class Repository {
         let result = {rowsAffected: 0};
         if (model.__isNew() || !(await this.exists(model, options))) {
             model.__setNew(true);
+            logger.logInfo('---------------------->a=' + options.returnValues);
             result = await this.executeSql(sql, params, options);
+            logger.logInfo('---------------------->b=' + options.returnValues);
         } else if (model.__isModified()) {
             if (this.metaData.isVersioned()) {
                 let currentVersion = await this.getCurrentVersion(model, options);
@@ -570,7 +572,7 @@ module.exports = class Repository {
 
             // do this to prevent returning child objects
             // if return values true
-            let childOptions = Object.assign(options);
+            let childOptions = Object.assign({}, options);
             childOptions.returnValues = false;
             
             let otodefs = this.metaData.getOneToOneDefinitions();
