@@ -690,7 +690,7 @@ module.exports = class Repository {
      * @param {type} cmodel - child model isntance to pupulate
      */
     populateReferenceColumns(pmodel, refdef, cmodel) {
-        let pcmap = orm.getMetaData(pmodel.getObjectName()).getColumnToFieldMap();
+        let pcmap = orm.getMetaData(pmodel.__model__).getColumnToFieldMap();
         let ccmap = orm.getMetaData(refdef.targetModelName).getColumnToFieldMap();
         
         let l;
