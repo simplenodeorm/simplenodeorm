@@ -692,7 +692,7 @@ module.exports = class Repository {
             logger.logInfo('----------------->1')
 
             // allow a single model or an array of models
-            if (Array.isArray(cmodal)) {
+            if (Array.isArray(cmodel)) {
                 l = cmodel;
             } else {
                 l = [];
