@@ -552,6 +552,7 @@ module.exports = class Repository {
             }
             
             catch (e) {
+ logger.logInfo('------------------>error=' + e)
                 result.error = e;
             }
         }
@@ -560,6 +561,7 @@ module.exports = class Repository {
         if (util.isDefined(result.error)) {
             return {error: result.error};
         } else {
+            logger.logInfo('------------------>insertId=' + result.insertId)
             insertId = result.insertId;
             if (util.isDefined(result.rowsAffected)) {
                 rowsAffected += result.rowsAffected;
