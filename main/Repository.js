@@ -612,9 +612,13 @@ module.exports = class Repository {
     }
     
     setAutoIncrementIdIfRequired(model, id) {
+ logger('-------->1=' + id)
         let fields = model.__getMetaData().fields;
+        logger('-------->2=' + fields)
         for (let i = 0; i < fields.length; ++i) {
+            logger('-------->3=' + fields[i].fieldName)
             if (fields[i].autoIncrementGenerator) {
+                logger('-------->4=' + fields[i].fieldName)
                 model[fields[i].fieldName] = id;
                 break;
             }
