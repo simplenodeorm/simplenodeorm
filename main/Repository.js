@@ -519,78 +519,65 @@ module.exports = class Repository {
      * @returns return json error or rowsAffected: {error: <result> } or { rowsAffecetd: <cnt> }
      */
     async executeSave(model, sql, params, options) {
-        let rowsAffected = 0;
-        options = checkOptions(options);
+        try {
+            let rowsAffected = 0;
+            options = checkOptions(options);
 
-        let result = {rowsAffected: 0};
-        if (model.__isNew() || !(await this.exists(model, options))) {
-            model.__setNew(true);
-            result = await this.executeSql(sql, params, options);
-        } else if (model.__isModified()) {
-            if (this.metaData.isVersioned()) {
-                let currentVersion = await this.getCurrentVersion(model, options);
-                if (util.isNotValidObject(currentVersion)) {
-                    currentVersion = -1;
-                } else if (currentVersion instanceof Date) {
-                    currentVersion = currentVersion.getTime();
+            let result = {rowsAffected: 0};
+            let insertId;
+            if (model.__isNew() || !(await this.exists(model, options))) {
+                model.__setNew(true);
+                result = await this.executeSql(sql, params, options);
+                if (result.insertId) {
+                    insertId = result.insertId;
+                    this.setAutoIncrementIdIfRequired(model, insertId)
+                }
+            } else if (model.__isModified()) {
+                if (this.metaData.isVersioned()) {
+                    let currentVersion = await this.getCurrentVersion(model, options);
+                    if (util.isNotValidObject(currentVersion)) {
+                        currentVersion = -1;
+                    } else if (currentVersion instanceof Date) {
+                        currentVersion = currentVersion.getTime();
+                    }
+
+                    let verField = this.getVersionField(model);
+                    let ver = model[verField.fieldName];
+
+                    if (ver instanceof Date) {
+                        ver = ver.getTime();
+                    }
+
+                    if ((currentVersion > -1) && (ver < currentVersion)) {
+                        util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
+                    }
                 }
 
-                let verField = this.getVersionField(model);
-                let ver = model.__getFieldValue(verField.fieldName);
-
-                if (ver instanceof Date) {
-                    ver = ver.getTime();
-                }
-
-                if ((currentVersion > -1) && (ver  < currentVersion)) {
-                    util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
-                }
-            }
-
-            try {
                 result = await this.executeSql(sql, params, options);
             }
-            
-            catch (e) {
-                result.error = e;
-            }
-        }
-        
-        let insertId;
-        if (util.isDefined(result.error)) {
-            return {error: result.error};
-        } else {
-            insertId = result.insertId;
+
             if (util.isDefined(result.rowsAffected)) {
                 rowsAffected += result.rowsAffected;
             } else if (util.isDefined(result.affectedRows)) {
                 rowsAffected += result.affectedRows;
             }
 
-
             // do this to prevent returning child objects
             // if return values true
             let childOptions = Object.assign({}, options);
             childOptions.returnValues = false;
-            
+
             let otodefs = this.metaData.getOneToOneDefinitions();
-            logger.logInfo('---------------->1');
             if (util.isValidObject(otodefs)) {
-                logger.logInfo('---------------->2');
                 for (let i = 0; i < otodefs.length; ++i) {
-                    logger.logInfo('---------------->3=' + otodefs[i].fieldName);
                     if (otodefs[i].cascadeUpdate) {
-                        logger.logInfo('---------------->4');
-                        let oto = model.__getFieldValue(otodefs[i].fieldName, true);
+                        let oto = model[otodefs[i].fieldName];
                         if (util.isValidObject(oto)) {
-                            logger.logInfo('---------------->oto=' + JSON.stringify(oto));
                             this.populateReferenceColumns(model, otodefs[i], oto);
-                            logger.logInfo('---------------->oto2=' + JSON.stringify(oto));
-                            let res  = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
-                            logger.logInfo('---------------->res=' + JSON.stringify(res));
+                            let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
 
                             if (util.isDefined(res.error)) {
-                                return {error: res.error};
+                                util.throwError("SaveRelatedObjectException", res.error);
                             } else if (util.isDefined(res.rowsAffected)) {
                                 rowsAffected += res.rowsAffected;
                             }
@@ -603,12 +590,12 @@ module.exports = class Repository {
             if (util.isValidObject(otmdefs)) {
                 for (let i = 0; i < otmdefs.length; ++i) {
                     if (otmdefs[i].cascadeUpdate) {
-                        let otm = model.__getFieldValue(otmdefs[i].fieldName, true);
-                        if (util.isValidObject(otm) ) {
+                        let otm = model[otmdefs[i].fieldName];
+                        if (util.isValidObject(otm)) {
                             this.populateReferenceColumns(model, otmdefs[i], otm);
                             let res = await orm.getRepository(otmdefs[i].targetModelName).save(otm, childOptions);
                             if (util.isDefined(res.error)) {
-                                return {error: res.error};
+                                util.throwError("SaveRelatedObjectException", res.error);
                             } else if (util.isDefined(res.rowsAffected)) {
                                 rowsAffected += res.rowsAffected;
                             }
@@ -616,9 +603,11 @@ module.exports = class Repository {
                     }
                 }
             }
-        }
 
-        return {rowsAffected: rowsAffected, insertId: insertId};
+            return {rowsAffected: rowsAffected, insertId: insertId};
+        } catch (e) {
+            return {error: e};
+        }
     }
     
     setAutoIncrementIdIfRequired(model, id) {
