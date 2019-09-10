@@ -573,11 +573,12 @@ module.exports = class Repository {
                     if (otodefs[i].cascadeUpdate) {
                         let oto = model[otodefs[i].fieldName];
                         logger.logInfo('------->otoname=' + otodefs[i].fieldName);
-                        logger.logInfo('------->orm1=' + JSON.stringify(orm));
+                        logger.logInfo('------->orm1=' + JSON.stringify(oto));
                         if (util.isValidObject(oto)) {
                             this.populateReferenceColumns(model, otodefs[i], oto);
-                            logger.logInfo('------->orm2=' + JSON.stringify(orm));
+                            logger.logInfo('------->orm2=' + JSON.stringify(oto));
                             let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
+                            logger.logInfo('------->res=' + JSON.stringify(res));
 
                             if (util.isDefined(res.error)) {
                                 util.throwError("SaveRelatedObjectException", res.error);
