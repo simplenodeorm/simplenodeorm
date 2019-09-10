@@ -574,14 +574,21 @@ module.exports = class Repository {
             childOptions.returnValues = false;
             
             let otodefs = this.metaData.getOneToOneDefinitions();
+            logger.logInfo('---------------->1');
             if (util.isValidObject(otodefs)) {
+                logger.logInfo('---------------->2');
                 for (let i = 0; i < otodefs.length; ++i) {
+                    logger.logInfo('---------------->3=' + otodefs[i].fieldName);
                     if (otodefs[i].cascadeUpdate) {
+                        logger.logInfo('---------------->4');
                         let oto = model.__getFieldValue(otodefs[i].fieldName, true);
                         if (util.isValidObject(oto)) {
+                            logger.logInfo('---------------->oto=' + JSON.stringify(oto));
                             this.populateReferenceColumns(model, otodefs[i], oto);
+                            logger.logInfo('---------------->oto2=' + JSON.stringify(oto));
                             let res  = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
-                            
+                            logger.logInfo('---------------->res=' + JSON.stringify(res));
+
                             if (util.isDefined(res.error)) {
                                 return {error: res.error};
                             } else if (util.isDefined(res.rowsAffected)) {

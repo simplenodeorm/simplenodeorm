@@ -11,7 +11,7 @@ const path = require('path');
 const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
-var md5 = require('md5');
+const md5 = require('md5');
 
 const dbTypeMap = new Map();
 const orm = this;
