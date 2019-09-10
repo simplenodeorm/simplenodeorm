@@ -708,7 +708,7 @@ module.exports = class Repository {
        
         for (let i = 0; i < l.length; ++i) {
             for (let j = 0; j < scols.length; ++j) {
-                l[i].__setFieldValue(ccmap.get(tcols[j]), pmodel.__getFieldValue(pcmap.get(scols[j])));
+                l[i].__setFieldValue(ccmap.get(tcols[j]), pmodel.__getFieldValue(pcmap.get(scols[j]), true));
             }
         }
     }
