@@ -1019,22 +1019,16 @@ module.exports = class Repository {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
-   logger.logInfo('----------------->res=' + res.insertId);
                 if (newModel && res.insertId) {
                     this.setAutoIncrementIdIfRequired(l[i], res.insertId);
-
-                    logger.logInfo('----------------->res2=' + logger.logInfo(JSON.stringify(l[i])))
-
                 }
             }
     
             if (options.returnValues) {
-                logger.logInfo('----------------->res3=' + this.getPrimaryKeyValuesFromModel(l[i]));
-                let md = orm.getMetaData(l[i].__model__);
                 l[i].__setMetaData(md);
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
+logger.logInfo('-------------->' + JSON.stringify(res))
                 if (util.isDefined(res2.result)) {
-                    logger.logInfo('----------------->res4=');
                     updatedValues.push(res2.result);
                 }
             }
@@ -2097,10 +2091,8 @@ module.exports = class Repository {
     async doBeginTransaction(conn) {
         switch (orm.getDbType(this.poolAlias)) {
             case util.ORACLE:
-                await conn.beginTransaction();
-                break;
             case util.MYSQL:
-                await conn.query('START TRANSACTION');
+                await conn.beginTransaction();
                 break;
             case util.POSTGRES:
                 await conn.query('BEGIN');
@@ -2112,10 +2104,8 @@ module.exports = class Repository {
     async doRollback(conn) {
         switch(orm.getDbType(this.poolAlias)) {
             case util.ORACLE:
-                await conn.rollback();
-                break;
             case util.MYSQL:
-                await conn.query('ROLLBACK');
+                await conn.rollback();
                 break;
             case util.POSTGRES:
                 await conn.query('ROLLBACK');
@@ -2126,10 +2116,8 @@ module.exports = class Repository {
     async doCommit(conn) {
         switch(orm.getDbType(this.poolAlias)) {
             case util.ORACLE:
-                await conn.commit();
-                break;
             case util.MYSQL:
-                await conn.query('COMMIT');
+                await conn.commit();
                 break;
             case util.POSTGRES:
                 await conn.query('COMMIT');
