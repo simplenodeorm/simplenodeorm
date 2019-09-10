@@ -793,7 +793,7 @@ module.exports = class Repository {
         let md = model.__getMetaData();
         let fields = md.fields;
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName), false);
+            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
             
             if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
                 pkparams.push(val);
@@ -1115,7 +1115,7 @@ module.exports = class Repository {
                 && (res.result.rows.length === 1)
                 && (res.result.rows[0][0] === 1));
         }
-        catch (e) {};
+        catch (e) {}
 
         return retval;
     }
