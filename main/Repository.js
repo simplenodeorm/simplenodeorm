@@ -572,14 +572,9 @@ module.exports = class Repository {
                 for (let i = 0; i < otodefs.length; ++i) {
                     if (otodefs[i].cascadeUpdate) {
                         let oto = model[otodefs[i].fieldName];
-                        logger.logInfo('------->otoname=' + otodefs[i].fieldName);
-                        logger.logInfo('------->orm1=' + JSON.stringify(oto));
                         if (util.isValidObject(oto)) {
-                            logger.logInfo('------->orm2=' + JSON.stringify(oto));
                             this.populateReferenceColumns(model, otodefs[i], oto);
-                            logger.logInfo('------->orm3=' + JSON.stringify(oto));
                             let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
-                            logger.logInfo('------->res=' + JSON.stringify(res));
 
                             if (util.isDefined(res.error)) {
                                 util.throwError("SaveRelatedObjectException", res.error);
@@ -702,12 +697,7 @@ module.exports = class Repository {
             let tcols = refdef.joinColumns.targetColumns.split(',');
 
             for (let i = 0; i < l.length; ++i) {
-                logger.logInfo('----------------->5=')
                 for (let j = 0; j < scols.length; ++j) {
-                    logger.logInfo('----------------->6=')
-                    logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]).fieldName)
-
-                    logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j]).fieldName])
                     l[i][ccmap.get(tcols[j]).fieldName] = pmodel[pcmap.get(scols[j]).fieldName];
                 }
             }
