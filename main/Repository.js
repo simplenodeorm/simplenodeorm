@@ -986,6 +986,7 @@ module.exports = class Repository {
      * @returns return json error or result: {error: <result> } or { result: <data> }
      */
     async save(modelInstances, options) {
+        logger.logInfo('------------->op1=' + JSON.stringify(options));
         options = checkOptions(options);
 
         let rowsAffected = 0;
@@ -1017,19 +1018,15 @@ module.exports = class Repository {
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
-logger.logInfo('-------------->save1=' + JSON.stringify(res));
             if (util.isDefined(res.error)) {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
-                logger.logInfo('-------------->save2=' + newModel);
                 if (newModel && res.insertId) {
                     this.setAutoIncrementIdIfRequired(l[i], res.insertId);
-                    logger.logInfo('-------------->save3=' + JSON.stringify(l[i]));
-
                 }
             }
-            logger.logInfo('-------------->save4=');
+            logger.logInfo('------------->op2=' + JSON.stringify(options));
 
             if (options.returnValues) {
                 logger.logInfo('-------------->save5=');
