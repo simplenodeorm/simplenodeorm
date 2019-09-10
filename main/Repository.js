@@ -689,7 +689,6 @@ module.exports = class Repository {
             let ccmap = orm.getMetaData(refdef.targetModelName).getColumnToFieldMap();
 
             let l;
-            logger.logInfo('----------------->1')
 
             // allow a single model or an array of models
             if (Array.isArray(cmodel)) {
@@ -698,26 +697,23 @@ module.exports = class Repository {
                 l = [];
                 l.push(cmodel);
             }
-            logger.logInfo('----------------->2=' + l)
 
             let scols = refdef.joinColumns.sourceColumns.split(',');
             let tcols = refdef.joinColumns.targetColumns.split(',');
 
-            logger.logInfo('----------------->3=' + refdef.joinColumns.sourceColumns)
-            logger.logInfo('----------------->4=' + refdef.joinColumns.targetColumns)
             for (let i = 0; i < l.length; ++i) {
                 logger.logInfo('----------------->5=')
                 for (let j = 0; j < scols.length; ++j) {
                     logger.logInfo('----------------->6=')
-                    logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]))
+                    logger.logInfo('----------------->scolfld: ' + pcmap.get(scols[j]).fieldName)
 
-                    logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j])])
-                    l[i][ccmap.get(tcols[j])] = pmodel[pcmap.get(scols[j])];
+                    logger.logInfo('----------------->scol: ' + scols[j] + '=' + pmodel[pcmap.get(scols[j]).fieldName])
+                    l[i][ccmap.get(tcols[j]).fieldName] = pmodel[pcmap.get(scols[j]).fieldName];
                 }
             }
         }
         catch(e) {
-        logger.logInfo('error-------->' + e);
+            util.throwError("PopulateReferenceColumnsException", e);
         }
     }
     
