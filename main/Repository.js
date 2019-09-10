@@ -1022,20 +1022,26 @@ logger.logInfo('-------------->save1=' + JSON.stringify(res));
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
                 rowsAffected += res.rowsAffected;
+                logger.logInfo('-------------->save2=' + newModel);
                 if (newModel && res.insertId) {
                     this.setAutoIncrementIdIfRequired(l[i], res.insertId);
+                    logger.logInfo('-------------->save3=' + JSON.stringify(l[i]));
+
                 }
             }
+            logger.logInfo('-------------->save4=');
 
             if (options.returnValues) {
+                logger.logInfo('-------------->save5=');
                 l[i].__setMetaData(md);
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
+                logger.logInfo('-------------->save6=' + JSON.stringify(res2));
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
                 }
             }
         }
-        logger.logInfo('-------------->save2=' + JSON.stringify(updatedValues));
+        logger.logInfo('-------------->save7=' + JSON.stringify(updatedValues));
 
 
         if (updatedValues.length > 0) {
