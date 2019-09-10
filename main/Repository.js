@@ -1015,7 +1015,7 @@ module.exports = class Repository {
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
-            logger.logInfo('-------------->b='+ res.insertId)
+            logger.logInfo('-------------->b='+ JSON.stringify(res));
 
             if (util.isDefined(res.error)) {
                 return {error: res.error};
