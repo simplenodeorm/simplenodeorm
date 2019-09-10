@@ -1017,7 +1017,7 @@ module.exports = class Repository {
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
-
+logger.logInfo('-------------->save1=' + JSON.stringify(res));
             if (util.isDefined(res.error)) {
                 return {error: res.error};
             } else if (util.isDefined(res.rowsAffected)) {
@@ -1035,6 +1035,8 @@ module.exports = class Repository {
                 }
             }
         }
+        logger.logInfo('-------------->save2=' + JSON.stringify(updatedValues));
+
 
         if (updatedValues.length > 0) {
             return {rowsAffected: rowsAffected, updatedValues: updatedValues};
@@ -1502,7 +1504,7 @@ module.exports = class Repository {
             }
 
             let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
- logger.logInfo('------------->' + JSON.stringify(res)) ;
+
             let rowsAffected = res.rowsAffected;
             if (!rowsAffected) {
                 rowsAffected = res.affectedRows;
