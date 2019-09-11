@@ -529,6 +529,9 @@ module.exports = class Repository {
             if (model.__isNew() || !(await this.exists(model, options))) {
 logger.logInfo('---------->before insert=' + sql);
                 result = await this.executeSql(sql, params, options);
+                if (result.error) {
+                    util.throwError("InsertException", result.error);
+                }
                 logger.logInfo('---------->after insert=' + JSON.stringify(result));
                 if (result.insertId) {
                     insertId = result.insertId;
