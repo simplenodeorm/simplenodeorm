@@ -526,8 +526,9 @@ module.exports = class Repository {
             let result = {rowsAffected: 0};
             let insertId;
             if (model.__isNew() || !(await this.exists(model, options))) {
-                model.__setNew(true);
+logger.logInfo('---------->before insert=' + sql);
                 result = await this.executeSql(sql, params, options);
+                logger.logInfo('---------->after insert=' + JSON.stringify(result));
                 if (result.insertId) {
                     insertId = result.insertId;
                     this.setAutoIncrementIdIfRequired(model, insertId)
