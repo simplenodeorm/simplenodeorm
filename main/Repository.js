@@ -1001,10 +1001,11 @@ module.exports = class Repository {
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("input: " + JSON.stringify(l));
         }
-
+logger.logInfo('--------------->' + JSON.stringify(l));
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
+            logger.logInfo('--------------->l[' + i + ']' + JSON.stringify(l[i]));
             if (!l[i].__isNew) {
                 let md = this.getMetaData();
                 let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
@@ -1014,7 +1015,9 @@ module.exports = class Repository {
 
             if (l[i].__isNew()) {
                 newModel = true;
+                logger.logInfo('--------------->1');
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+                logger.logInfo('--------------->2=' + JSON.stringify(res));
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
