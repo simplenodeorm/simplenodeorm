@@ -525,14 +525,11 @@ module.exports = class Repository {
 
             let result = {rowsAffected: 0};
             let insertId;
-            logger.logInfo('---------->before exists=' + JSON.stringify(model));
             if (model.__isNew() || !(await this.exists(model, options))) {
-logger.logInfo('---------->before insert=' + sql);
                 result = await this.executeSql(sql, params, options);
                 if (result.error) {
                     util.throwError("InsertException", result.error);
                 }
-                logger.logInfo('---------->after insert=' + JSON.stringify(result));
                 if (result.insertId) {
                     insertId = result.insertId;
                     this.setAutoIncrementIdIfRequired(model, insertId)
@@ -1006,11 +1003,10 @@ logger.logInfo('---------->before insert=' + sql);
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("input: " + JSON.stringify(l));
         }
-logger.logInfo('--------------->' + JSON.stringify(l));
+
         for (let i = 0; i < l.length; ++i) {
             let res;
             let newModel = false;
-            logger.logInfo('--------------->l[' + i + ']' + JSON.stringify(l[i]));
             if (!l[i].__isNew) {
                 let md = this.getMetaData();
                 let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
@@ -1020,9 +1016,7 @@ logger.logInfo('--------------->' + JSON.stringify(l));
 
             if (l[i].__isNew()) {
                 newModel = true;
-                logger.logInfo('--------------->1');
                 res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
-                logger.logInfo('--------------->2=' + JSON.stringify(res));
             } else {
                 res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
             }
