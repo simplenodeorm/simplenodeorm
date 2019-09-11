@@ -525,6 +525,7 @@ module.exports = class Repository {
 
             let result = {rowsAffected: 0};
             let insertId;
+            logger.logInfo('---------->before exists=' + JSON.stringify(model));
             if (model.__isNew() || !(await this.exists(model, options))) {
 logger.logInfo('---------->before insert=' + sql);
                 result = await this.executeSql(sql, params, options);
