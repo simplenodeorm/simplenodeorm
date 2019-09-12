@@ -724,11 +724,13 @@ module.exports = class Repository {
     async loadInsertParameters(model, options) {
         options = checkOptions(options);
         let retval = [];
-        let fields = model.__getMetaData().fields;
+        let fields = this.getMetaData().fields;
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
+            logger.logInfo('------------>fieldName=' + fields[i].fieldName)
             if (model[fields[i].fieldName]) {
                 let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
+                logger.logInfo('------------>' + fields[i].fieldName + '=' + val);
 
                 if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                     if (util.isValidObject(fields[i].autoIncrementGenerator)) {
@@ -777,6 +779,7 @@ module.exports = class Repository {
                 if (util.isNotValidObject(val)) {
                     val = null;
                 }
+                logger.logInfo('------------>push=' + fields[i].fieldName + '=' + val)
 
                 retval.push(val);
             }
@@ -794,7 +797,7 @@ module.exports = class Repository {
     async loadUpdateParameters(model, options) {
         let retval = [];
         let pkparams = [];
-        let md = model.__getMetaData();
+        let md = this.getMetaData();
         let fields = md.fields;
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
