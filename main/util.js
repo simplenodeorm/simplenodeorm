@@ -1,7 +1,5 @@
 "use strict";
 
-const logger = require('./Logger.js');
-
 const PK_VALUE_SEPARATOR = '^';
 const FIND_ONE = 'findOne';
 const FIND = 'find';
@@ -265,24 +263,18 @@ module.exports.isQuoteRequired = function(field) {
 module.exports.convertObjectArrayToResultSet = function(results) {
     let retval = {metaData: [], rows: []};
 
-    logger.logInfo('----->convertObjectArrayToResultSet(1)=' + JSON.stringify(results));
-    try {
-        if (results && (results.length > 0)) {
-            for (let name in results[0]) {
-                retval.metaData.push({name: name});
-            }
-            logger.logInfo('----->convertObjectArrayToResultSet(md)=' + JSON.stringify(retval.metaData));
+    if (results && (results.length > 0)) {
+        for (let name in results[0]) {
+            retval.metaData.push({name: name});
+        }
 
-            for (let i = 0; i < results.length; ++i) {
-                retval.rows.push([]);
-                for (let j = 0; j < retval.metaData.length; ++j) {
-                    retval.rows[i].push(results[i][retval.metaData[j].name]);
-                }
+        for (let i = 0; i < results.length; ++i) {
+            retval.rows.push([]);
+            for (let j = 0; j < retval.metaData.length; ++j) {
+                retval.rows[i].push(results[i][retval.metaData[j].name]);
             }
         }
-    } catch(e) { logger.logInfo('---->err=' + e)}
-
-    logger.logInfo('----->convertObjectArrayToResultSet(2)=' + JSON.stringify(retval));
+    }
 
     return retval;
 };
