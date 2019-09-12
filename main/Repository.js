@@ -879,10 +879,8 @@ module.exports = class Repository {
             let fields = md.fields;
             let comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                if (model[fields[i].fieldName]) {
-                    retval += (comma + fields[i].columnName);
-                    comma = ',';
-                }
+                retval += (comma + fields[i].columnName);
+                comma = ',';
             }
 
             retval += ') values (';
