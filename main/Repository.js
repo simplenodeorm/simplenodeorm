@@ -727,10 +727,8 @@ module.exports = class Repository {
         let fields = this.getMetaData().fields;
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
-            logger.logInfo('------------>fieldName=' + fields[i].fieldName)
             if (model[fields[i].fieldName]) {
                 let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
-                logger.logInfo('------------>' + fields[i].fieldName + '=' + val);
 
                 if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                     if (util.isValidObject(fields[i].autoIncrementGenerator)) {
@@ -779,7 +777,6 @@ module.exports = class Repository {
                 if (util.isNotValidObject(val)) {
                     val = null;
                 }
-                logger.logInfo('------------>push=' + fields[i].fieldName + '=' + val)
 
                 retval.push(val);
             }
