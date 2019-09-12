@@ -729,15 +729,18 @@ module.exports = class Repository {
         for (let i = 0; i < fields.length; ++i) {
             if (model[fields[i].fieldName]) {
                 let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
-
+logger.logInfo('------------->1=' + fields[i].fieldName + '=' + val);
                 if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
+                    logger.logInfo('------------->2=' + fields[i].fieldName + '=' + val);
                     if (util.isValidObject(fields[i].autoIncrementGenerator)) {
                         if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
                             val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
+                            logger.logInfo('------------->3=' + fields[i].fieldName + '=' + val);
                             model.__setFieldValue(fields[i].fieldName, val);
                         }
                     } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
                         val = fields[i].defaultValue;
+                        logger.logInfo('------------->4=' + fields[i].fieldName + '=' + val);
                         if (this.isDateType(fields[i])) {
                             let dv = fields[i].defaultValue.toUpperCase();
                             if (dv.includes('SYSDATE')
@@ -749,6 +752,7 @@ module.exports = class Repository {
                             }
                         }
 
+                        logger.logInfo('------------->5=' + fields[i].fieldName + '=' + val);
                         model.__setFieldValue(fields[i].fieldName, val);
                     } else if (fields[i].versionColumn) {
                         if (this.isDateType(fields[i])) {
@@ -757,14 +761,17 @@ module.exports = class Repository {
                             val = 1;
                         }
                         model.__setFieldValue(fields[i].fieldName, val);
+                        logger.logInfo('------------->6=' + fields[i].fieldName + '=' + val);
                     }
                     if (this.isDateType(fields[i]) && util.isDefined(val)) {
                         val = new Date(val);
                         model.__setFieldValue(fields[i].fieldName, val);
+                        logger.logInfo('------------->7=' + fields[i].fieldName + '=' + val);
                     }
                 } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
                     val = new Date(val);
                     model.__setFieldValue(fields[i].fieldName, val);
+                    logger.logInfo('------------->8=' + fields[i].fieldName + '=' + val);
                 } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
                     && util.isDefined(val)) {
                     val = 'POINT(' + val.x + ' ' + val.y + ')';
@@ -772,16 +779,20 @@ module.exports = class Repository {
                     && val.type && val.data
                     && (val.type.toLowerCase() === 'buffer')) {
                     val = val.toString();
+                    logger.logInfo('------------->9=' + fields[i].fieldName + '=' + val);
                 }
+                logger.logInfo('------------->10=' + fields[i].fieldName + '=' + val);
 
                 if (util.isNotValidObject(val)) {
                     val = null;
                 }
+                logger.logInfo('------------->11=' + fields[i].fieldName + '=' + val);
 
                 retval.push(val);
             }
         }
-        
+        logger.logInfo('------------->12=' + JSON.stringify(retval));
+
         return retval;
     }
     
