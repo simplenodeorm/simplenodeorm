@@ -149,7 +149,7 @@ module.exports.throwWarning = function(ename, emessage) {
     if (emessage instanceof String) {
         err = new Error(emessage);
     } else {
-        err = new Error(this.toString(emessage));
+        err = new Error(emessage);
     }
     
     err.name = ename;
