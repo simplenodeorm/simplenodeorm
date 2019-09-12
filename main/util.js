@@ -263,21 +263,24 @@ module.exports.isQuoteRequired = function(field) {
 module.exports.convertObjectArrayToResultSet = function(results) {
     let retval = {metaData: [], rows: []};
 
-    logger.logInfo('----->1=' + JSON.stringify(results));
-    if (results && (results.length > 0)) {
-        for (let name in results[0]) {
-            retval.metaData.push({name: name});
-        }
-    
-        for (let i = 0; i < results.length; ++i) {
-            retval.rows.push([]);
-            for (let j = 0; j < retval.metaData.length; ++j) {
-                retval.rows[i].push(results[i][retval.metaData[j].name]);
+    logger.logInfo('----->convertObjectArrayToResultSet(1)=' + JSON.stringify(results));
+    try {
+        if (results && (results.length > 0)) {
+            for (let name in results[0]) {
+                retval.metaData.push({name: name});
+            }
+            logger.logInfo('----->convertObjectArrayToResultSet(md)=' + JSON.stringify(retval.metaData));
+
+            for (let i = 0; i < results.length; ++i) {
+                retval.rows.push([]);
+                for (let j = 0; j < retval.metaData.length; ++j) {
+                    retval.rows[i].push(results[i][retval.metaData[j].name]);
+                }
             }
         }
-    }
+    } catch(e) { logger.logInfo('---->err=' + e)}
 
-    logger.logInfo('----->2=' + JSON.stringify(retval));
+    logger.logInfo('----->convertObjectArrayToResultSet(2)=' + JSON.stringify(retval));
 
     return retval;
 };
