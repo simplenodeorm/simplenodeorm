@@ -1,5 +1,7 @@
 "use strict";
 
+const logger = require('./Logger.js');
+
 const PK_VALUE_SEPARATOR = '^';
 const FIND_ONE = 'findOne';
 const FIND = 'find';
