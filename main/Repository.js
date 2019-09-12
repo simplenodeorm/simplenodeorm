@@ -727,71 +727,57 @@ module.exports = class Repository {
         let fields = this.getMetaData().fields;
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
-            if (model[fields[i].fieldName]) {
-                let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
-logger.logInfo('------------->1=' + fields[i].fieldName + '=' + val);
-                if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
-                    logger.logInfo('------------->2=' + fields[i].fieldName + '=' + val);
-                    if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                        if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
-                            val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
-                            logger.logInfo('------------->3=' + fields[i].fieldName + '=' + val);
-                            model.__setFieldValue(fields[i].fieldName, val);
-                        }
-                    } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
-                        val = fields[i].defaultValue;
-                        logger.logInfo('------------->4=' + fields[i].fieldName + '=' + val);
-                        if (this.isDateType(fields[i])) {
-                            let dv = fields[i].defaultValue.toUpperCase();
-                            if (dv.includes('SYSDATE')
-                                || dv.includes('NOW')
-                                || dv.includes('CURRENT_TIMESTAMP')) {
-                                val = new Date();
-                            } else {
-                                val = new Date(val);
-                            }
-                        }
-
-                        logger.logInfo('------------->5=' + fields[i].fieldName + '=' + val);
+            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
+            if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
+                if (util.isValidObject(fields[i].autoIncrementGenerator)) {
+                    if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
+                        val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                         model.__setFieldValue(fields[i].fieldName, val);
-                    } else if (fields[i].versionColumn) {
-                        if (this.isDateType(fields[i])) {
+                    }
+                } else if (util.isNotValidObject(val) && util.isValidObject(fields[i].defaultValue)) {
+                    val = fields[i].defaultValue;
+                    if (this.isDateType(fields[i])) {
+                        let dv = fields[i].defaultValue.toUpperCase();
+                        if (dv.includes('SYSDATE')
+                            || dv.includes('NOW')
+                            || dv.includes('CURRENT_TIMESTAMP')) {
                             val = new Date();
                         } else {
-                            val = 1;
+                            val = new Date(val);
                         }
-                        model.__setFieldValue(fields[i].fieldName, val);
-                        logger.logInfo('------------->6=' + fields[i].fieldName + '=' + val);
                     }
-                    if (this.isDateType(fields[i]) && util.isDefined(val)) {
-                        val = new Date(val);
-                        model.__setFieldValue(fields[i].fieldName, val);
-                        logger.logInfo('------------->7=' + fields[i].fieldName + '=' + val);
+
+                    model.__setFieldValue(fields[i].fieldName, val);
+                } else if (fields[i].versionColumn) {
+                    if (this.isDateType(fields[i])) {
+                        val = new Date();
+                    } else {
+                        val = 1;
                     }
-                } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                    model.__setFieldValue(fields[i].fieldName, val);
+                }
+                if (this.isDateType(fields[i]) && util.isDefined(val)) {
                     val = new Date(val);
                     model.__setFieldValue(fields[i].fieldName, val);
-                    logger.logInfo('------------->8=' + fields[i].fieldName + '=' + val);
-                } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
-                    && util.isDefined(val)) {
-                    val = 'POINT(' + val.x + ' ' + val.y + ')';
-                } else if (val && (typeof val === "object") // handle blobs in mysql
-                    && val.type && val.data
-                    && (val.type.toLowerCase() === 'buffer')) {
-                    val = val.toString();
-                    logger.logInfo('------------->9=' + fields[i].fieldName + '=' + val);
                 }
-                logger.logInfo('------------->10=' + fields[i].fieldName + '=' + val);
-
-                if (util.isNotValidObject(val)) {
-                    val = null;
-                }
-                logger.logInfo('------------->11=' + fields[i].fieldName + '=' + val);
-
-                retval.push(val);
+            } else if (this.isDateType(fields[i]) && util.isDefined(val)) {
+                val = new Date(val);
+                model.__setFieldValue(fields[i].fieldName, val);
+            } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
+                && util.isDefined(val)) {
+                val = 'POINT(' + val.x + ' ' + val.y + ')';
+            } else if (val && (typeof val === "object") // handle blobs in mysql
+                && val.type && val.data
+                && (val.type.toLowerCase() === 'buffer')) {
+                val = val.toString();
             }
+
+            if (util.isNotValidObject(val)) {
+                val = null;
+            }
+
+            retval.push(val);
         }
-        logger.logInfo('------------->12=' + JSON.stringify(retval));
 
         return retval;
     }
@@ -888,7 +874,7 @@ logger.logInfo('------------->1=' + fields[i].fieldName + '=' + val);
     getInsertSql(model) {
         let retval = insertSqlMap.get(model.__model__);
         if (util.isNotValidObject(retval)) {
-            let md = model.__getMetaData();
+            let md = this.getMetaData();
             retval = ('insert into ' + md.tableName+ '(');
             let fields = md.fields;
             let comma = '';
@@ -904,28 +890,26 @@ logger.logInfo('------------->1=' + fields[i].fieldName + '=' + val);
             let dbType = orm.getDbType(this.poolAlias);
             comma = '';
             for (let i = 0; i < fields.length; ++i) {
-                if (model[fields[i].fieldName]) {
-                    switch(dbType) {
-                        case util.ORACLE:
-                            retval += (comma + ' :' + (fields[i].fieldName));
-                            break;
-                        case util.MYSQL:
-                            if (this.isGeometryType(fields[i])) {
-                                retval += (comma + ' ST_GeomFromText(?)');
-                            } else {
-                                retval += (comma + ' ?');
-                            }
-                            break;
-                        case util.POSTGRES:
-                            retval += (comma + ' $' + (i+1));
-                            break
-                    }
-                    comma = ',';
+                switch(dbType) {
+                    case util.ORACLE:
+                        retval += (comma + ' :' + (fields[i].fieldName));
+                        break;
+                    case util.MYSQL:
+                        if (this.isGeometryType(fields[i])) {
+                            retval += (comma + ' ST_GeomFromText(?)');
+                        } else {
+                            retval += (comma + ' ?');
+                        }
+                        break;
+                    case util.POSTGRES:
+                        retval += (comma + ' $' + (i+1));
+                        break
                 }
+                comma = ',';
             }
 
             retval += ')';
-            insertSqlMap.set(model.__model__, retval);
+            insertSqlMap.set(md.getObjectName(), retval);
         }
 
         return retval;
