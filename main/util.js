@@ -262,7 +262,8 @@ module.exports.isQuoteRequired = function(field) {
 
 module.exports.convertObjectArrayToResultSet = function(results) {
     let retval = {metaData: [], rows: []};
-    
+
+    logger.logInfo('----->1=' + JSON.stringify(results));
     if (results && (results.length > 0)) {
         for (let name in results[0]) {
             retval.metaData.push({name: name});
@@ -275,8 +276,9 @@ module.exports.convertObjectArrayToResultSet = function(results) {
             }
         }
     }
-    
-    
+
+    logger.logInfo('----->2=' + JSON.stringify(retval));
+
     return retval;
 };
 
