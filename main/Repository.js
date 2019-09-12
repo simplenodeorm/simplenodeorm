@@ -528,7 +528,6 @@ module.exports = class Repository {
             if (model.__isNew() || !(await this.exists(model, options))) {
                 result = await this.executeSql(sql, params, options);
                 if (result.error) {
-                    logger.logInfo('-------------->' + JSON.stringify(result))
                     util.throwError("InsertException", result.error);
                 }
                 if (result.insertId) {

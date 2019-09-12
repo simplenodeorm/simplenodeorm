@@ -131,31 +131,26 @@ module.exports.toSetter = function(fieldName) {
 };
 
 module.exports.throwError = function(ename, emessage) {
-    let err;
-    if (emessage instanceof String) {
-        err = new Error(ename, emessage);
-    } else if (emessage) {
-        err = new Error(ename, emessage.toString());
-    } else {
-        err = new Error(ename);
+    let err = new Error();
+
+    if (emessage) {
+        err.message = emessage.toString();
     }
 
-
+    err.name = ename;
     err.type = 'Error';
     Error.captureStackTrace(err);
     throw err;
 };
 
 module.exports.throwWarning = function(ename, emessage) {
-    let err;
-    if (emessage instanceof String) {
-        err = new Error(ename, emessage);
-    } else if (emessage) {
-        err = new Error(ename, emessage.toString());
-    } else {
-        err = new Error(ename);
+    let err = new Error();
+
+    if (emessage) {
+        err.message = emessage.toString();
     }
-    
+
+    err.name = ename;
     err.type = 'Warning';
     Error.captureStackTrace(err);
     throw err;
