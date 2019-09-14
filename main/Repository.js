@@ -678,7 +678,7 @@ module.exports = class Repository {
                     break;
             }
 
-            params.push(model.__getFieldValue(pkfields[i].fieldName));
+            params.push(model[pkfields[i].fieldName]);
             and = ' and ';
         }
 
@@ -744,7 +744,7 @@ module.exports = class Repository {
         let fields = this.getMetaData().fields;
         let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
+            let val = doConversionIfRequired(fields[i], model[fields[i].fieldName], false);
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
                     if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
@@ -811,7 +811,7 @@ module.exports = class Repository {
         let md = this.getMetaData();
         let fields = md.fields;
         for (let i = 0; i < fields.length; ++i) {
-            let val = doConversionIfRequired(fields[i], model.__getFieldValue(fields[i].fieldName, true), false);
+            let val = doConversionIfRequired(fields[i], model[fields[i].fieldName], false);
             
             if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
                 pkparams.push(val);
@@ -1242,7 +1242,7 @@ module.exports = class Repository {
         let retval = [];
         let pkfields = orm.getRepository(model.__model__).getMetaData().getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
-            retval.push(model.__getFieldValue(pkfields[i].fieldName));
+            retval.push(model[pkfields[i].fieldName]);
         }
         
         return retval;
