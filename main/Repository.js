@@ -423,65 +423,69 @@ module.exports = class Repository {
      * @returns return json error or result: {error: <result> } or { result: <data> }
      */
    async delete(modelInstances, options) {
-        options = checkOptions(options);
-        let rowsAffected = 0;
-        let l = modelInstances;
-        
-        // allow a single model or an array of models
-        if (!(l instanceof Array)) {
-            l = [];
-            l.push(modelInstances);
-        }
+       try {
+           options = checkOptions(options);
+           let rowsAffected = 0;
+           let l = modelInstances;
 
-        if (l.length > 0) {
-            let md = orm.getMetaData(l[0].getObjectName());
-            let otodefs = md.getOneToOneDefinitions();
-            let otmdefs = md.getOneToOneDefinitions();
+           // allow a single model or an array of models
+           if (!(l instanceof Array)) {
+               l = [];
+               l.push(modelInstances);
+           }
 
-            for (let i = 0; i < l.length; ++i) {
-                if (util.isDefined(otodefs)) {
-                    for (let j = 0; j < otodefs.length; ++j) {
-                        if (util.isDefined(otodefs[j].cascadeDelete) && otodefs[j].cascadeDelete) {
-                            let rel = l[i].__getFieldValue(otodefs[j].fieldName);
-                            if (util.isDefined(rel)) {
-                                let ret = await this.delete(rel, options);
-                                if (util.isDefined(ret.error)) {
-                                    return {error: ret.error};
-                                } else if (util.isDefined(ret.rowsAffected)) {
-                                    rowsAffected += ret.rowsAffected;
-                                }
-                            }
-                        }
-                    }
-                }
+           if (l.length > 0) {
+               let md = orm.getMetaData(l[0].__model__);
+               let otodefs = md.getOneToOneDefinitions();
+               let otmdefs = md.getOneToOneDefinitions();
 
-                if (util.isDefined(otmdefs)) {
-                    for (let j = 0; j < otmdefs.length; ++j) {
-                        if (util.isDefined(otmdefs[j].cascadeDelete) && otmdefs[j].cascadeDelete) {
-                            let rel = l[i].__getFieldValue(otmdefs[j].fieldName);
-                            if (util.isDefined(rel)) {
-                                let ret2 = await this.delete(rel, options);
-                                if (util.isDefined(ret2.error)) {
-                                    return {error: ret2.error};
-                                } else if (util.isDefined(ret2.rowsAffected)) {
-                                    rowsAffected += ret2.rowsAffected;
-                                }
-                            }
-                        }
-                    }
-                }
+               for (let i = 0; i < l.length; ++i) {
+                   if (util.isDefined(otodefs)) {
+                       for (let j = 0; j < otodefs.length; ++j) {
+                           if (util.isDefined(otodefs[j].cascadeDelete) && otodefs[j].cascadeDelete) {
+                               let rel = l[i].__getFieldValue(otodefs[j].fieldName);
+                               if (util.isDefined(rel)) {
+                                   let ret = await this.delete(rel, options);
+                                   if (ret.error) {
+                                       util.throwError("DeleteException[" + rel.__model + "]", ret.error);
+                                   } else if (util.isDefined(ret.rowsAffected)) {
+                                       rowsAffected += ret.rowsAffected;
+                                   }
+                               }
+                           }
+                       }
+                   }
 
-                let ret3 = await this.executeNamedDbOperation(util.DELETE, this.getPrimaryKeyValuesFromModel(l[i]), options);
-                
-                if (util.isDefined(ret3.error)) {
-                    return {error: ret3.error};
-                } else if (util.isDefined(ret3.rowsAffected)) {
-                    rowsAffected += ret3.rowsAffected;
-                }
-            }
-        }
-        
-        return {rowsAffected: rowsAffected};
+                   if (util.isDefined(otmdefs)) {
+                       for (let j = 0; j < otmdefs.length; ++j) {
+                           if (util.isDefined(otmdefs[j].cascadeDelete) && otmdefs[j].cascadeDelete) {
+                               let rel = l[i].__getFieldValue(otmdefs[j].fieldName);
+                               if (util.isDefined(rel)) {
+                                   let ret2 = await this.delete(rel, options);
+                                   if (ret2.error) {
+                                       util.throwError("DeleteException[" + rel.__model + "]", ret2.error);
+                                   } else if (util.isDefined(ret2.rowsAffected)) {
+                                       rowsAffected += ret2.rowsAffected;
+                                   }
+                               }
+                           }
+                       }
+                   }
+
+                   let ret3 = await this.executeNamedDbOperation(util.DELETE, this.getPrimaryKeyValuesFromModel(l[i]), options);
+
+                   if (ret3.error) {
+                       util.throwError("DeleteException[" + l[0].__model + "]", ret3.error);
+                   } else if (util.isDefined(ret3.rowsAffected)) {
+                       rowsAffected += ret3.rowsAffected;
+                   }
+               }
+           }
+
+           return {rowsAffected: rowsAffected};
+       } catch (e) {
+           return {error: e};
+       }
     }
 
     deleteSync(modelInstances, options) {
@@ -1038,14 +1042,11 @@ module.exports = class Repository {
                 }
 
                 if (options.returnValues) {
-                    logger.logInfo('---------->1=' + JSON.stringify(l[i]));
-                    logger.logInfo('---------->2=' + JSON.stringify(this.getMetaData()));
                     l[i].__setMetaData(this.getMetaData());
                     let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
                     if (res2.error) {
                         util.throwError("FindUpdatedValueException", res.error);
                     }
-                    logger.logInfo('---------->3=' + JSON.stringify(res2));
                     if (util.isDefined(res2.result)) {
                         updatedValues.push(res2.result);
                     }
