@@ -1028,8 +1028,8 @@ module.exports = class Repository {
                 logger.logInfo('---------->1=' + JSON.stringify(l[i]));
                 logger.logInfo('---------->2=' + JSON.stringify(this.getMetaData()));
                 l[i].__setMetaData(this.getMetaData());
-                logger.logInfo('---------->3=' + JSON.stringify(res2));
                 let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
+                logger.logInfo('---------->3=' + JSON.stringify(res2));
                 if (util.isDefined(res2.result)) {
                     updatedValues.push(res2.result);
                 }
