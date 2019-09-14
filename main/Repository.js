@@ -518,100 +518,111 @@ module.exports = class Repository {
      * }
      * @returns return json error or rowsAffected: {error: <result> } or { rowsAffecetd: <cnt> }
      */
-    async executeSave(model, sql, params, options) {
-        try {
-            let rowsAffected = 0;
-            options = checkOptions(options);
+   async executeSave(model, sql, params, options) {
+        let rowsAffected = 0;
+        options = checkOptions(options);
 
-            let result = {rowsAffected: 0};
-            let insertId;
-            if (model.__isNew() || !(await this.exists(model, options))) {
-                result = await this.executeSql(sql, params, options);
-                if (result.error) {
-                    logger.logError("sql: " + sql);
-                    logger.logError("params: " + JSON.stringify(params));
-                    util.throwError("InsertException[" + model.__model__ + "]", result.error);
-                }
-                if (result.insertId) {
-                    insertId = result.insertId;
-                    this.setAutoIncrementIdIfRequired(model, insertId)
-                }
-            } else if (model.__isModified()) {
-                if (this.metaData.isVersioned()) {
-                    let currentVersion = await this.getCurrentVersion(model, options);
-                    if (util.isNotValidObject(currentVersion)) {
-                        currentVersion = -1;
-                    } else if (currentVersion instanceof Date) {
-                        currentVersion = currentVersion.getTime();
-                    }
+        let result = {rowsAffected: 0};
+        let insertId;
+        let newObject = model.__isNew();
 
-                    let verField = this.getVersionField(model);
-                    let ver = model[verField.fieldName];
-
-                    if (ver instanceof Date) {
-                        ver = ver.getTime();
-                    }
-
-                    if ((currentVersion > -1) && (ver < currentVersion)) {
-                        util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
-                    }
-                }
-
-                result = await this.executeSql(sql, params, options);
+        if (!newObject) {
+            let res = await this.exists(model, options);
+            if (res.error) {
+                util.throwError("CheckExistsException[" + model.__model__ + "]", res.error);
+            } else {
+                newObject = !res;
             }
-
-            if (util.isDefined(result.rowsAffected)) {
-                rowsAffected += result.rowsAffected;
-            } else if (util.isDefined(result.affectedRows)) {
-                rowsAffected += result.affectedRows;
-            }
-
-            // do this to prevent returning child objects
-            // if return values true
-            let childOptions = Object.assign({}, options);
-            childOptions.returnValues = false;
-
-            let otodefs = this.metaData.getOneToOneDefinitions();
-            if (util.isValidObject(otodefs)) {
-                for (let i = 0; i < otodefs.length; ++i) {
-                    if (otodefs[i].cascadeUpdate) {
-                        let oto = model[otodefs[i].fieldName];
-                        if (util.isValidObject(oto)) {
-                            this.populateReferenceColumns(model, otodefs[i], oto);
-                            let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
-
-                            if (util.isDefined(res.error)) {
-                                util.throwError("SaveRelatedObjectException", res.error);
-                            } else if (util.isDefined(res.rowsAffected)) {
-                                rowsAffected += res.rowsAffected;
-                            }
-                        }
-                    }
-                }
-            }
-
-            let otmdefs = this.metaData.getOneToManyDefinitions();
-            if (util.isValidObject(otmdefs)) {
-                for (let i = 0; i < otmdefs.length; ++i) {
-                    if (otmdefs[i].cascadeUpdate) {
-                        let otm = model[otmdefs[i].fieldName];
-                        if (util.isValidObject(otm)) {
-                            this.populateReferenceColumns(model, otmdefs[i], otm);
-                            let res = await orm.getRepository(otmdefs[i].targetModelName).save(otm, childOptions);
-                            if (util.isDefined(res.error)) {
-                                util.throwError("SaveRelatedObjectException", res.error);
-                            } else if (util.isDefined(res.rowsAffected)) {
-                                rowsAffected += res.rowsAffected;
-                            }
-                        }
-                    }
-                }
-            }
-
-            return {rowsAffected: rowsAffected, insertId: insertId};
-        } catch (e) {
-            return {error: e};
         }
+        if (newObject) {
+            result = await this.executeSql(sql, params, options);
+            if (result.error) {
+                logger.logError("sql: " + sql);
+                logger.logError("params: " + JSON.stringify(params));
+                util.throwError("InsertException[" + model.__model__ + "]", result.error);
+            }
+            if (result.insertId) {
+                insertId = result.insertId;
+                this.setAutoIncrementIdIfRequired(model, insertId)
+            }
+        } else if (model.__isModified()) {
+            if (this.metaData.isVersioned()) {
+                let currentVersion = await this.getCurrentVersion(model, options);
+                if (util.isNotValidObject(currentVersion)) {
+                    currentVersion = -1;
+                } else if (currentVersion instanceof Date) {
+                    currentVersion = currentVersion.getTime();
+                }
+
+                let verField = this.getVersionField(model);
+                let ver = model[verField.fieldName];
+
+                if (ver instanceof Date) {
+                    ver = ver.getTime();
+                }
+
+                if ((currentVersion > -1) && (ver < currentVersion)) {
+                    util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
+                }
+            }
+
+            result = await this.executeSql(sql, params, options);
+            if (result.error) {
+                logger.logError("sql: " + sql);
+                logger.logError("params: " + JSON.stringify(params));
+                util.throwError("UpdateException[" + model.__model__ + "]", result.error);
+            }
+        }
+
+        if (util.isDefined(result.rowsAffected)) {
+            rowsAffected += result.rowsAffected;
+        } else if (util.isDefined(result.affectedRows)) {
+            rowsAffected += result.affectedRows;
+        }
+
+        // do this to prevent returning child objects
+        // if return values true
+        let childOptions = Object.assign({}, options);
+        childOptions.returnValues = false;
+
+        let otodefs = this.metaData.getOneToOneDefinitions();
+        if (util.isValidObject(otodefs)) {
+            for (let i = 0; i < otodefs.length; ++i) {
+                if (otodefs[i].cascadeUpdate) {
+                    let oto = model[otodefs[i].fieldName];
+                    if (util.isValidObject(oto)) {
+                        this.populateReferenceColumns(model, otodefs[i], oto);
+                        let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
+
+                        if (util.isDefined(res.error)) {
+                            util.throwError("SaveRelatedObjectException", res.error);
+                        } else if (util.isDefined(res.rowsAffected)) {
+                            rowsAffected += res.rowsAffected;
+                        }
+                    }
+                }
+            }
+        }
+
+        let otmdefs = this.metaData.getOneToManyDefinitions();
+        if (util.isValidObject(otmdefs)) {
+            for (let i = 0; i < otmdefs.length; ++i) {
+                if (otmdefs[i].cascadeUpdate) {
+                    let otm = model[otmdefs[i].fieldName];
+                    if (util.isValidObject(otm)) {
+                        this.populateReferenceColumns(model, otmdefs[i], otm);
+                        let res = await orm.getRepository(otmdefs[i].targetModelName).save(otm, childOptions);
+                        if (util.isDefined(res.error)) {
+                            util.throwError("SaveRelatedObjectException", res.error);
+                        } else if (util.isDefined(res.rowsAffected)) {
+                            rowsAffected += res.rowsAffected;
+                        }
+                    }
+                }
+            }
+        }
+
+        return {rowsAffected: rowsAffected, insertId: insertId};
     }
     
     setAutoIncrementIdIfRequired(model, id) {
@@ -669,7 +680,9 @@ module.exports = class Repository {
 
         let res = await this.executeSqlQuery(sql, params, options);
         if (util.isDefined(res.error)) {
-            util.throwError('SQLError', res.error);
+            logger.logError("sql: " + sql);
+            logger.logError("params: " + JSON.stringify(params));
+            util.throwError('CurrentVersionException', res.error);
         } else if (res.result.rows.length === 0) {
             return 1;
         } else {
@@ -984,62 +997,68 @@ module.exports = class Repository {
      * @returns return json error or result: {error: <result> } or { result: <data> }
      */
     async save(modelInstances, options) {
-        options = checkOptions(options);
+        try {
+            options = checkOptions(options);
 
-        let rowsAffected = 0;
-        let l = modelInstances;
-        let updatedValues = [];
-        // allow a single model or an array of models
-        if (!Array.isArray(l)) {
-            l = [];
-            l.push(modelInstances);
-        }
-
-        if (logger.isLogDebugEnabled()) {
-            logger.logDebug("input: " + JSON.stringify(l));
-        }
-
-        for (let i = 0; i < l.length; ++i) {
-            let res;
-            let newModel = false;
-            if (!l[i].__isNew) {
-                let md = this.getMetaData();
-                let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
-                Object.assign(model, l[i]);
-                l[i] = model;
+            let rowsAffected = 0;
+            let l = modelInstances;
+            let updatedValues = [];
+            // allow a single model or an array of models
+            if (!Array.isArray(l)) {
+                l = [];
+                l.push(modelInstances);
             }
 
-            if (l[i].__isNew()) {
-                newModel = true;
-                res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("input: " + JSON.stringify(l));
+            }
+
+            for (let i = 0; i < l.length; ++i) {
+                let res;
+                let newModel = false;
+                if (!l[i].__isNew) {
+                    let md = this.getMetaData();
+                    let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
+                    Object.assign(model, l[i]);
+                    l[i] = model;
+                }
+
+                if (l[i].__isNew()) {
+                    newModel = true;
+                    res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+                } else {
+                    res = await this.executeSave(l[i], this.getUpdateSql(l[i]), await this.loadUpdateParameters(l[i], options), options);
+                }
+
+                if (util.isDefined(res.rowsAffected)) {
+                    rowsAffected += res.rowsAffected;
+                    if (newModel && res.insertId) {
+                        this.setAutoIncrementIdIfRequired(l[i], res.insertId);
+                    }
+                }
+
+                if (options.returnValues) {
+                    logger.logInfo('---------->1=' + JSON.stringify(l[i]));
+                    logger.logInfo('---------->2=' + JSON.stringify(this.getMetaData()));
+                    l[i].__setMetaData(this.getMetaData());
+                    let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
+                    if (res2.error) {
+                        util.throwError("FindUpdatedValueException", res.error);
+                    }
+                    logger.logInfo('---------->3=' + JSON.stringify(res2));
+                    if (util.isDefined(res2.result)) {
+                        updatedValues.push(res2.result);
+                    }
+                }
+            }
+
+            if (updatedValues.length > 0) {
+                return {rowsAffected: rowsAffected, updatedValues: updatedValues};
             } else {
-                res = await this.executeSave(l[i], this.getUpdateSql(l[i]),  await this.loadUpdateParameters(l[i], options), options);
+                return {rowsAffected: rowsAffected};
             }
-            if (util.isDefined(res.error)) {
-                return {error: res.error};
-            } else if (util.isDefined(res.rowsAffected)) {
-                rowsAffected += res.rowsAffected;
-                if (newModel && res.insertId) {
-                    this.setAutoIncrementIdIfRequired(l[i], res.insertId);
-                }
-            }
-
-            if (options.returnValues) {
-                logger.logInfo('---------->1=' + JSON.stringify(l[i]));
-                logger.logInfo('---------->2=' + JSON.stringify(this.getMetaData()));
-                l[i].__setMetaData(this.getMetaData());
-                let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
-                logger.logInfo('---------->3=' + JSON.stringify(res2));
-                if (util.isDefined(res2.result)) {
-                    updatedValues.push(res2.result);
-                }
-            }
-        }
-
-        if (updatedValues.length > 0) {
-            return {rowsAffected: rowsAffected, updatedValues: updatedValues};
-        } else {
-            return {rowsAffected: rowsAffected};
+        } catch (e) {
+            return {error: e};
         }
     }
     
