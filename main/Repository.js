@@ -630,7 +630,7 @@ module.exports = class Repository {
     }
     
     setAutoIncrementIdIfRequired(model, id) {
-        let fields = model.__getMetaData().fields;
+        let fields = orm.getRepository(model.__model__).getMetaData().fields;
         for (let i = 0; i < fields.length; ++i) {
             if (fields[i].autoIncrementGenerator) {
                 model[fields[i].fieldName] = id;
@@ -641,7 +641,7 @@ module.exports = class Repository {
     
     getVersionField(model) {
         let retval;
-        let fields = model.__getMetaData().fields;
+        let fields = orm.getRepository(model.__model__).getMetaData().fields;
         
         if (util.isDefined(fields)) {
             for (let i = 0; i < fields.length; ++i) {
@@ -939,7 +939,7 @@ module.exports = class Repository {
         let nm = model.__model__;
         let retval = updateSqlMap.get(nm);
         if (util.isNotValidObject(retval)) {
-            let md = model.__getMetaData();
+            let md = this.getMetaData();
             retval = ('update ' + md.tableName + ' ');
             let where = ' where ';
             let fields = md.fields;
@@ -1240,7 +1240,7 @@ module.exports = class Repository {
     
     getPrimaryKeyValuesFromModel(model) {
         let retval = [];
-        let pkfields = model.__getMetaData().getPrimaryKeyFields();
+        let pkfields = orm.getRepository(model.__model__).getMetaData().getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
             retval.push(model.__getFieldValue(pkfields[i].fieldName));
         }
