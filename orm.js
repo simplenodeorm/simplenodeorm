@@ -807,8 +807,8 @@ function startApiServer() {
                 options.poolAlias = util.getContextFromUrl(req);
                 options.mySession = req.header('my-session');
             }
-            let repo = repositoryMap.get(req.params.module);
-            let md = repo.getMetaData(req.params.module);
+            let repo = this.getRepository(req.params.module);
+            let md = repo.getMetaData();
             if (util.isUndefined(repo)) {
                 // support for using an alias for long module names
                 if (util.isDefined(appConfiguration.aliases[req.params.module])) {
