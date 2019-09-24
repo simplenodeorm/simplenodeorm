@@ -702,6 +702,16 @@ function startApiServer() {
                             result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                             endTransaction(repo, result, options);
                             break;
+                        case util.DELETE.toLowerCase():
+                            startTransaction(repo, options);
+                            result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            endTransaction(repo, result, options);
+                            break;
+                        case util.DELETE_SYNC.toLowerCase():
+                            startTransaction(repo, options);
+                            result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
+                            endTransaction(repo, result, options);
+                            break;
                         default:
                             res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                             break;
