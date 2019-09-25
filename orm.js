@@ -704,6 +704,7 @@ function startApiServer() {
                             break;
                         case util.DELETE.toLowerCase():
                             startTransaction(repo, options);
+                            logger.logInfo('----------------->a=' + JSON.stringify(req.body));
                             result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                             endTransaction(repo, result, options);
                             break;
