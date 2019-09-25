@@ -428,14 +428,16 @@ module.exports = class Repository {
            let rowsAffected = 0;
            let l = modelInstances;
 
+
+           logger.logInfo('------>1=' + JSON.stringify(modelInstances));
            // allow a single model or an array of models
-           if (!(l instanceof Array)) {
+           if (!Array.isArray(modelInstances)) {
                l = [];
                l.push(modelInstances);
            }
 
            if (l.length > 0) {
-               let md = orm.getMetaData(l[0].__model__);
+               let md = orm.getRepository(l[0].__model__).getMetaData();
                let otodefs = md.getOneToOneDefinitions();
                let otmdefs = md.getOneToOneDefinitions();
 
@@ -472,7 +474,9 @@ module.exports = class Repository {
                        }
                    }
 
+                   logger.logInfo('------>2=' + JSON.stringify(l[i]));
                    let ret3 = await this.executeNamedDbOperation(util.DELETE, this.getPrimaryKeyValuesFromModel(l[i]), options);
+                   logger.logInfo('------>3=' + JSON.stringify(ret3));
 
                    if (ret3.error) {
                        util.throwError("DeleteException[" + l[0].__model + "]", ret3.error);
