@@ -429,8 +429,7 @@ module.exports = class Repository {
            let l = modelInstances;
 
 
-           logger.logInfo('------>1=' + JSON.stringify(modelInstances));
-           // allow a single model or an array of models
+          // allow a single model or an array of models
            if (!Array.isArray(modelInstances)) {
                l = [];
                l.push(modelInstances);
@@ -474,9 +473,7 @@ module.exports = class Repository {
                        }
                    }
 
-                   logger.logInfo('------>2=' + JSON.stringify(l[i]));
                    let ret3 = await this.executeNamedDbOperation(util.DELETE, this.getPrimaryKeyValuesFromModel(l[i]), options);
-                   logger.logInfo('------>3=' + JSON.stringify(ret3));
 
                    if (ret3.error) {
                        util.throwError("DeleteException[" + l[0].__model + "]", ret3.error);
