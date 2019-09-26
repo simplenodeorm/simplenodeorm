@@ -18,6 +18,8 @@ module.exports.lazyLoadData = function (model, fieldName) {
     if (util.isDefined(resultWrapper.error)) {
         util.thowError('LazyLoadError', resultWrapper.error);
     } else if (util.isDefined(resultWrapper.result)) {
+        resultWrapper.result.__new__ = false;
+        resultWrapper.result.__modified__ = false;
         model.__setFieldValue(fieldName, resultWrapper.result);
     } else {
         model.__setFieldValue(fieldName, null);
