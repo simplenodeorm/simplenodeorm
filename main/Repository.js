@@ -1028,9 +1028,7 @@ module.exports = class Repository {
                     l[i] = model;
                 }
 
-                logger.logInfo('-------------------->a');
                 if (l[i].__isNew()) {
-                    logger.logInfo('-------------------->b');
                     newModel = true;
                     res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
                 } else {
@@ -1045,14 +1043,12 @@ module.exports = class Repository {
                 }
 
                 if (options.returnValues) {
-logger.logInfo('-------------------->1');
                     l[i].__setMetaData(this.getMetaData());
                     let res2 = await this.findOne(this.getPrimaryKeyValuesFromModel(l[i]), options);
                     if (res2.error) {
                         util.throwError("FindUpdatedValueException", res.error);
                     }
                     if (util.isDefined(res2.result)) {
-                        logger.logInfo('-------------------->2' + JSON.stringify(res2.result));
                         updatedValues.push(res2.result);
                     }
                 }
