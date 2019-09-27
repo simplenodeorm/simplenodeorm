@@ -2332,8 +2332,10 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 let nm = r.getMetaData().getObjectName();
                                 let key = (nm + '-' + a + '-' + pk);
 
+
                                 let obj = pkmap.get(key);
                                 if (util.isUndefined(obj)) {
+logger.logInfo('--------------------->' + key);
                                     obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
                                     populateModel(
@@ -2348,16 +2350,16 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         retval,
                                         columnPos,
                                         joinDepth);
-
-                                    let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
- //----------------------------->check
-                                    if (util.isUndefined(l)) {
-                                        l = [];
-                                        curobj.__setFieldValue(otmdefs[j].fieldName, l);
-                                    }
-
-                                    l.push(obj);
                                 }
+
+                                let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
+
+                                if (util.isUndefined(l)) {
+                                    l = [];
+                                    curobj.__setFieldValue(otmdefs[j].fieldName, l);
+                                }
+
+                                l.push(obj);
                             } else if (util.isUndefined(curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
                                curobj.__setFieldValue(otmdefs[j].fieldName, null);
                             }
