@@ -2335,7 +2335,6 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
                                 let obj = pkmap.get(key);
                                 if (util.isUndefined(obj)) {
-logger.logInfo('--------------------->' + key);
                                     obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
                                     populateModel(
@@ -2352,6 +2351,8 @@ logger.logInfo('--------------------->' + key);
                                         joinDepth);
                                 }
 
+
+                                logger.logInfo('--------------------->' + key);
                                 let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
 
                                 if (util.isUndefined(l)) {
