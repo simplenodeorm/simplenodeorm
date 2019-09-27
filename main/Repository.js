@@ -2333,11 +2333,10 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 let key = (nm + '-' + a + '-' + pk);
 
 
-                                let obj = pkmap.get(key);
-                                logger.logInfo('--------------------->key=' + key);
-                                if (util.isUndefined(obj)) {
+                                logger.logInfo('--------------------->key=' + key + ', ' + pkmap.has(key));
+                                if (!pkmap.has(key)) {
                                     logger.logInfo('--------------------->key(2)=' + key);
-                                    obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
+                                    let obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
                                     populateModel(
                                         r,
