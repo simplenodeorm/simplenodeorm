@@ -2351,7 +2351,6 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 }
 
                                 if (!otmset.has(key)) {
-                                    logger.logInfo('------------->' + key)
                                     otmset.add(key);
                                     let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
 
