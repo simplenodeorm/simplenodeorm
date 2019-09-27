@@ -2348,16 +2348,16 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         retval,
                                         columnPos,
                                         joinDepth);
-                                }
 
-                                let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
+                                    let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
+ //----------------------------->check
+                                    if (util.isUndefined(l)) {
+                                        l = [];
+                                        curobj.__setFieldValue(otmdefs[j].fieldName, l);
+                                    }
 
-                                if (util.isUndefined(l)) {
-                                    l = [];
-                                    curobj.__setFieldValue(otmdefs[j].fieldName, l);
+                                    l.push(obj);
                                 }
-                                
-                                l.push(obj);
                             } else if (util.isUndefined(curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
                                curobj.__setFieldValue(otmdefs[j].fieldName, null);
                             }
