@@ -2334,33 +2334,34 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
 
                                 let obj = pkmap.get(key);
+                                logger.logInfo('--------------------->key=' + key);
                                 if (util.isUndefined(obj)) {
+                                    logger.logInfo('--------------------->key(2)=' + key);
                                     obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
                                     populateModel(
-                                        r, 
-                                        a, 
-                                        curDepth+1, 
-                                        i, 
+                                        r,
+                                        a,
+                                        curDepth + 1,
+                                        i,
                                         pkp,
-                                        pkmap, 
-                                        scInfo, 
-                                        result, 
+                                        pkmap,
+                                        scInfo,
+                                        result,
                                         retval,
                                         columnPos,
                                         joinDepth);
+
+
+                                    let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
+
+                                    if (util.isUndefined(l)) {
+                                        l = [];
+                                        curobj.__setFieldValue(otmdefs[j].fieldName, l);
+                                    }
+
+                                    l.push(obj);
                                 }
-
-
-                                logger.logInfo('--------------------->' + key);
-                                let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
-
-                                if (util.isUndefined(l)) {
-                                    l = [];
-                                    curobj.__setFieldValue(otmdefs[j].fieldName, l);
-                                }
-
-                                l.push(obj);
                             } else if (util.isUndefined(curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
                                curobj.__setFieldValue(otmdefs[j].fieldName, null);
                             }
