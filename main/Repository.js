@@ -550,7 +550,7 @@ module.exports = class Repository {
                 insertId = result.insertId;
                 this.setAutoIncrementIdIfRequired(model, insertId)
             }
-        } else if (model.__isModified()) {
+        } else if (model.__modified__) {
             if (this.metaData.isVersioned()) {
                 let currentVersion = await this.getCurrentVersion(model, options);
                 if (util.isNotValidObject(currentVersion)) {
