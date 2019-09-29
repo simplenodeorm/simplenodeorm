@@ -593,11 +593,16 @@ module.exports = class Repository {
         let otodefs = this.metaData.getOneToOneDefinitions();
         if (util.isValidObject(otodefs)) {
             for (let i = 0; i < otodefs.length; ++i) {
+ logger.logInfo('----------------->' + model.__model__)
                 if (otodefs[i].cascadeUpdate) {
+                    logger.logInfo('----------------->2')
                     let oto = model[otodefs[i].fieldName];
+                    logger.logInfo('----------------->3=')
                     if (util.isValidObject(oto)) {
+                        logger.logInfo('----------------->4=')
                         this.populateReferenceColumns(model, otodefs[i], oto);
                         let res = await orm.getRepository(otodefs[i].targetModelName).save(oto, childOptions);
+                        logger.logInfo('----------------->5=' + JSON.stringify(res));
 
                         if (util.isDefined(res.error)) {
                             util.throwError("SaveRelatedObjectException", res.error);
