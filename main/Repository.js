@@ -593,7 +593,7 @@ module.exports = class Repository {
         let otodefs = this.metaData.getOneToOneDefinitions();
         if (util.isValidObject(otodefs)) {
             for (let i = 0; i < otodefs.length; ++i) {
- logger.logInfo('----------------->' + model.__model__)
+ logger.logInfo('----------------->' + otodefs[i].targetModelName)
                 if (otodefs[i].cascadeUpdate) {
                     logger.logInfo('----------------->2')
                     let oto = model[otodefs[i].fieldName];
