@@ -575,6 +575,7 @@ module.exports = class Repository {
             if (result.error) {
                 logger.logError("sql: " + sql);
                 logger.logError("params: " + JSON.stringify(params));
+                logger.logError("error: " + result.error);
                 util.throwError("UpdateException[" + model.__model__ + "]", result.error);
             }
         }
@@ -828,10 +829,10 @@ module.exports = class Repository {
                 } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
                     val = 'POINT(' + val.x + ' ' + val.y + ')';
                 } else {
-                        retval.push(val);
-                    }
+                    retval.push(val);
                 }
             }
+        }
         
         for (let i = 0; i < pkparams.length; ++i) {
             retval.push(pkparams[i]);
