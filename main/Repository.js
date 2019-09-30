@@ -1675,7 +1675,7 @@ module.exports = class Repository {
                         for (let j = 0; j < otodefs.length; ++j) {
                             if (otodefs[j].fieldName === nameParts[i]) {
                                 curmd = orm.getMetaData(otodefs[j].targetModelName);
-                                curAlias = otodefs[j].alias;
+                                curAlias = curAlias + '_' + otodefs[j].alias + '_' + i;
                                 foundit = true;
                                 break;
                             }
@@ -1687,7 +1687,7 @@ module.exports = class Repository {
                         for (let j = 0; j < otmdefs.length; j++) {
                             if (otmdefs[j].fieldName === nameParts[i]) {
                                 curmd = orm.getMetaData(otmdefs[j].targetModelName);
-                                curAlias = otmdefs[j].alias;
+                                curAlias = curAlias + '_' + otmdefs[j].alias + '_' + i;
                                 foundit = true;
                                 break;
                             }
