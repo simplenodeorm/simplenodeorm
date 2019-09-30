@@ -60,7 +60,7 @@ async function testRelationshipHandling(repository, metaData) {
             let otoMd = orm.getMetaData(metaData.getOneToOneDefinitions()[i].targetModelName);
             let ref = metaData.getOneToOneDefinitions()[i];
             let refField = metaData.getOneToOneDefinitions()[i].fieldName + '.' + otoMd.fields[0].fieldName;
-            let refColumn = ref.alias + '.' + otoMd.fields[0].columnName;
+            let refColumn = 't0_' + ref.alias + '_0.' + otoMd.fields[0].columnName;
             let col = repository.getColumnNameFromFieldName(refField);
             assert(col === refColumn, 'expected column name to be ' + refColumn + ' but was ' + col);
         }
@@ -72,7 +72,7 @@ async function testRelationshipHandling(repository, metaData) {
             let otmMd = orm.getMetaData(metaData.getOneToManyDefinitions()[i].targetModelName);
             let ref = metaData.getOneToManyDefinitions()[i];
             let refField = metaData.getOneToManyDefinitions()[i].fieldName + '.' + otmMd.fields[0].fieldName;
-            let refColumn = ref.alias + '.' + otmMd.fields[0].columnName;
+            let refColumn = 't0_' + ref.alias + '_0.' + otmMd.fields[0].columnName;
             let col = repository.getColumnNameFromFieldName(refField);
             assert(col === refColumn, 'expected column name to be ' + refColumn + ' but was ' + col);
         }
