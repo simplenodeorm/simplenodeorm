@@ -936,56 +936,54 @@ module.exports = class Repository {
      * @param {type} model - source model for update sql
      * @returns update sql string
      */
-    getUpdateSql(model) {
+   getUpdateSql(model) {
         let nm = model.__model__;
-        let retval = updateSqlMap.get(nm);
-        if (util.isNotValidObject(retval)) {
-            let md = this.getMetaData();
-            retval = ('update ' + md.tableName + ' ');
-            let where = ' where ';
-            let fields = md.fields;
-            let comma = '';
-            let and = '';
-            let set = ' set ';
-            let dbType = orm.getDbType(this.poolAlias);
-            for (let i = 0; i < fields.length; ++i) {
-                if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
-                    switch(dbType) {
-                        case util.ORACLE:
-                            where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
-                            break;
-                        case util.MYSQL:
-                            where += (and + fields[i].columnName + ' = ?');
-                            break;
-                        case util.POSTGRES:
-                            where += (and + fields[i].columnName + ' = $' + (i+1));
-                            break;
-                    }
-                    and = ' and ';
-                } else {
-                    switch(dbType) {
-                        case util.ORACLE:
-                            retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
-                            break;
-                        case util.MYSQL:
-                            if (this.isGeometryType(fields[i])) {
-                                retval += (comma + set + fields[i].columnName + ' = ST_GeomFromText(?)');
-                            } else {
-                                retval += (comma + set + fields[i].columnName + ' = ?');
-                            }
-                            break;
-                        case util.POSTGRES:
-                            retval += (comma + set + fields[i].columnName + ' = $' + (i+1));
-                            break;
-                    }
-                    comma = ', ';
-                    set = '';
+        let retval;
+        let md = this.getMetaData();
+        retval = ('update ' + md.tableName + ' ');
+        let where = ' where ';
+        let fields = md.fields;
+        let comma = '';
+        let and = '';
+        let set = ' set ';
+        let dbType = orm.getDbType(this.poolAlias);
+        for (let i = 0; i < fields.length; ++i) {
+            if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
+                switch(dbType) {
+                    case util.ORACLE:
+                        where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
+                        break;
+                    case util.MYSQL:
+                        where += (and + fields[i].columnName + ' = ?');
+                        break;
+                    case util.POSTGRES:
+                        where += (and + fields[i].columnName + ' = $' + (i+1));
+                        break;
                 }
+                and = ' and ';
+            } else {
+                switch(dbType) {
+                    case util.ORACLE:
+                        retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
+                        break;
+                    case util.MYSQL:
+                        if (this.isGeometryType(fields[i])) {
+                            retval += (comma + set + fields[i].columnName + ' = ST_GeomFromText(?)');
+                        } else {
+                            retval += (comma + set + fields[i].columnName + ' = ?');
+                        }
+                        break;
+                    case util.POSTGRES:
+                        retval += (comma + set + fields[i].columnName + ' = $' + (i+1));
+                        break;
+                }
+                comma = ', ';
+                set = '';
             }
-            retval += where;
-            updateSqlMap.set(nm, retval);
         }
-        
+
+        retval += where;
+
         return retval;
     }
 
