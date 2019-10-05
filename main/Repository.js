@@ -1020,12 +1020,13 @@ module.exports = class Repository {
                 logger.logDebug("input: " + JSON.stringify(l));
             }
 
+            let md = this.getMetaData();
+            let modelName = md.objectName;
             let insertIds = [];
             for (let i = 0; i < l.length; ++i) {
                 let res;
                 let newModel = false;
                 if (!l[i].__isNew) {
-                    let md = this.getMetaData();
                     let model = require(orm.appConfiguration.ormModuleRootPath + "/" + md.getModule())(md);
                     Object.assign(model, l[i]);
                     l[i] = model;
@@ -1064,9 +1065,9 @@ module.exports = class Repository {
                 return {rowsAffected: rowsAffected, updatedValues: updatedValues};
             } else {
                 if (insertIds.length > 0) {
-                    return {model:  l[0].__model__, rowsAffected: rowsAffected, insertIds: insertIds};
+                    return {model:  modelName, rowsAffected: rowsAffected, insertIds: insertIds};
                 } else {
-                    return {model: l[0].__model__, rowsAffected: rowsAffected};
+                    return {model: modelName, rowsAffected: rowsAffected};
                 }
             }
         } catch (e) {
