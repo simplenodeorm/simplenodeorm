@@ -546,6 +546,10 @@ module.exports = class Repository {
                 logger.logError("params: " + JSON.stringify(params));
                 util.throwError("InsertException[" + model.__model__ + "]", result.error);
             }
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("new object result: " + JSON.stringify(result))
+            }
             if (result.insertId) {
                 insertId = result.insertId;
                 this.setAutoIncrementIdIfRequired(model, insertId)
@@ -628,7 +632,7 @@ module.exports = class Repository {
             }
         }
 
-        return {rowsAffected: rowsAffected, insertId: insertId};
+        return {model: model.__model__, rowsAffected: rowsAffected, insertId: insertId};
     }
     
     setAutoIncrementIdIfRequired(model, id) {
