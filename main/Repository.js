@@ -1071,6 +1071,7 @@ module.exports = class Repository {
                 }
             }
         } catch (e) {
+            logger.logError("Exception thrown in save()", e);
             return {error: e};
         }
     }
