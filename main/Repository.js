@@ -631,7 +631,7 @@ module.exports = class Repository {
             }
         }
 
-        return {model: model.__model__, rowsAffected: rowsAffected, insertId: insertId};
+        return {model: model.__model__, rowsAffected: rowsAffected, insertId: result.insertId};
     }
     
     setAutoIncrementIdIfRequired(model, id) {
