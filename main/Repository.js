@@ -528,7 +528,6 @@ module.exports = class Repository {
         options = checkOptions(options);
 
         let result = {rowsAffected: 0};
-        let insertId;
         let newObject = model.__isNew();
 
         if (!newObject) {
@@ -539,6 +538,7 @@ module.exports = class Repository {
                 newObject = !res;
             }
         }
+
         if (newObject) {
             result = await this.executeSql(sql, params, options);
             if (result.error) {
@@ -551,8 +551,7 @@ module.exports = class Repository {
                 logger.logDebug("new object result: " + JSON.stringify(result))
             }
             if (result.insertId) {
-                insertId = result.insertId;
-                this.setAutoIncrementIdIfRequired(model, insertId)
+                this.setAutoIncrementIdIfRequired(model, result.insertId)
             }
         } else if (model.__modified__) {
             if (this.metaData.isVersioned()) {
@@ -1021,6 +1020,7 @@ module.exports = class Repository {
                 logger.logDebug("input: " + JSON.stringify(l));
             }
 
+            let insertIds = [];
             for (let i = 0; i < l.length; ++i) {
                 let res;
                 let newModel = false;
@@ -1034,6 +1034,9 @@ module.exports = class Repository {
                 if (l[i].__isNew()) {
                     newModel = true;
                     res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+                    if (res.insertId) {
+                        insertIds.push(res.insertId);
+                    }
                 } else {
                     res = await this.executeSave(l[i], this.getUpdateSql(l[i]), await this.loadUpdateParameters(l[i], options), options);
                 }
@@ -1060,7 +1063,11 @@ module.exports = class Repository {
             if (updatedValues.length > 0) {
                 return {rowsAffected: rowsAffected, updatedValues: updatedValues};
             } else {
-                return {rowsAffected: rowsAffected};
+                if (insertIds.length > 0) {
+                    return {model:  l[0].__model__, rowsAffected: rowsAffected, insertIds: insertIds};
+                } else {
+                    return {model: l[0].__model__, rowsAffected: rowsAffected};
+                }
             }
         } catch (e) {
             return {error: e};
