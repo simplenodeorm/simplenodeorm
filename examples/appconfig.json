@@ -13,7 +13,6 @@
   "maxRowsForGetAll" : 1000,
   "authorizer": "auth/DefaultAuthorizer",
   "chartjsurl": "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js",
-  "customizationModule": "examples/Customization.js",
   "queryDocumentRoot" : "examples/docs/queries",
   "reportDocumentRoot" : "examples/docs/reports",
   "reportDocumentGroupsDefinition": "examples/docs/report-document-groups.json",
