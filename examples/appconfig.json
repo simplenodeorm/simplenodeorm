@@ -17,7 +17,7 @@
   "queryDocumentRoot" : "examples/docs/queries",
   "reportDocumentRoot" : "examples/docs/reports",
   "reportDocumentGroupsDefinition": "examples/docs/report-document-groups.json",
-  "queryDocumentGroupsDefinition": "examples//docs/query-document-groups.json",
+  "queryDocumentGroupsDefinition": "examples/docs/query-document-groups.json",
   "ormModuleRootPath": "./examples/orm-objects",
   "aliases" : {}
 }

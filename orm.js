@@ -23,16 +23,14 @@ const orm = this;
 // custom configuration files.
 let appConfiguration;
 let testConfiguration;
-let customization;
 let logger;
 
 module.exports.util = util;
 
 // start and initialize the orm
-module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback, customizations) {
+module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback) {
     appConfiguration = appconfig;
     testConfiguration = testconfig;
-    customization = customizations;
 
     // convert application relative paths in configuration files
     // to absolute path for current installation
@@ -282,11 +280,11 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/query/document/groups', async function (req, res) {
-          res.status(200).send(await loadQueryDocumentGroups({poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}));
+          res.status(200).send(await loadQueryDocumentGroups());
         });
 
         apiServer.get('/*/api/report/document/groups', async function (req, res) {
-            res.status(200).send(await loadReportDocumentGroups({poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}));
+            res.status(200).send(await loadReportDocumentGroups());
         });
 
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
@@ -353,7 +351,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/query/save', async function (req, res) {
             try {
-                saveQuery(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')});
+                saveQuery(req.body);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.documentName, e);
@@ -363,7 +361,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/save', async function (req, res) {
             try {
-                saveReport(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')});
+                saveReport(req.body);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
@@ -432,8 +430,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/query/delete/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
-                deleteQuery(req.params.docid, options);
+                deleteQuery(req.params.docid);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting query document ' + req.params.docid, e);
@@ -443,8 +440,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/delete/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
-                deleteReport(req.params.docid, options);
+                deleteReport(req.params.docid);
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting report ' + req.params.docid, e);
@@ -454,8 +450,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/load/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
-                res.status(200).send(await loadReport(req.params.docid, options));
+                res.status(200).send(await loadReport(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading report ' + req.params.docid, e);
                 res.status(500).send(e);
@@ -495,8 +490,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/query/load/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
-                res.status(200).send(await loadQuery(req.params.docid, options));
+                res.status(200).send(await loadQuery(req.params.docid));
             } catch (e) {
                 logger.logError('error occured while loading document ' + req.params.docid, e);
                 res.status(500).send(e);
@@ -1573,94 +1567,70 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
     }
 }
 
-function saveQuery(doc, options) {
-    if (customization && (typeof customization.saveQuery === "function")) {
-        customization.saveQuery(orm, options, doc);
-    } else {
-        let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
-        fspath.writeFile(fname, JSON.stringify(doc), function (err) {
-            if (err) {
-                throw err;
-            } else {
-                logger.logInfo('file created: ' + fname);
-            }
-        });
-    }
-}
-
-function saveReport(doc, options) {
-    if (customization && (typeof customization.saveReport === "function")) {
-        customization.saveReport(orm, options, doc);
-    } else {
-        let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
-        fspath.writeFile(fname, JSON.stringify(doc), function (err) {
-            if (err) {
-                throw err;
-            } else {
-                logger.logInfo('file created: ' + fname);
-            }
-        });
-    }
-}
-
-function deleteQuery(docid, options) {
-    if (customization && (typeof customization.deleteQuery === "function")) {
-        customization.deleteQuery(orm, options, docid);
-    } else {
-        let pos = docid.indexOf('.');
-        let group = docid.substring(0, pos);
-        let docName = docid.substring(pos + 1);
-
-        let fname = appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName;
-        fs.unlinkSync(fname);
-    }
-}
-
-function deleteReport(docid, options) {
-    if (customization && (typeof customization.deleteReport === "function")) {
-        customization.deleteReport(orm, options, docid);
-    } else {
-        let pos = docid.indexOf('.');
-        let group = docid.substring(0, pos);
-        let reportName = docid.substring(pos + 1);
-
-        let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName;
-        fs.unlinkSync(fname);
-    }
-}
-
-async function loadQuery(docid, options) {
-    if (customization && (typeof customization.loadQuery === "function")) {
-        return await customization.loadQuery(orm, options, docid);
-    } else {
-        let pos = docid.indexOf('.');
-        let group = docid.substring(0, pos);
-        let docName = docid.substring(pos + 1);
-
-        let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
-
-        if (!fname.endsWith('.json')) {
-            fname = fname + '.json';
+function saveQuery(doc) {
+    let fname = appConfiguration.queryDocumentRoot + path.sep + doc.group + path.sep + doc.documentName + '.json';
+    fspath.writeFile(fname, JSON.stringify(doc), function (err) {
+        if (err) {
+            throw err;
+        } else {
+            logger.logInfo('file created: ' + fname);
         }
-        return JSON.parse(fs.readFileSync(fname));
-    }
+    });
 }
 
-async function loadReport(docid, options) {
-    if (customization && (typeof customization.loadReport === "function")) {
-        return await customization.loadReport(orm, options, docid);
-    } else {
-        let pos = docid.indexOf('.');
-        let group = docid.substring(0, pos);
-        let reportName = docid.substring(pos + 1);
-
-        let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
-
-        if (!fname.endsWith('.json')) {
-            fname += '.json';
+function saveReport(doc) {
+    let fname = appConfiguration.reportDocumentRoot + path.sep + doc.group + path.sep + doc.document.reportName + '.json';
+    fspath.writeFile(fname, JSON.stringify(doc), function (err) {
+        if (err) {
+            throw err;
+        } else {
+            logger.logInfo('file created: ' + fname);
         }
-        return JSON.parse(fs.readFileSync(fname));
+    });
+}
+
+function deleteQuery(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName = docid.substring(pos + 1);
+
+    let fname = appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName;
+    fs.unlinkSync(fname);
+}
+
+function deleteReport(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let reportName = docid.substring(pos + 1);
+
+    let fname = appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName;
+    fs.unlinkSync(fname);
+}
+
+async function loadQuery(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let docName = docid.substring(pos + 1);
+
+    let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+
+    if (!fname.endsWith('.json')) {
+        fname = fname + '.json';
     }
+    return JSON.parse(fs.readFileSync(fname));
+}
+
+async function loadReport(docid) {
+    let pos = docid.indexOf('.');
+    let group = docid.substring(0, pos);
+    let reportName = docid.substring(pos + 1);
+
+    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
+
+    if (!fname.endsWith('.json')) {
+        fname += '.json';
+    }
+    return JSON.parse(fs.readFileSync(fname));
 }
 
 module.exports.buildResultObjectGraph = buildResultObjectGraph;
@@ -2685,12 +2655,10 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-async function loadReportDocumentGroups(options) {
+async function loadReportDocumentGroups() {
     let retval;
     try {
-        if (customization && (typeof customization.loadReportDocumentGroups === "function")) {
-            retval = await customization.loadReportDocumentGroups(orm, options);
-        } else if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+         if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
             let reports = {};
             let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
@@ -2722,7 +2690,7 @@ async function loadReportDocumentGroups(options) {
     return retval;
 }
 
-async function loadQueryDocumentGroups(options) {
+async function loadQueryDocumentGroups() {
     let retval;
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
@@ -2748,8 +2716,6 @@ async function loadQueryDocumentGroups(options) {
             }
 
             traverseDocumentGroups(retval, queries);
-        } else if (customization && (typeof customization.loadQueryDocumentGroups === "function")) {
-            retval = await customization.loadQueryDocumentGroups(orm, options);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
@@ -2810,7 +2776,6 @@ module.exports.parseOrmResult = function(res, errorName) {
 if (process.env.RUN_SELF_TEST) {
     const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
     const testConfig = JSON.parse(fs.readFileSync('./examples/testconfig.json'));
-    const customizations = require('./examples/Customization.js');
 
 
     // these are expected to be full paths so do this for eample purposes
@@ -2822,8 +2787,7 @@ if (process.env.RUN_SELF_TEST) {
     module.exports.startOrm(__dirname, appConfig, testConfig,
         function onServerStarted(server, logger) {
             logger.logInfo("simplenodeorm server started for self test");
-        }
-        , customizations);
+        });
 }
 
 
