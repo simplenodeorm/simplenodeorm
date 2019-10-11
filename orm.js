@@ -1281,7 +1281,7 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
 
                     }
                 } else {
-                    switch (orm.getDbType(poolAlias)) {
+                    switch (dbTypeMap.get(repo.poolAlias)) {
                         case util.ORACLE:
                             sql += (' :' + replaceIndex + ' ');
                             break;
