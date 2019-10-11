@@ -1281,7 +1281,16 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
 
                     }
                 } else {
-                    sql += (' :' + replaceIndex + ' ');
+                    switch (orm.getDbType(poolAlias)) {
+                        case util.ORACLE:
+                            sql += (' :' + replaceIndex + ' ');
+                            break;
+                        case util.POSTGRES:
+                        case util.MYSQL:
+                            sql += (' ? ');
+                            break;
+                    }
+
                     replaceIndex++;
                 }
             }
