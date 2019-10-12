@@ -305,7 +305,7 @@ function removeTreeLeafItems(curnode) {
 
         curnode.children = children;
         for (let i = 0; i < curnode.children.length; ++i) {
-            removeLeafItems(curnode.children[i]);
+            removeTreeLeafItems(curnode.children[i]);
         }
     }
 }
