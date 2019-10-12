@@ -294,3 +294,21 @@ module.exports.getContextFromUrl = function(req) {
     return req.url.substring(1, pos);
 };
 
+function removeTreeLeafItems(curnode) {
+    if (curnode.children) {
+        let children = [];
+        for (let i = 0; i < curnode.children.length; ++i) {
+            if (!curnode.children[i].isLeaf) {
+                children.push(curnode.children[i]);
+            }
+        }
+
+        curnode.children = children;
+        for (let i = 0; i < curnode.children.length; ++i) {
+            removeLeafItems(curnode.children[i]);
+        }
+    }
+}
+
+
+module.exports.removeTreeLeafItems = removeTreeLeafItems;

@@ -2672,7 +2672,7 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
     return retval;
 }
 
-async function loadReportDocumentGroups() {
+async function loadReportDocumentGroups(groupsonly) {
     let retval;
     try {
          if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
@@ -2698,6 +2698,9 @@ async function loadReportDocumentGroups() {
             }
 
             traverseDocumentGroups(retval, reports);
+        }
+        if (groupsonly) {
+            utils.removeTreeLeafItems(retval);
         }
     } catch(e) {
         logger.logError('error ocurred during document reports definition load - ' + e);
@@ -2737,30 +2740,13 @@ async function loadQueryDocumentGroups(groupsonly) {
 
 
         if (groupsonly) {
-            removeLeafItems(retval);
+            utils.removeTreeLeafItems(retval);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
     }
 
     return retval;
-}
-
-
-function removeLeafItems(curnode) {
-    if (curnode.children) {
-        let children = [];
-        for (let i = 0; i < curnode.children.length; ++i) {
-            if (!curnode.children[i].isLeaf) {
-                children.push(curnode.children[i]);
-            }
-        }
-
-        curnode.children = children;
-        for (let i = 0; i < curnode.children.length; ++i) {
-            this.removeLeafItems(curnode.children[i]);
-        }
-    }
 }
 
 
