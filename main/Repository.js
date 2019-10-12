@@ -788,7 +788,9 @@ module.exports = class Repository {
             } else if (this.isGeometryType(fields[i]) // handle geometry types in mysql
                 && util.isDefined(val)) {
                 val = 'POINT(' + val.x + ' ' + val.y + ')';
-            } else if (val && (typeof val === "object") // handle blobs in mysql
+            } else if (this.isBlobType(fields[i])) {
+                model.__setFieldValue(fields[i].fieldName, val);
+             } else if (val && (typeof val === "object") // handle blobs in mysql
                 && val.type && val.data
                 && (val.type.toLowerCase() === 'buffer')) {
                 val = val.toString();
@@ -917,6 +919,8 @@ module.exports = class Repository {
                     case util.MYSQL:
                         if (this.isGeometryType(fields[i])) {
                             retval += (comma + ' ST_GeomFromText(?)');
+                        } else if (this.isBlobType(fields[i])) {
+                            retval += (comma + ' BINARY(?)');
                         } else {
                             retval += (comma + ' ?');
                         }
@@ -973,6 +977,8 @@ module.exports = class Repository {
                     case util.MYSQL:
                         if (this.isGeometryType(fields[i])) {
                             retval += (comma + set + fields[i].columnName + ' = ST_GeomFromText(?)');
+                        } else if (this.isBlobType(fields[i])) {
+                            retval += (comma + set + fields[i].columnName + ' = BINARY(?)');
                         } else {
                             retval += (comma + set + fields[i].columnName + ' = ?');
                         }
@@ -1226,7 +1232,18 @@ module.exports = class Repository {
         
         return retval;
     }
-    
+
+    isBlobType(field) {
+        let retval = false;
+        if (util.isDefined(field)) {
+            let type = field.type.toUpperCase();
+            retval = type.includes('BLOB');
+        }
+
+        return retval;
+    }
+
+
     isGeometryType(field) {
         let retval = false;
         if (util.isDefined(field)) {
