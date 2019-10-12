@@ -287,6 +287,14 @@ function startApiServer() {
             res.status(200).send(await loadReportDocumentGroups());
         });
 
+        apiServer.get('/*/api/query/document/groupsonly', async function (req, res) {
+            res.status(200).send(await loadQueryDocumentGroups(true));
+        });
+
+        apiServer.get('/*/api/report/document/groupsonly', async function (req, res) {
+            res.status(200).send(await loadReportDocumentGroups(true));
+        });
+
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
             try {
                 res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}, true));
@@ -2699,7 +2707,7 @@ async function loadReportDocumentGroups() {
     return retval;
 }
 
-async function loadQueryDocumentGroups() {
+async function loadQueryDocumentGroups(groupsonly) {
     let retval;
     try {
         if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
@@ -2726,12 +2734,35 @@ async function loadQueryDocumentGroups() {
 
             traverseDocumentGroups(retval, queries);
         }
+
+
+        if (groupsonly) {
+            removeLeafItems(retval);
+        }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
     }
 
     return retval;
 }
+
+
+function removeLeafItems(curnode) {
+    if (curnode.children) {
+        let children = [];
+        for (let i = 0; i < curnode.children.length; ++i) {
+            if (!curnode.children[i].isLeaf) {
+                children.push(curnode.children[i]);
+            }
+        }
+
+        curnode.children = children;
+        for (let i = 0; i < curnode.children.length; ++i) {
+            this.removeLeafItems(curnode.children[i]);
+        }
+    }
+}
+
 
 function traverseDocumentGroups(grp,  documents) {
     if (!grp.isLeaf) {
