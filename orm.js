@@ -2700,7 +2700,7 @@ async function loadReportDocumentGroups(groupsonly) {
             traverseDocumentGroups(retval, reports);
         }
         if (groupsonly) {
-            utils.removeTreeLeafItems(retval);
+            util.removeTreeLeafItems(retval);
         }
     } catch(e) {
         logger.logError('error ocurred during document reports definition load - ' + e);
@@ -2740,7 +2740,7 @@ async function loadQueryDocumentGroups(groupsonly) {
 
 
         if (groupsonly) {
-            utils.removeTreeLeafItems(retval);
+            util.removeTreeLeafItems(retval);
         }
     } catch (e) {
         logger.logError('error ocurred during document groups definition load - ' + e);
