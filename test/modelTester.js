@@ -26,7 +26,7 @@ function testFieldConstraints(model, metaData, field) {
         try {
             let nm = testUtil.getSetFunctionName(field);
             model[nm]();
-            assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.setSubFundGrpCd() to fail NotNullConstraint and throw Exception but it did not');
+            assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.set' + testUtil.getSetFunctionName(field) + '  to fail NotNullConstraint and throw Exception but it did not');
         }
         
         catch (e) {
