@@ -10,109 +10,88 @@ application as in the example below:
 
 
 ```
-const fs = require('fs');
-const orm = require('@simplenodeorm/simplenodeorm/orm');
-
 const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
-const customizations = require('./Customization.js');
+const utilities = require('./utils/utilities');
 
-
-// these are expected to be full paths so do this for the example so it 
-// is self-contained
-appConfiguration.queryDocumentRoot = __dirname + "/" + appConfiguration.queryDocumentRoot;
-appConfiguration.reportDocumentRoot = __dirname + "/" +  appConfiguration.reportDocumentRoot;
-appConfiguration.reportDocumentGroupsDefinition = __dirname + "/" + appConfiguration.reportDocumentGroupsDefinition;
-appConfiguration.queryDocumentGroupsDefinition = __dirname + "/" + appConfiguration.queryDocumentGroupsDefinition;
-
-
-    orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted, customizations);
+orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted);
 
 function onServerStarted(server, logger) {
-    logger.logInfo("simplenodeorm server started for example application");
+    logger.logInfo("ClinicalHelper server started");
 
-    server.get('/example', async function (req, res) {
-        res.status(200).send("exam call made");
+ server.get('/*/dropdown/content/:module/:practiceId', async function (req, res) {
+        try {
+            let repo = orm.getRepository(req.params.module);
+            let whereList = [];
+            let orderByList = [];
+
+            whereList.push(new WhereComparison('practiceId', req.params.practiceId,
+ 		orm.util.EQUAL_TO));
+            whereList.push(new WhereComparison('active', 1, orm.util.EQUAL_TO));
+            orderByList.push(new OrderByEntry("name"));
+
+            let result = orm.parseOrmResult(await repo.find(whereList, orderByList, {poolAlias: 
+				alias, mySession: session}), "DropdownContentException");
+
+            if (result.error) {
+                orm.util.throwError("DropdownContentLoadException", e);
+            }
+            res.status(200).send(result);
+        } catch (e) {
+            logger.logError('error occured while retrieving dropdown content for ' 
+			+ req.params.module, e);
+            res.status(500).send(e);
+        }
     });
 
-    let repo = orm.getRepository("Film");
-    let allFilms = repo.getAll();
-}
+server.post('/*/save/panelaccess', async function (req, res) {
+        let poolAlias = orm.util.getContextFromUrl(req);
+        let conn = await orm.getConnection(poolAlias);
+        let repo = orm.getRepository("PanelAccess");
+        try {
+            let options = { conn: conn, poolAlias: poolAlias, returnValues: true};
+            repo.doBeginTransaction(conn);
+            let accessObjects = [];
+            for (let i = 0; i < req.body.length; ++i) {
+                let accessInfo = req.body[i];
+                let panelAccess = orm.newModelInstance(repo.getMetaData());
+                if (accessInfo.__modified__) {
+                    panelAccess.__new__ = accessInfo.__new__;
+                    panelAccess.__modified__ = accessInfo.__modified__;
+                    panelAccess.setPracticeId(Number(accessInfo.practiceId));
+                    panelAccess.setRoleId(Number(accessInfo.roleId));
+                    panelAccess.setPanelId(Number(accessInfo.panelId));
+                    panelAccess.setAllowView(Number(accessInfo.allowView));
+                    panelAccess.setAllowCreate(Number(accessInfo.allowCreate));
+                    panelAccess.setAllowUpdate(Number(accessInfo.allowUpdate));
+                    panelAccess.setAllowDelete(Number(accessInfo.allowDelete));
+                    panelAccess.setUpdatedBy(Number(accessInfo.updatedBy));
 
-```
-It is expected that the required ORM objects have been created and are located in the location 
-specified by appConfiguration.ormModuleRootPath. The callback function (“onServerStart” above) will 
-be called with the express server instance and the server logger. You can use this server 
-instance to add you own customized http handlers.
+                    accessObjects.push(panelAccess);
+                }
+            }
 
-The Customization module is to facilitate report and query document interactions for the Query Designer 
-and Report Designer applications. By default, the Query and Report Designers save documents on the file system
-at locations defined in the appConfiguration entries:
-```
-  "queryDocumentRoot" : "<absolute-path-to>/queries",
-  "reportDocumentRoot" : "<absolute-path-to>/reports",
-  "reportDocumentGroupsDefinition": "<absolute-path-to>/report-document-groups.json",
-  "queryDocumentGroupsDefinition": "<absolute-path-to>/query-document-groups.json",
-```
-Query and Report documents are saved in JSON files by group defined as a JSON hierarchy. An example Report Group definition
-is shown below:
- ```
- {
-     "title": "Reports",
-     "key" : "grp0",
-     "isLeaf": false,
-     "children": [
-         {
-             "title": "General",
-             "key" : "grp1",
-             "isLeaf": false
-         },
-         {
-             "title": "Financial",
-             "key" : "grp2",
-             "isLeaf": false,
-             "children": [
-                 {
-                     "title": "Accounting",
-                     "key" : "grp3",
-                     "isLeaf": false
-                 },
-                 {
-                     "title": "Purchasing",
-                     "key" : "grp4",
-                     "isLeaf": false
-                 }
-             ]
- 
-         },
-         {
-             "title": "Personnel",
-             "key" : "grp5",
-             "isLeaf": false
-         }
-         
-     ]
- }
- ```
- If you want to customize the way Query and Report documents are handled such as storing the group hierarchy and documents 
- in the database you can implement the following methods in the Customization module:
+            let result = await repo.save(accessObjects, options);
+            if (result.error) {
+                await repo.doRollback(conn);
+                logger.logError('error occurred while saving panel access', result.error);
+                res.status(500).send(result.error);
+            } else {
+                await repo.doCommit(conn);
+                res.status(200).send(true);
+            }
+        } catch (e) {
+            await repo.doRollback(conn);
+            logger.logError('error occurred while saving panel access', e);
+            res.status(500).send({error: e});
+        }
 
-```
-  module.exports.loadReportDocumentGroups = async function(orm) {}
-  module.exports.loadQueryDocumentGroups = async function(orm) {}
-  module.exports.loadReport =  async function(orm, documentId) {}
-  module.exports.saveReport =  async function(orm, reportDocument) {}
-  module.exports.deleteReport =  async function(orm, reportId) {}
-  module.exports.loadQuery =  async function(orm, queryId) {}
-  module.exports.saveQuery =  async function(orm, queryDicument) {}
-  module.exports.deleteQuery =  async function(orm, queryId) {};
+        finally {
+            conn.release()
+        }
+    });
 ```
 For more detailed information see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
-
-For help in generating ORM model, metadata and repository objects a java maven application is available on github
-at <a href="https://github.com/simplenodeorm/ormobjectgenerator">ormobjectgenerator</a>
-
-An example implementation is available on github at <a href="https://github.com/simplenodeorm/simplenodeorm-example">simplenodeorm example application</a>
 
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
 
