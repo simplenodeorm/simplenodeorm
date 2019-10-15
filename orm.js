@@ -233,6 +233,7 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
+            /*
             if (req.headers['fromLogin']) {
                 next();
             } else {
@@ -246,6 +247,8 @@ function startApiServer() {
                     res.status(401).send("Not Authorized");
                 }
             }
+            */
+            next();
         });
 
         apiServer.get('/*/api/query/login', async function (req, res) {
