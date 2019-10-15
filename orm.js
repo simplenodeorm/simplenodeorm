@@ -11,7 +11,6 @@ const path = require('path');
 const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
-const md5 = require('md5');
 
 const dbTypeMap = new Map();
 const orm = this;
@@ -224,31 +223,7 @@ function startApiServer() {
             });
         }
 
-        apiServer.all('/*/ormapi*', async function (req, res, next) {
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("in /ormapi checkAuthorization");
-            }
-
-            if (authorizer.isAuthorized(orm, {poolAlias: util.getContextFromUrl(req)}, req)) {
-                next();
-            } else {
-                res.status(401).send("Not Authorized");
-            }
-        });
-
-        apiServer.all('/*/api*', async function (req, res, next) {
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("in /api checkAuthorization");
-            }
-
-            if (authorizer.isAuthorized(orm, {poolAlias: util.getContextFromUrl(req)}, req)) {
-                next();
-            } else {
-                res.status(401).send("Not Authorized");
-            }
-        });
-
-        apiServer.all('/*/' + appConfiguration.context + '/*', async function (req, res, next) {
+        apiServer.all('*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
