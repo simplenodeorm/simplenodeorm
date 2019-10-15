@@ -232,14 +232,19 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
-            let user = basicAuth(req);
-            let ctx = util.getContextFromUrl(req);
-            let ok =  myCache.get( ctx + "-" + user.name + "-" + user.pass);
 
-            if (ok || authorizer.isAuthenticated(orm, req, user.user, user.pass)) {
+            if (req.headers['fromLogin']) {
                 next();
             } else {
-                res.status(401).send("Not Authorized");
+                let user = basicAuth(req);
+                let ctx = util.getContextFromUrl(req);
+                let ok = myCache.get(ctx + "-" + user.name + "-" + user.pass);
+
+                if (ok || authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
+                    next();
+                } else {
+                    res.status(401).send("Not Authorized");
+                }
             }
         });
 
