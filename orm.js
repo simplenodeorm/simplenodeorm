@@ -14,7 +14,7 @@ const tinycolor = require('tinycolor2');
 const md5 = require('md5');
 
 const NodeCache = require( "node-cache" );
-const myCache = new NodeCache( { stdTTL: 60, checkperiod: 100 } );
+const myCache = new NodeCache( { stdTTL: 60, checkperiod: 100, errorOnMissing: false } );
 
 
 const dbTypeMap = new Map();
