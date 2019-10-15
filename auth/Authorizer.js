@@ -1,23 +1,13 @@
 "use strict";
 
 const util = require('../main/util.js');
+const NodeCache = require( "node-cache" );
 
 const myCache = new NodeCache( { stdTTL: 60, checkperiod: 100 } );
 
 class Authorizer {
     isAuthenticated(orm, req, user, pass) {
-        let retval;
-        let context = util.getContextFromUrl(req);
-        if (this.isLoggedIn(context + '.' + user)) {
-            retval = true;
-        } else {
-            retval = this.authenticate(orm, req, user, pass);
-            if (retval) {
-                loginCache.add(context + '.' + user);
-            }
-        }
-
-        return retval;
+        return this.authenticate(orm, req, user, pass);
     }
 
     authenticate(orm, req, user, pass) {
