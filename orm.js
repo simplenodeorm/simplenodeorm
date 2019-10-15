@@ -235,11 +235,11 @@ function startApiServer() {
 
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
-logger.logInfo('------>' + req.url);
             if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
                 next();
             } else {
                 if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
+                    myCache.set(util.getContextFromUrl(req) + "-" + user.name + "-" + user.pass, true);
                     next();
                 } else {
                     res.status(401).send("Not Authorized");
