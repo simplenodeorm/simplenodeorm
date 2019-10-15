@@ -233,10 +233,10 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
             let user = basicAuth(req);
-            let ctx = util.getContextFromUrl(req)
-            let ok =  myCache.get( ctx + "-" + user.name, true);
+            let ctx = util.getContextFromUrl(req);
+            let ok =  myCache.get( ctx + "-" + user.name + "-" + user.pass, true);
 
-            if (ok || authorizer.isAuthorized(orm, {poolAlias: ctx}, req)) {
+            if (ok || authorizer.isAuthenticated(orm, req, user.user, user.pass)) {
                 next();
             } else {
                 res.status(401).send("Not Authorized");
