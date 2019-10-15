@@ -2,8 +2,7 @@
 
 const util = require('../main/util.js');
 
-const loginCache = new Set();
-let clearCount = 0;
+const myCache = new NodeCache( { stdTTL: 60, checkperiod: 100 } );
 
 class Authorizer {
     isAuthenticated(orm, req, user, pass) {
@@ -33,14 +32,12 @@ class Authorizer {
         return false
     }
 
-    isLoggedIn(key) {
-        let retval = loginCache.has(key);
-        if (clearCount > 1000) {
-            loginCache.clear();
-            clearCount = 0;
-        } else {
-            clearCount++;
-        }
+    setKey(key) {
+        myCache.set(key, true);
+    }
+
+    getKey(key) {
+        return myCache.get(key);
     }
 }
 
