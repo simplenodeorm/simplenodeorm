@@ -233,22 +233,18 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            /*
-            if (req.headers['fromLogin']) {
+            let user = basicAuth(req);
+            let ctx = util.getContextFromUrl(req);
+logger.logInfo('------>' + req.url);
+            if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
                 next();
             } else {
-                let user = basicAuth(req);
-                let ctx = util.getContextFromUrl(req);
-                let ok = myCache.get(ctx + "-" + user.name + "-" + user.pass);
-
-                if (ok || authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
+                if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
                     next();
                 } else {
                     res.status(401).send("Not Authorized");
                 }
             }
-            */
-            next();
         });
 
         apiServer.get('/*/api/query/login', async function (req, res) {
