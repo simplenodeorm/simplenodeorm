@@ -297,7 +297,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
             try {
-                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')}, true));
+                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req)}, true));
             } catch (e) {
                 logger.logError('error occured while building sql from query document', e);
                 res.status(500).send(e);
@@ -309,7 +309,7 @@ function startApiServer() {
                 (async function () {
                     let doc = req.body;
                     try {
-                        let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                        let options = {poolAlias: util.getContextFromUrl(req)};
 
                         if (doc.documentName && !doc.interactive) {
                             let params = doc.parameters;
@@ -379,7 +379,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
                 let report = await loadReport(req.params.docid, options);
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
@@ -397,7 +397,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/run/:docid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
                 let report = await loadReport(req.params.docid, options);
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 res.status(200).send(await generateReport(report, query, req.body.parameters, options));
@@ -410,7 +410,7 @@ function startApiServer() {
         apiServer.post('/*/api/report/runfordesign', async function (req, res) {
             try {
                 let report = req.body.report;
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
                 let query = await loadQuery(report.document.queryDocumentId, options);
                 res.status(200).send(await generateReport(report, query, req.body.parameters, options));
             } catch (e) {
@@ -421,7 +421,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/userinputrequired/:queryDocumentId', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
                 let query = await loadQuery(req.params.queryDocumentId, options);
                 let requiredInputs = getRequiredInputFields(query.document);
                 // see if we need user input
@@ -467,7 +467,7 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/querycolumninfo/:qdocid', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
                 let qdoc = await loadQuery(req.params.qdocid, options);
 
                 let qcinfo = [];
@@ -525,7 +525,7 @@ function startApiServer() {
 
         apiServer.get('/*/ormapi/:module/:method', async function (req, res) {
             try {
-                let options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                let options = {poolAlias: util.getContextFromUrl(req)};
 
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("module: " + req.params.module);
@@ -656,7 +656,7 @@ function startApiServer() {
                 let repo = getRepository(req.params.module);
                 let options = populateOptionsFromRequestInput(req.body.options);
                 if (!options) {
-                    options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                    options = {poolAlias: util.getContextFromUrl(req)};
                 } else {
                     options.poolAlias = util.getContextFromUrl(req);
                 }
@@ -752,7 +752,7 @@ function startApiServer() {
             let repo = repositoryMap.get(req.params.module);
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                options = {poolAlias: util.getContextFromUrl(req)};
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
             }
@@ -804,10 +804,9 @@ function startApiServer() {
         apiServer.delete('/*/ormapi/:module/:method', async function (req, res) {
             let options = populateOptionsFromRequestInput(req.body.options);
             if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req), mySession: req.header('my-session')};
+                options = {poolAlias: util.getContextFromUrl(req)};
             } else {
                 options.poolAlias = util.getContextFromUrl(req);
-                options.mySession = req.header('my-session');
             }
             let repo = getRepository(req.params.module);
             let md = repo.getMetaData();
