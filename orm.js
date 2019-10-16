@@ -252,7 +252,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/accesskey', async function (req, res) {
-            let key = uuidv1()();
+            let key = uuidv1();
             myCache.set(key, true);
             res.status(200).send(key);
         })
