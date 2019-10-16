@@ -236,18 +236,24 @@ function startApiServer() {
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
             try {
+                logger.logInfo('---->1')
                 if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
+                    logger.logInfo('---->2')
                     next();
+                    logger.logInfo('---->3')
                 } else {
+                    logger.logInfo('---->4')
                     if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
-                        myCache.set(util.getContextFromUrl(req) + "-" + user.name + "-" + user.pass, true);
+                        logger.logInfo('---->5')
+                        myCache.set(ctx + "-" + user.name + "-" + user.pass, true);
+                        logger.logInfo('---->6')
                         next();
                     } else {
                         res.status(401).send("Not Authorized");
                     }
                 }
             } catch (e) {
-                logger.logInfo('---->' + req.url + ' ' + e)
+                logger.logInfo('---->' + req.url + ' ' + e  + ' u=' + user)
             }
 
         });
