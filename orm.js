@@ -247,7 +247,7 @@ function startApiServer() {
                     }
                 }
             } catch (e) {
-                logger.logInfo('---->' + req.url)
+                logger.logInfo('---->' + req.url + ' ' + err)
             }
 
         });
