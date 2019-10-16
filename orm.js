@@ -235,22 +235,16 @@ function startApiServer() {
 
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
-            try {
-                if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
+            if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
+                next();
+            } else {
+                if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
+                    myCache.set(ctx + "-" + user.name + "-" + user.pass, true);
                     next();
                 } else {
-                    if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
-                        myCache.set(ctx + "-" + user.name + "-" + user.pass, true);
-                        next();
-                    } else {
-                        res.status(401).send("Not Authorized");
-                    }
+                    res.status(401).send("Not Authorized");
                 }
-            } catch (e) {
-                logger.logInfo(JSON.stringify(req.headers))
-                logger.logInfo('---->' + req.url + ' ' + e  + ' u=' + user)
             }
-
         });
 
         apiServer.get('/*/api/query/login', async function (req, res) {
