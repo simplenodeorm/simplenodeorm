@@ -233,7 +233,7 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            logger.logInfo('------->' + req.headers['Authorization']);
+            logger.logInfo('------->' + JSON.stringify(req.headers));
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
 
