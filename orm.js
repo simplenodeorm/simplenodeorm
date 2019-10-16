@@ -12,7 +12,8 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
-
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
 const NodeCache = require( "node-cache" );
 const myCache = new NodeCache( { stdTTL: 120, checkperiod: 100 } );
 
@@ -33,43 +34,52 @@ module.exports.util = util;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback) {
-    appConfiguration = appconfig;
-    testConfiguration = testconfig;
-
-    // convert application relative paths in configuration files
-    // to absolute path for current installation
-    appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
-    appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
-    testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
-    testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
-
-    // export some of the constants for use in other modules
-    module.exports.appConfiguration = appConfiguration;
-    module.exports.testConfiguration = testConfiguration;
-
-    logger = require('./main/Logger.js');
-    logger.initialize(appConfiguration);
-    module.exports.logger = logger;
-
-    const poolCreatedEmitter = new events.EventEmitter();
-    poolCreatedEmitter.on('poolscreated', async function() {
-        loadOrm();
-
-        // check for associated table existence and create if configured to do so
-        if (appConfiguration.createTablesIfRequired) {
-            createTablesIfRequired();
+    if (cluster.isMaster) {
+        // Fork workers.
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork();
         }
 
-        if (appConfiguration.testMode) {
-            let suite = require("./test/testSuite.js");
-            await suite.run();
-        }
+        appConfiguration = appconfig;
+        testConfiguration = testconfig;
+
+        // convert application relative paths in configuration files
+        // to absolute path for current installation
+        appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
+        appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
+        testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
+        testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
+
+        // export some of the constants for use in other modules
+        module.exports.appConfiguration = appConfiguration;
+        module.exports.testConfiguration = testConfiguration;
+
+        logger = require('./main/Logger.js');
+        logger.initialize(appConfiguration);
+        module.exports.logger = logger;
+
+        const poolCreatedEmitter = new events.EventEmitter();
+        poolCreatedEmitter.on('poolscreated', async function () {
+            loadOrm();
+
+            // check for associated table existence and create if configured to do so
+            if (appConfiguration.createTablesIfRequired) {
+                createTablesIfRequired();
+            }
+
+            if (appConfiguration.testMode) {
+                let suite = require("./test/testSuite.js");
+                await suite.run();
+            }
+
+        });
+
 
         serverStartedCallback(startApiServer(), logger);
-    });
 
-    // setup database pool and fire off orm load
-    require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
+        // setup database pool and fire off orm load
+        require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
+    }
 };
 
 function loadOrm() {
@@ -211,6 +221,7 @@ function startApiServer() {
         const authorizer = new (require(appConfiguration.authorizer));
 
         let server;
+
         if (appConfiguration.certKeyPath) {
             let options = {
                 key: fs.readFileSync(appConfiguration.certKeyPath),
@@ -253,7 +264,7 @@ function startApiServer() {
 
         apiServer.get('/*/accesskey', async function (req, res) {
             let key = uuidv1();
-            myCache.set(key, true, 20);
+            myCache.set(key, true, 15);
             res.status(200).send(key);
         });
 
