@@ -235,9 +235,13 @@ function startApiServer() {
 
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
-            if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
-                next();
-            } else {
+
+           if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
+               next();
+           } else if (req.params.key && myCache.get(req.params.key)) {
+               myCache.del(key);
+               next();
+           } else {
                 if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
                     myCache.set(ctx + "-" + user.name + "-" + user.pass, true);
                     next();
@@ -246,6 +250,12 @@ function startApiServer() {
                 }
             }
         });
+
+        apiServer.get('/*/accesskey', async function (req, res) {
+            let key = uuidv1()();
+            myCache.set(key, true);
+            res.status(200).send(key);
+        })
 
         apiServer.get('/*/api/query/login', async function (req, res) {
             let user = basicAuth(req);
