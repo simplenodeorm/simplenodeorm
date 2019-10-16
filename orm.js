@@ -12,8 +12,7 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
-const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
+
 const NodeCache = require( "node-cache" );
 const myCache = new NodeCache( { stdTTL: 120, checkperiod: 100 } );
 
@@ -34,52 +33,43 @@ module.exports.util = util;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback) {
-    if (cluster.isMaster) {
-        // Fork workers.
-        for (let i = 0; i < numCPUs; i++) {
-            cluster.fork();
+    appConfiguration = appconfig;
+    testConfiguration = testconfig;
+
+    // convert application relative paths in configuration files
+    // to absolute path for current installation
+    appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
+    appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
+    testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
+    testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
+
+    // export some of the constants for use in other modules
+    module.exports.appConfiguration = appConfiguration;
+    module.exports.testConfiguration = testConfiguration;
+
+    logger = require('./main/Logger.js');
+    logger.initialize(appConfiguration);
+    module.exports.logger = logger;
+
+    const poolCreatedEmitter = new events.EventEmitter();
+    poolCreatedEmitter.on('poolscreated', async function() {
+        loadOrm();
+
+        // check for associated table existence and create if configured to do so
+        if (appConfiguration.createTablesIfRequired) {
+            createTablesIfRequired();
         }
 
-        appConfiguration = appconfig;
-        testConfiguration = testconfig;
-
-        // convert application relative paths in configuration files
-        // to absolute path for current installation
-        appConfiguration.authorizer = installdir + "/" + appConfiguration.authorizer;
-        appConfiguration.ormModuleRootPath = installdir + "/" + appConfiguration.ormModuleRootPath;
-        testConfiguration.testDbConfiguration = installdir + "/" + testConfiguration.testDbConfiguration;
-        testConfiguration.testDataRootPath = installdir + "/" + testConfiguration.testDataRootPath;
-
-        // export some of the constants for use in other modules
-        module.exports.appConfiguration = appConfiguration;
-        module.exports.testConfiguration = testConfiguration;
-
-        logger = require('./main/Logger.js');
-        logger.initialize(appConfiguration);
-        module.exports.logger = logger;
-
-        const poolCreatedEmitter = new events.EventEmitter();
-        poolCreatedEmitter.on('poolscreated', async function () {
-            loadOrm();
-
-            // check for associated table existence and create if configured to do so
-            if (appConfiguration.createTablesIfRequired) {
-                createTablesIfRequired();
-            }
-
-            if (appConfiguration.testMode) {
-                let suite = require("./test/testSuite.js");
-                await suite.run();
-            }
-
-        });
-
+        if (appConfiguration.testMode) {
+            let suite = require("./test/testSuite.js");
+            await suite.run();
+        }
 
         serverStartedCallback(startApiServer(), logger);
+    });
 
-        // setup database pool and fire off orm load
-        require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
-    }
+    // setup database pool and fire off orm load
+    require("./db/dbConfiguration.js")(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap);
 };
 
 function loadOrm() {
@@ -95,7 +85,7 @@ function loadOrm() {
     // ensure no changes after load
     Object.freeze(modelList);
     Object.freeze(repositoryMap);
-    
+
     logger.logInfo("ORM definitions loaded ");
 }
 
@@ -143,15 +133,15 @@ function getDbType(poolAlias) {
 
 module.exports.getDbType = getDbType;
 
-    function getModelNameFromPath(path) {
+function getModelNameFromPath(path) {
     let retval = path;
     let pos = path.lastIndexOf('/');
     let pos2 = path.lastIndexOf('.');
-    
+
     if ((pos > -1) && (pos2 > pos)) {
         retval = path.substring(pos+1, pos2);
     }
-    
+
     return retval;
 }
 
@@ -163,7 +153,7 @@ function loadOrmDefinitions() {
 
     for (let i = 0; i < modelFiles.length; ++i) {
         let modelName = getModelNameFromPath(modelFiles[i]);
-        
+
         let md = new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
             let repo = require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/repository').replace('.js', 'Repository.js'))(md);
@@ -194,11 +184,11 @@ function loadOrmDefinitions() {
 
 function loadModelFiles(dir, modelFiles) {
     let files = fs.readdirSync(dir);
-    
+
     for (let i = 0; i < files.length; ++i) {
         let curFile = (dir + '/' + files[i]);
         if ((files[i] !== '.') && (files[i] !== "..") && fs.lstatSync(curFile).isDirectory()) {
-            loadModelFiles(dir + '/' + files[i], modelFiles);           
+            loadModelFiles(dir + '/' + files[i], modelFiles);
         } else if (curFile.endsWith('.js')) {
             modelFiles.push(curFile);
         }
@@ -221,7 +211,6 @@ function startApiServer() {
         const authorizer = new (require(appConfiguration.authorizer));
 
         let server;
-
         if (appConfiguration.certKeyPath) {
             let options = {
                 key: fs.readFileSync(appConfiguration.certKeyPath),
@@ -251,7 +240,7 @@ function startApiServer() {
                 myCache.del(req.query.key);
                 next();
             } else if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
-               next();
+                next();
             } else {
                 if (authorizer.isAuthenticated(orm, req, user.user, md5(user.pass))) {
                     myCache.set(ctx + "-" + user.name + "-" + user.pass, true);
@@ -264,7 +253,7 @@ function startApiServer() {
 
         apiServer.get('/*/accesskey', async function (req, res) {
             let key = uuidv1();
-            myCache.set(key, true, 15);
+            myCache.set(key, true, 20);
             res.status(200).send(key);
         });
 
@@ -290,7 +279,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/query/document/groups', async function (req, res) {
-          res.status(200).send(await loadQueryDocumentGroups());
+            res.status(200).send(await loadQueryDocumentGroups());
         });
 
         apiServer.get('/*/api/report/document/groups', async function (req, res) {
@@ -1122,7 +1111,7 @@ function loadModelData(data, md, refs, path, child) {
 function circularReference(parentRefs, curRef) {
     let retval = false;
     let curnm = (curRef.title + '.' + curRef.targetModelName);
-    
+
     for (let i = 0; i < parentRefs.length; ++i) {
         let refnm = parentRefs[i].title + '.' + parentRefs[i].targetModelName;
         if (curnm === refnm) {
@@ -1130,7 +1119,7 @@ function circularReference(parentRefs, curRef) {
             break;
         }
     }
-    
+
     return retval;
 }
 
@@ -1175,7 +1164,7 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
                 alias = info.alias;
             }
         }
-        
+
         queryDocument.document.selectedColumns[i].alias = alias;
 
         if (queryDocument.document.selectedColumns[i].customInput) {
@@ -1205,17 +1194,17 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
         if (requiredPkColumns && (requiredPkColumns.length > 0)) {
             for (let i = 0; i < requiredPkColumns.length; ++i) {
                 sql += (',' + requiredPkColumns[i].alias + '.' + requiredPkColumns[i].columnName);
-    
+
                 if (!forDisplay && (dbTypeMap.get(requiredPkColumns[i].poolAlias) === util.MYSQL)) {
                     sql += (' as ' + requiredPkColumns[i].alias + '_' + requiredPkColumns[i].columnName)
                 }
-    
+
                 queryDocument.document.selectedColumns.push(requiredPkColumns[i]);
             }
         }
     }
-    
-    
+
+
     let md = repositoryMap.get(queryDocument.document.rootModel.toLowerCase()).getMetaData();
     sql += (' from ' + md.tableName + ' t0 ');
 
@@ -1255,7 +1244,7 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
             if (queryDocument.document.whereComparisons[i].openParen) {
                 sql += queryDocument.document.whereComparisons[i].openParen;
             }
-            
+
             sql += (' ' + alias + '.' + field.columnName + ' ' + queryDocument.document.whereComparisons[i].comparisonOperator);
 
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
@@ -1343,7 +1332,7 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
                 } else {
                     sql += (comma + ' ' + alias + '.' + colName);
                 }
-                
+
                 comma = ',';
             }
         }
@@ -1376,8 +1365,8 @@ function buildQueryDocumentSql(queryDocument, forDisplay) {
             } else if (orderByColumns[i].customInput) {
                 sql += (comma + ' ' + orderByColumns[i].customInput.replace('?', (alias + '.' + colName)));
             } else {
-                 sql += (comma + ' ' + alias + '.' + colName);
-             }
+                sql += (comma + ' ' + alias + '.' + colName);
+            }
 
             if (orderByColumns[i].sortDescending) {
                 sql += ' desc';
@@ -1394,7 +1383,7 @@ function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
     let retval = [];
     if (!requiresGroupBy(queryDocument.document.selectedColumns)) {
         let tset = new Set();
-    
+
         for (let i = 0; i < queryDocument.document.selectedColumns.length; ++i) {
             let pos = queryDocument.document.selectedColumns[i].path.lastIndexOf('.');
             let alias;
@@ -1407,7 +1396,7 @@ function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
                 alias = info.alias;
                 repo = repositoryMap.get(info.model.toLowerCase());
             }
-        
+
             // evaluate missing primary keys for model
             if (!tset.has(alias)) {
                 tset.add(alias);
@@ -1417,32 +1406,32 @@ function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
                 for (let j = 0; j < pkkeys.length; ++j) {
                     pkmap.set(pkkeys[j].fieldName, pkkeys[j]);
                 }
-            
+
                 let parentPath = '@#$';
                 let fieldName = queryDocument.document.selectedColumns[i].path;
                 if (pos > -1) {
                     parentPath = queryDocument.document.selectedColumns[i].path.substring(0, pos);
                     fieldName = queryDocument.document.selectedColumns[i].path.substring(pos + 1);
                 }
-            
+
                 for (let j = 0; j < queryDocument.document.selectedColumns.length; ++j) {
                     let pos2 = queryDocument.document.selectedColumns[j].path.lastIndexOf('.');
                     let curParentPath = '@#$';
                     if (pos2 > -1) {
                         curParentPath = queryDocument.document.selectedColumns[j].path.substring(0, pos2);
                     }
-                
+
                     if (parentPath === curParentPath) {
                         if (pkmap.has(fieldName)) {
                             pkmap.delete(fieldName);
                         }
                     }
-                
+
                     if (pkmap.size === 0) {
                         break;
                     }
                 }
-            
+
                 if (pkmap.size > 0) {
                     for (let [k, v] of pkmap) {
                         let sc = {};
@@ -1455,14 +1444,14 @@ function getMissingPKColumnsForObjectResultSelect(queryDocument, aliasMap) {
                         } else {
                             sc.path = k;
                         }
-                    
+
                         retval.push(sc);
                     }
                 }
             }
         }
     }
-    
+
     return retval;
 }
 
@@ -1675,10 +1664,10 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
             positionMap.set(doc.document.selectedColumns[i].alias, pos);
             aliasList.push(doc.document.selectedColumns[i].alias);
         }
-        
+
         pos.push(i);
     }
-    
+
     for (var [key, value] of positionMap) {
         let keypos = keyColumnMap.get(key);
         // see if we have all primary key columns in select
@@ -1698,7 +1687,7 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
                     keyPositions.push(value[i]);
                 }
             }
-            
+
             if (keyPositions.length === keySet.size) {
                 keyColumnMap.set(doc.document.selectedColumns[value[0]].alias, keyPositions);
             } else {
@@ -1706,9 +1695,9 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
             }
         }
     }
-    
+
     aliasList.sort();
-    
+
     // object references by key
     let objectMap = new Map();
     //object references by alias fr current branch
@@ -1719,13 +1708,13 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
         for (let j = 0; j < aliasList.length; ++j) {
             let alias = aliasList[j];
             let keypos = keyColumnMap.get(alias);
-    
+
             let pkey = buildObjectKeyFromRowPositions(resultRows[i], keypos);
 
             if (pkey) {
                 key += ('.' + pkey);
             }
-            
+
             if (pkey) {
                 let model = objectMap.get(key);
                 let newModel = false;
@@ -1748,31 +1737,31 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
                             if (!parentModel[fieldName]) {
                                 parentModel[fieldName] = [];
                             }
-            
+
                             parentModel[fieldName].push(model);
                         }
                         parentObjectMap.set(alias, model);
                     }
                     objectMap.set(key, model);
                 }
-                
+
                 if (newModel) {
                     let colpos = positionMap.get(alias);
                     for (let l = 0; l < colpos.length; ++l) {
                         let pos = doc.document.selectedColumns[colpos[l]].path.lastIndexOf('.');
                         let fieldName = doc.document.selectedColumns[colpos[l]].path.substring(pos + 1);
-                        
+
                         model[fieldName] = resultRows[i][colpos[l]];
                     }
                 }
             }
         }
     }
-    
+
     if (retval && (retval.length === 1)) {
         retval = retval[0];
     }
-    
+
     if (!asObject) {
         return JSON.stringify(retval);
     } else {
@@ -1796,11 +1785,11 @@ function buildObjectKeyFromRowPositions(row, keypos) {
         retval += (dot + row[keypos[j]]);
         dot = '.'
     }
-    
+
     if (allNull) {
         retval = '';
     }
-    
+
     return retval;
 }
 
@@ -1824,7 +1813,7 @@ function getRequiredInputFields(querydoc) {
             retval.push(querydoc.whereComparisons[i]);
         }
     }
-    
+
     return retval;
 }
 
@@ -1834,16 +1823,16 @@ function isUnaryOperator(op) {
 
 async function generateReport(report, query, parameters, options) {
     let retval = '';
-    
+
     // SIM-4 all reports will run from object graphs
     query.document.resultFormat = 'object';
     let sql = buildQueryDocumentSql(query);
-    
+
     if (logger.isLogDebugEnabled()) {
         logger.logDebug(util.toString(query));
         logger.logDebug(sql);
     }
-    
+
     let repo = repositoryMap.get(query.document.rootModel.toLowerCase());
     if (!parameters) {
         parameters = [];
@@ -1854,7 +1843,7 @@ async function generateReport(report, query, parameters, options) {
     } else {
         let haveCharts = false;
         let resultSet = buildResultObjectGraph(query, result.result.rows, true);
-        
+
         // expect to work with array of results so
         // make an array if only 1 object comes back
         if (!Array.isArray(resultSet)) {
@@ -1878,18 +1867,18 @@ async function generateReport(report, query, parameters, options) {
             + 'in; height: '
             + height
             + 'in;} @media screen .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}';
-       
+
         let headerObjects = [];
         let bodyObjects = [];
         let footerObjects = [];
         let columnMap = new Map();
-        
+
         if (report.document.reportColumns) {
             for (let i = 0; i < report.document.reportColumns.length; ++i) {
                 columnMap.set(report.document.reportColumns[i].key, report.document.reportColumns[i]);
             }
         }
-        
+
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
             if (report.document.reportObjects[i].objectType === 'chart') {
@@ -1906,7 +1895,7 @@ async function generateReport(report, query, parameters, options) {
                             + '-' + report.document.reportObjects[i].id
                             + ':hover { border: dotted 1px red;}', ''));
                 }
-            
+
                 switch(report.document.reportObjects[i].reportSection) {
                     case "header":
                         headerObjects.push(report.document.reportObjects[i]);
@@ -1920,11 +1909,11 @@ async function generateReport(report, query, parameters, options) {
                 }
             }
         }
-        
+
         let done = false;
         let pagenum = 0;
         let html = '';
-        
+
         let rowInfo = {
             currentRow: 0,
             totalsRequired: false,
@@ -1936,14 +1925,14 @@ async function generateReport(report, query, parameters, options) {
             pageBreakRequired: false,
             forcePageBreak: false
         };
-    
+
         if (haveCharts) {
             rowInfo.dataRows = result.result.rows;
             rowInfo.queryColumns = query.document.selectedColumns;
             rowInfo.chartData = chartData;
             rowInfo.chartData.charts = [];
         }
-        
+
         let bodyStart = Number(report.document.headerHeight/rowInfo.ppi).toFixed(3);
         let footerStart =  Number((report.document.documentHeight - report.document.footerHeight)/rowInfo.ppi).toFixed(3);
         do {
@@ -1959,7 +1948,7 @@ async function generateReport(report, query, parameters, options) {
             for (let i = 0; i < headerObjects.length; ++i) {
                 html += getObjectHtml(marginTop, headerObjects[i], rowInfo);
             }
- 
+
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
                 + bodyStart
                 + 'in; width: '
@@ -1970,7 +1959,7 @@ async function generateReport(report, query, parameters, options) {
             for (let i = 0; i < bodyObjects.length; ++i) {
                 html += getObjectHtml(0, bodyObjects[i], rowInfo);
             }
-    
+
             html += '</div><div style="position: absolute; overflow: hidden; left: 0; top: '
                 + footerStart
                 + 'in; width: '
@@ -1978,17 +1967,17 @@ async function generateReport(report, query, parameters, options) {
                 + 'in; height: '
                 + (height - footerStart)
                 + 'in;">';
-            
+
             for (let i = 0; i < footerObjects.length; ++i) {
                 html += getObjectHtml(0, footerObjects[i], rowInfo);
             }
-            
+
             html += '</div>';
-            
+
             if (rowInfo.incrementRowRequired) {
                 rowInfo.currentRow = rowInfo.currentRow + 1;
             }
-            
+
             html += '</div>';
             if (!rowInfo.forcePageBreak
                 && (!rowInfo.pageBreakRequired
@@ -1997,23 +1986,23 @@ async function generateReport(report, query, parameters, options) {
             } else {
                 html += '<div class="pb">&nbsp;</div>';
             }
-            
+
             pagenum++;
         } while (!done);
-        
+
         if (haveCharts) {
             retval = {"style": style, "html": html, chartData: chartData};
         } else {
             retval = {"style": style, "html": html};
         }
     }
-    
+
     return retval;
 }
 
 function getObjectHtml(yOffset, reportObject, rowInfo) {
     let retval = '';
-    
+
     switch(reportObject.objectType) {
         case 'dbdata':
             retval = getDbDataHtml(yOffset, reportObject, rowInfo);
@@ -2046,7 +2035,7 @@ function getObjectHtml(yOffset, reportObject, rowInfo) {
             retval = getChartHtml(yOffset, reportObject, rowInfo);
             break;
     }
-    
+
     return retval;
 }
 
@@ -2063,7 +2052,7 @@ function getDbDataHeader(reportObject, rowInfo) {
                 + '</div></th>');
         }
     }
-    
+
     return retval;
 }
 
@@ -2114,7 +2103,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                             reportObject.reportColumns[i].total = 0;
                             reportObject.reportColumns[i].count = 0;
                         }
-                        
+
                         if (val) {
                             reportObject.reportColumns[i].total += val;
                             reportObject.reportColumns[i].count++;
@@ -2147,7 +2136,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                         break;
                 }
             }
-            
+
             if (val) {
                 if (reportObject.reportColumns[i].isNumeric) {
                     if (reportObject.reportColumns[i].precision) {
@@ -2161,7 +2150,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
             } else {
                 val = '&nbsp;';
             }
-    
+
             retval += '</div></td>';
         }
     }
@@ -2192,11 +2181,11 @@ function getReportObjectStyle(yOffset, reportObject, rowInfo) {
 function getLabelHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+
     retval += ('<div>' + reportObject.labelText + '</div></div>');
     return retval;
 }
@@ -2204,11 +2193,11 @@ function getLabelHtml(yOffset, reportObject, rowInfo) {
 function getShapeHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+
     retval += '&nbsp;</div>';
     return retval;
 }
@@ -2224,7 +2213,7 @@ function getImageHtml(yOffset, reportObject, rowInfo) {
             style = 'width: auto; height: auto; max-width: 100%; max-height: 100%;';
         }
     }
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
@@ -2243,20 +2232,20 @@ function getImageHtml(yOffset, reportObject, rowInfo) {
             + reportObject.url
             + ' class="' + cname + '"/>';
     }
-    
+
     retval += '</div>';
-    
+
     return retval;
 }
 
 function getLinkHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="z-index: 1; '
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+
     retval += ('<a href="' + reportObject.url + '" target="__blank">' + reportObject.linkText + '</a></div>');
     return retval;
 }
@@ -2264,11 +2253,11 @@ function getLinkHtml(yOffset, reportObject, rowInfo) {
 function getEmailHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="z-index: 1; '
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+
     if (!reportObject.emailText) {
         reportObject.emailText = reportObject.email;
     }
@@ -2279,11 +2268,11 @@ function getEmailHtml(yOffset, reportObject, rowInfo) {
 function getCurrentDateHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
-    
+
     retval += ('<div>' + formatDate(new Date(),reportObject.format) + '</div></div>');
     return retval;
 }
@@ -2297,9 +2286,9 @@ function formatDate(dt, format) {
     if (format.includes('MMM')) {
         mname = config.monthNames[dt.getMonth()];
     }
-    
+
     let retval = format.replace('dd', day).replace('yyyy', year);
-    
+
     if (mname) {
         if (format.includes(' MMM ')) {
             retval = retval.replace('MMM', mname.substring(0, 3));
@@ -2309,14 +2298,14 @@ function formatDate(dt, format) {
     } else {
         retval = retval.replace('mm', mon);
     }
-    
+
     return retval;
 }
 
 function getPageNumberHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">';
@@ -2328,11 +2317,11 @@ function getPageNumberHtml(yOffset, reportObject, rowInfo) {
 function getDbDataHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
-    + '" class="' + cname + '">';
-    
+        + '" class="' + cname + '">';
+
     let cy = (reportObject.rect.height / rowInfo.ppi).toFixed(3);
     let dataRowHeight = (reportObject.dataRowHeight / rowInfo.ppi).toFixed(3);
     let numRows = Math.floor(cy / dataRowHeight);
@@ -2346,7 +2335,7 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         + '</tr></thead><tbody>'
         + getDbDataRows(reportObject, rowInfo, numRows)
         + '</tbody>');
-    
+
     if (rowInfo.forcePageBreak || ((rowInfo.currentRow >= rowInfo.rows.length) && rowInfo.totalsRequired)) {
         if (rowInfo.pageRowsDisplayed < numRows) {
             retval += '<tr>';
@@ -2389,7 +2378,7 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
                     retval += '</div></td>';
                 }
             }
-    
+
             retval += '</tr>';
         } else if (reportObject.displayFormat === 2) {
             rowInfo.forcePageBreak = true;
@@ -2400,42 +2389,42 @@ function getDbDataHtml(yOffset, reportObject, rowInfo) {
         && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
     }
-    
+
     return retval
 }
 
 function getDbColumnHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = ('<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">');
-    
+
     let crow = Math.min(rowInfo.currentRow, rowInfo.rows.length-1);
     let val = getDbDataByPath(reportObject.columnPath, rowInfo.rows[crow]);
     retval += ('<div>' + val + '</div></div>');
-    
+
     rowInfo.incrementRowRequired = true;
     if ((Number(reportObject.displayFormat) === 4)
         && (rowInfo.currentRow < rowInfo.rows.length)) {
         rowInfo.pageBreakRequired = true;
     }
-    
+
     return retval;
 }
 
 function getChartHtml(yOffset, reportObject, rowInfo) {
     let cname = 'rpt-' + reportObject.objectType.replace(/ /g, '-')
         + '-' + reportObject.id;
-    
+
     let retval = '<div style="'
         + getReportObjectStyle(yOffset, reportObject, rowInfo)
         + '" class="' + cname + '">'
         + '<canvas style="width: 100%; height: 100%" id="'
         + cname
         + '"></canvas></div>';
-    
+
     loadChartLabels(reportObject, rowInfo);
     let ds = getChartDatasets(reportObject, rowInfo);
     let options = getChartOptions(reportObject, rowInfo);
@@ -2448,9 +2437,9 @@ function getChartHtml(yOffset, reportObject, rowInfo) {
         },
         options: options
     };
-    
+
     rowInfo.chartData.charts.push(data);
-    
+
     return retval
 }
 
@@ -2468,7 +2457,7 @@ function loadChartLabels(reportObject, rowInfo) {
             }
         }
     }
-    
+
     if (rowInfo.categoryPosition > -1) {
         for (let i = 0; i < rowInfo.dataRows.length; ++i) {
             let cat = rowInfo.dataRows[i][rowInfo.categoryPosition];
@@ -2478,7 +2467,7 @@ function loadChartLabels(reportObject, rowInfo) {
             }
         }
     }
-    
+
     rowInfo.chartLabels = labels;
 }
 
@@ -2488,7 +2477,7 @@ function getChartDatasets(reportObject, rowInfo) {
     for (let i = 0; i < rowInfo.chartLabels.length; ++i) {
         posMap.set(rowInfo.chartLabels[i], i);
     }
-    
+
     let dataAxes = getChartDataAxisDefs(reportObject, rowInfo);
     for (let i = 0; i < dataAxes.length; ++i) {
         let ds = {};
@@ -2496,7 +2485,7 @@ function getChartDatasets(reportObject, rowInfo) {
         if (dataAxes[i].label) {
             ds.label = dataAxes[i].label;
         }
-    
+
         if (dataAxes[i].color) {
             switch (reportObject.chartType) {
                 case 'bar':
@@ -2521,13 +2510,13 @@ function getChartDatasets(reportObject, rowInfo) {
                     ds.pointStyle = reportObject.pointStyle;
                     ds.pointRadius = reportObject.pointRadius;
                     break;
-                    
+
             }
         }
         ds.data = [];
         retval.push(ds);
     }
-    
+
     for (let i = 0; i < rowInfo.dataRows.length; ++i) {
         for (let j = 0; j < retval.length; j++) {
             let pos = posMap.get(rowInfo.dataRows[i][rowInfo.categoryPosition]);
@@ -2537,22 +2526,22 @@ function getChartDatasets(reportObject, rowInfo) {
                 if (!yval) {
                     yval = 0;
                 }
-    
+
                 yval = Number(yval);
-                
+
                 if (reportObject.reportColumns[j].precision) {
                     yval = yval.toFixed(reportObject.reportColumns[j].precision);
                 } else if (yval) {
                     yval = yval.toFixed(2);
                 }
-    
+
                 if (reportObject.chartType === 'scatter') {
                     retval[j].data.push({x: xval, y: yval});
                 } else {
                     retval[j].data[pos] = yval;
                 }
             }
-            
+
             switch(reportObject.chartType) {
                 case 'pie':
                 case 'doughnut':
@@ -2560,84 +2549,84 @@ function getChartDatasets(reportObject, rowInfo) {
                     if (!retval[j].backgroundColor) {
                         retval[j].backgroundColor = [];
                     }
-    
+
                     if (reportObject.chartType === 'polarArea') {
                         retval[j].backgroundColor.push(randomColor({luminosity: 'dark', alpha: 0.3, format: 'rgba'}));
                     } else {
                         retval[j].backgroundColor.push(randomColor({luminosity: 'dark'}));
                     }
-                    
+
                     break;
             }
         }
     }
-    
+
     return retval;
 }
 
 function getChartOptions(reportObject) {
     let retval = {};
     let tstyle = 'normal';
-    
+
     if (reportObject.titleFontSettings.italic) {
         tstyle = 'italic';
     }
-    
+
     let lstyle = 'normal';
-    
+
     if (reportObject.legendFontSettings.italic) {
         lstyle = 'italic';
     }
-    
-    
+
+
     if (reportObject.responsive) {
         retval.responsive = reportObject.responsive;
     }
-    
+
     if (reportObject.maintainAspect) {
         retval.maintainAspect = reportObject.maintainAspect;
     }
-    
+
     retval.title = {};
     retval.title.display = reportObject.titleFontSettings.display;
-    
+
     if (retval.title.display) {
         if (reportObject.titleFontSettings.position) {
             retval.title.position = reportObject.titleFontSettings.position;
         }
-        
+
         if (reportObject.titleFontSettings.fontSize) {
             retval.title.fontSize = reportObject.titleFontSettings.fontSize;
         }
-        
+
         if (reportObject.titleFontSettings.fontColor) {
             retval.title.fontColor = reportObject.titleFontSettings.fontColor
         }
-        
+
         if (reportObject.titleFontSettings.font) {
             retval.title.fontFamily = reportObject.titleFontSettings.font;
             retval.title.fonstStyle = tstyle;
             retval.title.text = reportObject.title;
         }
     }
-    
-    
+
+
     retval.legend = {};
     retval.title.display = reportObject.titleFontSettings.display;
-    
+
     if (reportObject.legendFontSettings.display) {
         if (reportObject.legendFontSettings.position) {
             retval.legend.position = reportObject.legendFontSettings.position;
             retval.legend.labels = {};
-    
+
             if (reportObject.legendFontSettings.fontSize) {
                 retval.legend.labels.fontSize = reportObject.legendFontSettings.fontSize;
             }
-    
+
             if (reportObject.legendFontSettings.fontColor) {
                 retval.legend.labels.fontColor = reportObject.legendFontSettings.fontColor
             }
-    
+
             if (reportObject.legendFontSettings.font) {
                 retval.legend.labels.boxWidth = 10;
                 retval.legend.labels.boxHeight = 2;
@@ -2646,26 +2635,26 @@ function getChartOptions(reportObject) {
             }
         }
     }
-    
+
     if (reportObject.yAxes || reportObject.xAxes) {
         retval.scales = {};
         if (reportObject.yAxes && reportObject.yAxes.label) {
             retval.scales.yAxes = [];
             retval.scales.yAxes.push({scaleLabel: {display: true, labelString: reportObject.yAxes.label}});
         }
-    
+
         if (reportObject.xAxes && reportObject.xAxes.label) {
             retval.scales.xAxes = [];
             retval.scales.xAxes.push({scaleLabel: {display: true, labelString: reportObject.xAxes.label}});
         }
     }
-    
+
     return retval;
 }
 
 function getChartDataAxisDefs(reportObject, rowInfo) {
     let retval = [];
-    
+
     for (let i = 0; i < reportObject.reportColumns.length; ++i) {
         if (reportObject.reportColumns[i].axis === 'data') {
             for (let j = 0; j < rowInfo.queryColumns.length; ++j) {
@@ -2677,14 +2666,14 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
             }
         }
     }
-    
+
     return retval;
 }
 
 async function loadReportDocumentGroups(groupsonly) {
     let retval;
     try {
-         if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+        if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
             retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
             let reports = {};
             let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
@@ -2777,7 +2766,7 @@ function traverseDocumentGroups(grp,  documents) {
                         key: (grp.key + '.' + docs[j])
                     };
                     grp.children.push(leaf);
-               }
+                }
             }
         }
 
