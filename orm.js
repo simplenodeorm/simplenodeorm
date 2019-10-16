@@ -14,7 +14,7 @@ const tinycolor = require('tinycolor2');
 const md5 = require('md5');
 
 const NodeCache = require( "node-cache" );
-const myCache = new NodeCache( { stdTTL: 60, checkperiod: 100 } );
+const myCache = new NodeCache( { stdTTL: 120, checkperiod: 100 } );
 
 
 const dbTypeMap = new Map();
@@ -253,7 +253,7 @@ function startApiServer() {
 
         apiServer.get('/*/accesskey', async function (req, res) {
             let key = uuidv1();
-            myCache.set(key, true);
+            myCache.set(key, true, 20);
             res.status(200).send(key);
         });
 
