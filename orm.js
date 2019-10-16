@@ -236,7 +236,7 @@ function startApiServer() {
             let user = basicAuth(req);
             let ctx = util.getContextFromUrl(req);
 
-            if (req.params.key && myCache.get(req.params.key)) {
+            if (req.query.key && myCache.get(req.query.key)) {
                 myCache.del(key);
                 next();
             } else if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
