@@ -237,7 +237,7 @@ function startApiServer() {
             let ctx = util.getContextFromUrl(req);
 
             if (req.query.key && myCache.get(req.query.key)) {
-                myCache.del(key);
+                myCache.del(req.query.key);
                 next();
             } else if (req.url.endsWith("/login") || myCache.get(ctx + "-" + user.name + "-" + user.pass)) {
                next();
