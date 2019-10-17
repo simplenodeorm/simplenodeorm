@@ -234,6 +234,7 @@ function startApiServer() {
             }
 
             let user = basicAuth(req);
+            logger.logInfo('---->auth' + req.headers['authorization']);
             if (!user || !user.name) {
                 logger.logInfo('---->' + req.url);
             }
