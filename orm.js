@@ -14,7 +14,7 @@ const tinycolor = require('tinycolor2');
 const md5 = require('md5');
 
 const NodeCache = require( "node-cache" );
-const myCache = new NodeCache( { stdTTL: 120, checkperiod: 100 } );
+const myCache = new NodeCache( { stdTTL: 60 * 60, checkperiod: 120 } );
 
 
 const dbTypeMap = new Map();
@@ -233,11 +233,17 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
+            let session = req.headers["session"];
+
             if (req.query.key && myCache.get(req.query.key)) {
                 myCache.del(req.query.key);
                 next();
-            } else {
+            } else if (session && myCache.get(session)) {
+                myCache.set(session, true);
                 next();
+            } else {
+                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                res.sendStatus(401);
             }
         });
 
@@ -255,7 +261,7 @@ function startApiServer() {
             } else {
                 let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
-                    myCache.set(util.getContextFromUrl(req) + "-" + user.name + "-" + user.pass, true);
+                    myCache.set(result.session, true);
                     res.status(200).send(result);
                 } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
