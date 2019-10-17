@@ -234,14 +234,14 @@ function startApiServer() {
             }
 
             let session = req.headers["session"];
-
+logger.logInfo('---->' + session)
             if (req.url.endsWith("/login")) {
                 next();
-            } else if (req.query.key && myCache.get(req.query.key)) {
+            } else if (req.query && req.query.key && myCache.get(req.query.key)) {
                 myCache.del(req.query.key);
                 next();
             } else if (session && myCache.get(session)) {
-                myCache.set(session, true);
+               // myCache.set(session, true);
                 next();
             } else {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
