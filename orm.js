@@ -233,7 +233,7 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            let session = req.headers["session"];
+            let session = req.headers["x-session"];
 logger.logInfo('---->' + JSON.stringify(req.headers));
             if (req.url.endsWith("/login")) {
                 next();
