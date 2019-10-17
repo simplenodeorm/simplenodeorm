@@ -234,7 +234,7 @@ function startApiServer() {
             }
 
             let session = req.headers["session"];
-logger.logInfo('---->' + session)
+logger.logInfo('---->' + JSON.stringify(req.headers));
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
