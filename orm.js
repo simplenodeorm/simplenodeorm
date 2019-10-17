@@ -12,6 +12,7 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
+const cookieParser = require("cookie-parser");
 
 const NodeCache = require( "node-cache" );
 const myCache = new NodeCache( { stdTTL: 60 * 60, checkperiod: 120 } );
@@ -208,6 +209,8 @@ function startApiServer() {
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
         apiServer.use(cors());
+        apiServer.use(cookieParser());
+
         const authorizer = new (require(appConfiguration.authorizer));
 
         let server;
@@ -233,8 +236,7 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            let session = req.headers["x-session"];
-logger.logInfo('---->' + JSON.stringify(req.headers));
+            /*
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
@@ -246,7 +248,9 @@ logger.logInfo('---->' + JSON.stringify(req.headers));
             } else {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
-            }
+            }*/
+
+            next();
         });
 
         apiServer.get('/*/accesskey', async function (req, res) {
@@ -263,7 +267,11 @@ logger.logInfo('---->' + JSON.stringify(req.headers));
             } else {
                 let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
-                    myCache.set(result.session, true);
+                    let dt = new Date();
+                    dt.setHours(23, 59, 59);
+                    let cval = util.getContextFromUrl(req) + "|" + user.name;
+                    res.cookie('snosession', cval, { expires: dt, httpOnly: true, secure: true });
+                    myCache.set(cval, true);
                     res.status(200).send(result);
                 } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
