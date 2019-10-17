@@ -237,6 +237,7 @@ function startApiServer() {
             logger.logInfo('---->auth' + req.headers['authorization']);
             if (!user || !user.name) {
                 logger.logInfo('---->' + req.url);
+                logger.logInfo('---->hdrs=' + JSON.stringify(req.headers));
             }
             let ctx = util.getContextFromUrl(req);
 
