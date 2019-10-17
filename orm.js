@@ -235,7 +235,9 @@ function startApiServer() {
 
             let session = req.headers["session"];
 
-            if (req.query.key && myCache.get(req.query.key)) {
+            if (req.url.endsWith("/login")) {
+                next();
+            } else if (req.query.key && myCache.get(req.query.key)) {
                 myCache.del(req.query.key);
                 next();
             } else if (session && myCache.get(session)) {
