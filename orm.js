@@ -236,12 +236,12 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-        //    logger.logInfo('----->headers=' + JSON.stringify(req.headers));
+            logger.logInfo('----->headers=' + JSON.stringify(req.headers));
 
-//            if (req.query && req.query.key && myCache.get(req.query.key)) {
-      //          myCache.del(req.query.key);
-      //          next();
-     //       }
+            if (req.query && req.query.key && myCache.get(req.query.key)) {
+                myCache.del(req.query.key);
+                next();
+            }
             /*
             if (req.url.endsWith("/login")) {
                 next();
