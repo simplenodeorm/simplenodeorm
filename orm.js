@@ -236,18 +236,34 @@ function startApiServer() {
 
             let session = req.headers['x-snosession'];
 
-logger.logInfo('----->' + session);
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("snosession=" + session);
+                if (req.query) {
+                    logger.logDebug("req.query.key=" + req.query.key);
+                }
+                if (session) {
+                    logger.logDebug("myCache.value=" + myCache.get(session));
+                }
+            }
+
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
                 myCache.del(req.query.key);
                 next();
             } else if (session && myCache.get(session)) {
+                myCache.del(session);
                 myCache.set(session, true);
                 next();
             } else {
-                res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
-                res.sendStatus(401);
+                let user = basicAuth(req);
+
+                if (user && user.name && await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass))) {
+                    next();
+                } else {
+                    res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                    res.sendStatus(401);
+                }
             }
         });
 
@@ -263,7 +279,7 @@ logger.logInfo('----->' + session);
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
             } else {
-                let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
+                let result = await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
                     result.snosession = md5(cval);
