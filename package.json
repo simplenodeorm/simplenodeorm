@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.9.234",
+  "version": "1.9.235",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -33,6 +33,7 @@
     "properties-reader": "^0.3.1",
     "randomcolor": "^0.5.4",
     "tinycolor2": "^1.4.1",
+    "universal-cookie-express": "^4.0.1",
     "uuid": "^3.3.3",
     "winston": "^3.2.1"
   },
