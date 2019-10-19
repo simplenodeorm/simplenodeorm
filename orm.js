@@ -12,8 +12,6 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
-const cookieParser = require("cookie-parser");
-const cookiesMiddleware = require("universal-cookie-express");
 
 const NodeCache = require( "node-cache" );
 const myCache = new NodeCache( { stdTTL: 60 * 60, checkperiod: 120 } );
@@ -210,8 +208,6 @@ function startApiServer() {
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
         apiServer.use(cors());
-        apiServer.use(cookieParser());
-        apiServer.use(cookiesMiddleware());
 
         const authorizer = new (require(appConfiguration.authorizer));
 
@@ -237,7 +233,6 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
-            logger.logInfo('---->cookie=' + req.universalCookies.get("snosession"));
    logger.logInfo('---->headers=' + JSON.stringify(req.headers));
             /*
             if (req.url.endsWith("/login")) {
@@ -270,10 +265,8 @@ function startApiServer() {
             } else {
                 let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
-                    let dt = new Date();
-                    dt.setHours(23, 59, 59);
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
-                    req.universalCookies.set('snosession', cval, { expires: dt, path: '/' });
+                    result.snosession = cval;
                     myCache.set(cval, true);
                     res.status(200).send(result);
                 } else {
