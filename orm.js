@@ -288,7 +288,10 @@ function startApiServer() {
                 if (result) {
                     let cval = util.getContextFromUrl(req) + "." + uuidv1();
                     result.snosession = cval;
-                    myCache.set(cval , user.name);
+                    myCache.set(cval, user.name);
+                    if (log.isLogDebugEnabled()) {
+                        logger.logDebug("login->myCache(" + cval + ")=" + myCache.get(cval));
+                    }
                     res.status(200).send(result);
                 } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
