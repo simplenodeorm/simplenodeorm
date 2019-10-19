@@ -236,7 +236,7 @@ function startApiServer() {
 
             let session = req.headers['x-snosession'];
 
-
+logger.logInfo('----->' + session);
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
