@@ -233,22 +233,20 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
-   logger.logInfo('---->headers=' + JSON.stringify(req.headers));
-            /*
+
+            let session = req.headers['x-snosession'];
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
                 myCache.del(req.query.key);
                 next();
             } else if (session && myCache.get(session)) {
-               // myCache.set(session, true);
+                myCache.set(session, true);
                 next();
             } else {
                 res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                 res.sendStatus(401);
-            }*/
-
-            next();
+            }
         });
 
         apiServer.get('/*/accesskey', async function (req, res) {
