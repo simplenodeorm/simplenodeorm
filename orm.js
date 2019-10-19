@@ -235,6 +235,8 @@ function startApiServer() {
             }
 
             let session = req.headers['x-snosession'];
+
+
             if (req.url.endsWith("/login")) {
                 next();
             } else if (req.query && req.query.key && myCache.get(req.query.key)) {
@@ -265,7 +267,7 @@ function startApiServer() {
                 if (result) {
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
                     result.snosession = md5(cval);
-                    myCache.set(cval, true);
+                    myCache.set(result.snosession , true);
                     res.status(200).send(result);
                 } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
