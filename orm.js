@@ -274,7 +274,7 @@ function startApiServer() {
                     let dt = new Date();
                     dt.setHours(23, 59, 59);
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
-                    res.cookie('snosession', cval, { expires: dt, httpOnly: true, secure: true });
+                    res.cookie('snosession', cval, { expires: dt, httpOnly: true });
                     myCache.set(cval, true);
                     res.status(200).send(result);
                 } else {
