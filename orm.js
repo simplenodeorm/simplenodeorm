@@ -266,7 +266,7 @@ function startApiServer() {
                 let result = authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
-                    result.snosession = cval;
+                    result.snosession = md5(cval);
                     myCache.set(cval, true);
                     res.status(200).send(result);
                 } else {
