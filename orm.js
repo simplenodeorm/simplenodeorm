@@ -234,6 +234,8 @@ function startApiServer() {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
+
+   logger.logInfo('---->headers=' + JSON.stringify(req.headers));
             /*
             if (req.url.endsWith("/login")) {
                 next();
@@ -268,7 +270,7 @@ function startApiServer() {
                     let dt = new Date();
                     dt.setHours(23, 59, 59);
                     let cval = util.getContextFromUrl(req) + "|" + user.name;
-                    res.cookie('snosession', cval, { expires: dt, httpOnly: true });
+                    res.cookie('snosession', cval, { expires: dt, path: '/' });
                     myCache.set(cval, true);
                     res.status(200).send(result);
                 } else {
