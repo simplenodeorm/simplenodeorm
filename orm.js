@@ -289,7 +289,7 @@ function startApiServer() {
                     let cval = util.getContextFromUrl(req) + "." + uuidv1();
                     result.snosession = cval;
                     myCache.set(cval, user.name);
-                    if (log.isLogDebugEnabled()) {
+                    if (logger.isLogDebugEnabled()) {
                         logger.logDebug("login->myCache(" + cval + ")=" + myCache.get(cval));
                     }
                     res.status(200).send(result);
