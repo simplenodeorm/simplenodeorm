@@ -109,6 +109,14 @@ module.exports.getModelList = function () {
     return modelList;
 };
 
+function getOneTimeAccessKey(ttl) {
+    let retval = uuidv1();
+    myCache.set(retval, true, ttl);
+    return retval;
+}
+
+module.exports.getOneTimeAccessKey = getOneTimeAccessKey;
+
 async function getConnection(poolAlias) {
     let pool = dbTypeMap.get(poolAlias + '.pool');
     if (logger.isLogDebugEnabled()) {
@@ -132,6 +140,8 @@ function getDbType(poolAlias) {
 }
 
 module.exports.getDbType = getDbType;
+
+
 
 function getModelNameFromPath(path) {
     let retval = path;
@@ -272,9 +282,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/accesskey', async function (req, res) {
-            let key = uuidv1();
-            myCache.set(key, true, 20);
-            res.status(200).send(key);
+            res.status(200).send(getOneTimeAccessKey(20));
         });
 
         apiServer.get('/*/api/query/login', async function (req, res) {
