@@ -30,7 +30,6 @@ let testConfiguration;
 let logger;
 
 module.exports.util = util;
-module.exports.myCache = myCache;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback) {
@@ -258,7 +257,6 @@ function startApiServer() {
                 myCache.del(req.query.key);
                 next();
             } else if (session && cacheVal) {
-                myCache.del(session);
                 myCache.set(session, cacheVal);
                 next();
             } else {
