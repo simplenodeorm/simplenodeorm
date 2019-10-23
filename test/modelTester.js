@@ -31,7 +31,7 @@ function testFieldConstraints(model, metaData, field) {
         
         catch (e) {
            if (e.name !== 'NotNullConstraint') {
-               testUtil.logError('model=' + model + ': ' + e.toString(), e);
+               testUtil.logError('model=' + model.__model__+ ': ' + e.toString(), e);
                assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
            }
        }
@@ -47,7 +47,7 @@ function testFieldConstraints(model, metaData, field) {
 
         catch (e) {
             if (e.name !== 'LengthConstraint') {
-                testUtil.logError('model=' + model + ': ' + e.toString(), e);
+                testUtil.logError('model=' + model.__model__ + ': ' + e.toString(), e);
                 assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
             }
         }
@@ -66,7 +66,7 @@ function testFieldDataHandling(model, metaData, field) {
     }
     
     catch (e) {
-        testUtil.logError('model='+ model + ': ' + e.toString(), e);
+        testUtil.logError('model='+ model.__model__ + ': ' + e.toString(), e);
         assert.fail('Exception', 'Exception', 'unexpected exception thrown on ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field));
     }
 }

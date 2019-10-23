@@ -10,7 +10,7 @@ module.exports.run = async function(orm) {
     let models = orm.getModelList();
     let success = true;
     for (let i = 0; i < models.length; ++i) {
-        testUtil.logInfo("testing model " + models[i]);
+        testUtil.logInfo("testing model " + models[i].__model__);
         try {
             let md = orm.getMetaData(models[i].name);
             assert(util.isDefined(md), 'failed to load metadata for model ' + models[i].name);
