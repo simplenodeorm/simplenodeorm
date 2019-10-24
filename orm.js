@@ -244,27 +244,18 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            let session = req.headers['x-snosession'];
-
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug("snosession=" + session);
-                if (req.query) {
-                    logger.logDebug("req.query.key=" + req.query.key);
-                }
-                if (session) {
-                    logger.logDebug("myCache[" + session + "]=" + myCache.get(session));
-                }
-            }
-
+            let session = getSession(req);
+            let accessKey = getAccessKey(req);
             let cacheVal;
+
             if (session) {
                 cacheVal = myCache.get(session);
             }
 
-            if (req.url.endsWith("/login")) {
+            if (accessKey && myCache.get(accessKey)) {
+                myCache.del(accessKey);
                 next();
-            } else if (req.query && req.query.key && myCache.get(req.query.key)) {
-                myCache.del(req.query.key);
+            } else if (req.url.endsWith("/login")) {
                 next();
             } else if (session && cacheVal) {
                 myCache.set(session, cacheVal);
@@ -2809,6 +2800,35 @@ function traverseDocumentGroups(grp,  documents) {
             }
         }
     }
+}
+
+function getSession(req) {
+    let session = req.headers['x-snosession'];
+
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug("snosession=" + session);
+        if (session) {
+            logger.logDebug("myCache[" + session + "]=" + myCache.get(session));
+        }
+    }
+    return session;
+}
+
+function getAccessKey(req) {
+    let retval;
+    if ((req.method === "POST") && req.body) {
+        retval = req.body.key;
+        if (logger.isLogDebugEnabled()) {
+            logger.debug("found access key in body object: " + retval);
+        }
+    } else if ((req.method === "GET") && req.query) {
+        retval = req.query.key;
+        if (logger.isLogDebugEnabled()) {
+            logger.debug("found access key in query object: " + retval);
+        }
+    }
+
+    return retval;
 }
 
 module.exports.parseOrmResult = function(res, errorName) {
