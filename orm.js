@@ -2820,11 +2820,13 @@ function getAccessKey(req) {
         retval = req.body.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in body object: " + retval);
+            logger.logDebug("myCache(" + retval + ")=" + myCache.get(retval));
         }
     } else if ((req.method === "GET") && req.query && req.query.key) {
         retval = req.query.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in query object: " + retval);
+            logger.logDebug("myCache(" + retval + ")=" + myCache.get(retval));
         }
     }
 
