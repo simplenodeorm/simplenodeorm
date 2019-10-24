@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 "use strict";
 
 const orm = require('../orm.js');

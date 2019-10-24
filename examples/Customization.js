@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 // add code customizations here by implementing the following functions:
 // module.exports.loadReportDocumentGroups = async function(orm, options) {}
 // module.exports.loadQueryDocumentGroups = async function(orm, options) {}

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 "use strict";
 
 const util = require("../main/util.js");

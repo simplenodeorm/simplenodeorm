@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 const orm = require('../orm.js');
 const util = require('./util.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;

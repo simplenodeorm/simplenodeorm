@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 "use strict";
 
 const fs = require('fs');
@@ -13,7 +17,7 @@ const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
 
-const NodeCache = require( "node-cache" );
+const NodeCache = require("node-cache");
 const myCache = new NodeCache( { stdTTL: 60 * 60, checkperiod: 120 } );
 
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019  simplenodeorm.org
+ */
+
 const ERROR = 'error';
 const WARN = 'warning';
 const INFO = 'info';
