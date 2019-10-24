@@ -2819,12 +2819,12 @@ function getAccessKey(req) {
     if ((req.method === "POST") && req.body) {
         retval = req.body.key;
         if (logger.isLogDebugEnabled()) {
-            logger.debug("found access key in body object: " + retval);
+            logger.logDebug("found access key in body object: " + retval);
         }
     } else if ((req.method === "GET") && req.query) {
         retval = req.query.key;
         if (logger.isLogDebugEnabled()) {
-            logger.debug("found access key in query object: " + retval);
+            logger.logDebug("found access key in query object: " + retval);
         }
     }
 
