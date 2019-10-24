@@ -2816,12 +2816,12 @@ function getSession(req) {
 
 function getAccessKey(req) {
     let retval;
-    if ((req.method === "POST") && req.body) {
+    if ((req.method === "POST") && req.body && req.body.key) {
         retval = req.body.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in body object: " + retval);
         }
-    } else if ((req.method === "GET") && req.query) {
+    } else if ((req.method === "GET") && req.query && req.query.key) {
         retval = req.query.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in query object: " + retval);
