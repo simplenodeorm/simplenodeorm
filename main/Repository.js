@@ -1041,11 +1041,17 @@ module.exports = class Repository {
                 if (l[i].__isNew()) {
                     newModel = true;
                     res = await this.executeSave(l[i], this.getInsertSql(l[i]), await this.loadInsertParameters(l[i]), options);
+                    if (res.error) {
+                        util.throwError("ExecuteSaveInsertException", res.error);
+                    }
                     if (res.insertId) {
                         insertIds.push(res.insertId);
                     }
                 } else {
                     res = await this.executeSave(l[i], this.getUpdateSql(l[i]), await this.loadUpdateParameters(l[i], options), options);
+                    if (res.error) {
+                        util.throwError("ExecuteSaveUpdateException", res.error);
+                    }
                 }
 
                 if (util.isDefined(res.rowsAffected)) {
