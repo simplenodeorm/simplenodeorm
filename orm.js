@@ -341,7 +341,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/query/generatesql', async function (req, res) {
             try {
-                res.status(200).send(buildQueryDocumentSql(req.body, {poolAlias: util.getContextFromUrl(req)}, true));
+                res.status(200).send(buildQueryDocumentSql(req.body, new Map(), true));
             } catch (e) {
                 logger.logError('error occured while building sql from query document', e);
                 res.status(500).send(e);
@@ -362,7 +362,8 @@ function startApiServer() {
 
                         }
 
-                        let sql = buildQueryDocumentSql(doc);
+                        let aliasToModelMap = new Map();
+                        let sql = buildQueryDocumentSql(doc, aliasToModelMap);
 
                         if (logger.isLogDebugEnabled()) {
                             logger.logDebug(util.toString(doc));
@@ -383,7 +384,7 @@ function startApiServer() {
                             res.status(200).send(result);
                         } else {
                             try {
-                                let retval = buildResultObjectGraph(doc, result.result.rows);
+                                let retval = buildResultObjectGraph(doc, result.result.rows, aliasToModelMap);
                                 res.status(200).send(retval);
                             } catch (e) {
                                 logger.logError('error occured while building result object graph', e);
@@ -1207,13 +1208,14 @@ function getUniqueKey() {
 
 module.exports.buildQueryDocumentSql = buildQueryDocumentSql;
 
-function buildQueryDocumentSql(queryDocument, forDisplay) {
+function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
     let relationshipTree = loadRelationshipTree(queryDocument.document);
     let joins = [];
     let joinset = new Set();
     let aliasMap = new Map();
+    aliasToModelMap.set("t0", queryDocument.document.rootModel);
     for (let i = 0; i < relationshipTree.length; ++i) {
-        buildQueryDocumentJoins('t0', relationshipTree[i], joins, joinset, aliasMap);
+        buildQueryDocumentJoins('t0', relationshipTree[i], joins, joinset, aliasMap, aliasToModelMap);
     }
 
     let sql = 'select ';
@@ -1621,7 +1623,7 @@ function getDistinctJoinPaths(selectedColumns) {
     return retval;
 }
 
-function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, aliasMap) {
+function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, aliasMap, aliasToModelMap) {
     let pathPart = '';
     let dot = '';
     for (let i = 0; i < relationships.length; ++i) {
@@ -1636,6 +1638,8 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
         }
 
         join += (relationships[i].targetTableName + ' ' + alias + ' on (');
+
+        aliasToModelMap.set(relationships[i].targetModelName, alias);
 
         pathPart += (dot + relationships[i].fieldName);
         dot = '.';
@@ -1728,11 +1732,10 @@ async function loadReport(docid) {
 
 module.exports.buildResultObjectGraph = buildResultObjectGraph;
 
-function buildResultObjectGraph (doc, resultRows, asObject) {
+function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
     let retval = [];
     let positionMap = new Map();
     let keyColumnMap = new Map();
-    let aliasToModelMap = new Map();
     let aliasList = [];
 
     // determine the various table column positions in the select
@@ -1905,7 +1908,8 @@ async function generateReport(report, query, parameters, options) {
 
     // SIM-4 all reports will run from object graphs
     query.document.resultFormat = 'object';
-    let sql = buildQueryDocumentSql(query);
+    let aliasToModelMap = new Map();
+    let sql = buildQueryDocumentSql(query, aliasToModelMap);
 
     if (logger.isLogDebugEnabled()) {
         logger.logDebug(util.toString(query));
@@ -1921,7 +1925,8 @@ async function generateReport(report, query, parameters, options) {
         throw new Error(result.error);
     } else {
         let haveCharts = false;
-        let resultSet = buildResultObjectGraph(query, result.result.rows, true);
+
+        let resultSet = buildResultObjectGraph(query, result.result.rows, aliasToModelMap, true);
 
         // expect to work with array of results so
         // make an array if only 1 object comes back
