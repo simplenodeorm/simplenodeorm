@@ -1639,7 +1639,7 @@ function buildQueryDocumentJoins(parentAlias, relationships, joins, joinset, ali
 
         join += (relationships[i].targetTableName + ' ' + alias + ' on (');
 
-        aliasToModelMap.set(relationships[i].targetModelName, alias);
+        aliasToModelMap.set(alias, relationships[i].targetModelName);
 
         pathPart += (dot + relationships[i].fieldName);
         dot = '.';
@@ -1739,7 +1739,10 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
     let aliasList = [];
 
     if (logger.isLogDebugEnabled()) {
-        logger.logDebug("aliasToModelMap: " + JSON.stringify(aliasToModelMap));
+        logger.logDebug("aliasToModelMap: ");
+        for (let [k, v] of aliasToModelMap) {
+            logger.logDebug(k + '=' + v);
+        }
     }
 
     // determine the various table column positions in the select
@@ -1749,10 +1752,6 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
             pos = [];
             positionMap.set(doc.document.selectedColumns[i].alias, pos);
             aliasList.push(doc.document.selectedColumns[i].alias);
-
-            if (!aliasToModelMap.has(doc.document.selectedColumns[i].alias)) {
-                aliasToModelMap.set(doc.document.selectedColumns[i].alias, doc.document.selectedColumns[i].model);
-            }
         }
 
         pos.push(i);
