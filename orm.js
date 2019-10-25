@@ -328,7 +328,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/load/lookuplist', async function (req, res) {
             try {
-                res.status(200).send(loadLookupList(req.body, util.getContextFromUrl(req)));
+                res.status(200).send(await loadLookupList(req.body, util.getContextFromUrl(req)));
             } catch(e) {
                 logger.logError('error occured while loading lookup list', e);
                 res.status(500).send(e);
