@@ -328,7 +328,7 @@ function startApiServer() {
 
         apiServer.post('/*/api/report/load/lookuplist', async function (req, res) {
             try {
-                res.status(200).send(loadLookupList(req.body));
+                res.status(200).send(loadLookupList(req.body, util.getContextFromUrl(req)));
             } catch(e) {
                 logger.logError('error occured while loading lookup list', e);
                 res.status(500).send(e);
@@ -998,7 +998,7 @@ function populateModelObjectsFromRequestInput(input) {
     }
 }
 
-async function loadLookupList(lookupDef) {
+async function loadLookupList(lookupDef, ctx) {
     if (logger.isLogDebugEnabled()) {
         logger.logInfo("lookupDefinition=" + JSON.stringify(lookupDef));
     }
