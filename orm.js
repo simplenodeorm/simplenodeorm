@@ -318,6 +318,12 @@ function startApiServer() {
             res.status(200).send(await loadQueryDocumentGroups(true));
         });
 
+        apiServer.get('/*/api/report/lookupdefinitions', async function (req, res) {
+            let rgroups = await loadQueryDocumentGroups();
+            res.status(200).send(rgroups.lookupDefinitions);
+        });
+
+
         apiServer.get('/*/api/report/document/groupsonly', async function (req, res) {
             res.status(200).send(await loadReportDocumentGroups(true));
         });
