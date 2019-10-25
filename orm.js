@@ -1005,7 +1005,7 @@ async function loadLookupList(lookupDef) {
 
     let repo = getRepository(lookupDef.modelName);
     let sql = "select " + lookupDef.key + ", " + lookupDef.displayField + " from " + lookupDef.table + " order by " + lookupDef.orderBy;
-    return parseOrmResult(await repo.executeSqlQuery(sql, [userId, clientId], {poolAlias: ctx}), "LoadLookupListException");
+    return parseOrmResult(await repo.executeSqlQuery(sql, [], {poolAlias: ctx}), "LoadLookupListException");
 }
 
 function populateOptionsFromRequestInput(input) {
