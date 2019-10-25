@@ -1738,6 +1738,10 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
     let keyColumnMap = new Map();
     let aliasList = [];
 
+    if (logger.isLogDebugEnabled()) {
+        logger.logDebug("aliasToModelMap: " + JSON.stringify(aliasToModelMap));
+    }
+
     // determine the various table column positions in the select
     for (let i = 0; i < doc.document.selectedColumns.length; ++i) {
         let pos = positionMap.get(doc.document.selectedColumns[i].alias);
