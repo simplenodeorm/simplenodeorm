@@ -1806,6 +1806,8 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
                         parentObjectMap.set(alias, model);
                     } else {
                         let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
+                        logger.logInfo('------------->parentModel=' + parentModel);
+                        logger.logInfo('------------->alias=' + alias);
                         let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
                         let ref = repositoryMap.get(parentModel.__model__.toLowerCase()).getMetaData().findRelationshipByName(fieldName);
                         model.__model__ = ref.targetModelName;
