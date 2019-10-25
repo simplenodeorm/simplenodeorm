@@ -323,6 +323,14 @@ function startApiServer() {
             res.status(200).send(rgroups.lookupDefinitions);
         });
 
+        apiServer.post('/*/api/report/load/lookuplist', async function (req, res) {
+            try {
+                res.status(200).send(loadLookupList(req.body));
+            } catch(e) {
+                logger.logError('error occured while loading lookup list', e);
+                res.status(500).send(e);
+            }
+        });
 
         apiServer.get('/*/api/report/document/groupsonly', async function (req, res) {
             res.status(200).send(await loadReportDocumentGroups(true));
@@ -985,6 +993,16 @@ function populateModelObjectsFromRequestInput(input) {
 
         return retval;
     }
+}
+
+async function loadLookupList(lookupDef) {
+    if (logger.isLogDebugEnabled()) {
+        logger.logInfo("lookupDefinition=" + JSON.strinify(lookupDef));
+    }
+
+    let repo = getRepository(lookupDef.modelName);
+    let sql = "select " + lookupDef.key + ", " + lookupDef.displayField + " from " + lookupDef.table + " order by " + lookupDef.orderBy;
+    return parseOrmResult(await repo.executeSqlQuery(sql, [userId, clientId], {poolAlias: ctx}), "LoadLookupListException");
 }
 
 function populateOptionsFromRequestInput(input) {
@@ -2847,7 +2865,7 @@ function getAccessKey(req) {
     return retval;
 }
 
-module.exports.parseOrmResult = function(res, errorName) {
+function parseOrmResult(res, errorName) {
     if (res) {
         if (res.error) {
             logger.logError(res.error);
@@ -2862,8 +2880,9 @@ module.exports.parseOrmResult = function(res, errorName) {
             }
         }
     }
-};
+}
 
+module.exports.parseOrmResult = parseOrmResult;
 
 // self test mode if environment variable set
 if (process.env.RUN_SELF_TEST) {
