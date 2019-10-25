@@ -1000,7 +1000,7 @@ function populateModelObjectsFromRequestInput(input) {
 
 async function loadLookupList(lookupDef) {
     if (logger.isLogDebugEnabled()) {
-        logger.logInfo("lookupDefinition=" + JSON.strinify(lookupDef));
+        logger.logInfo("lookupDefinition=" + JSON.stringify(lookupDef));
     }
 
     let repo = getRepository(lookupDef.modelName);
