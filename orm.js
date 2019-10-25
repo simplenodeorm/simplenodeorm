@@ -320,6 +320,9 @@ function startApiServer() {
 
         apiServer.get('/*/api/report/lookupdefinitions', async function (req, res) {
             let rgroups = await loadQueryDocumentGroups();
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("lookupDefinitions=" + JSON.stringify(rgroups.lookupDefinitions));
+            }
             res.status(200).send(rgroups.lookupDefinitions);
         });
 
