@@ -1732,6 +1732,7 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
     let retval = [];
     let positionMap = new Map();
     let keyColumnMap = new Map();
+    let aliasToModelMap = new Map();
     let aliasList = [];
 
     // determine the various table column positions in the select
@@ -1741,6 +1742,10 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
             pos = [];
             positionMap.set(doc.document.selectedColumns[i].alias, pos);
             aliasList.push(doc.document.selectedColumns[i].alias);
+
+            if (!aliasToModelMap.has(doc.document.selectedColumns[i].alias)) {
+                aliasToModelMap.set(doc.document.selectedColumns[i].alias, doc.document.selectedColumns[i].model);
+            }
         }
 
         pos.push(i);
@@ -1773,14 +1778,11 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
             }
         }
     }
-    logger.logInfo('------------->al=' + JSON.stringify(aliasList));
 
     aliasList.sort();
 
     // object references by key
     let objectMap = new Map();
-    //object references by alias fr current branch
-    let parentObjectMap = new Map();
 
     for (let i = 0; i < resultRows.length; ++i) {
         let key = '';
@@ -1803,12 +1805,8 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
                     if (alias === 't0') {
                         model.__model__ = doc.document.rootModel;
                         retval.push(model);
-                        parentObjectMap = new Map();
-                        parentObjectMap.set(alias, model);
                     } else {
-                        let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
-                        logger.logInfo('------------->parentModel=' + parentModel);
-                        logger.logInfo('------------->alias=' + alias);
+                        let parentModel = aliasToModelMap.get(alias.substring(0, alias.lastIndexOf('t')));
                         let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
                         let ref = repositoryMap.get(parentModel.__model__.toLowerCase()).getMetaData().findRelationshipByName(fieldName);
                         model.__model__ = ref.targetModelName;
