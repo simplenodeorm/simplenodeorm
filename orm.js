@@ -1003,23 +1003,29 @@ async function loadLookupList(lookupDef, ctx) {
         logger.logInfo("lookupDefinition=" + JSON.stringify(lookupDef));
     }
 
-    let repo = getRepository(lookupDef.modelName);
-    let sql = "select " + lookupDef.key + ", " + lookupDef.displayField + " from " + lookupDef.table + " order by " + lookupDef.orderBy;
-    let result = parseOrmResult(await repo.executeSqlQuery(sql, [], {poolAlias: ctx}), "LoadLookupListException");
+    let retval = myCache.get("reportlookuplist");
+
+    if (!retval) {
+        let repo = getRepository(lookupDef.modelName);
+        let sql = "select " + lookupDef.key + ", " + lookupDef.displayField + " from " + lookupDef.table + " order by " + lookupDef.orderBy;
+        let result = parseOrmResult(await repo.executeSqlQuery(sql, [], {poolAlias: ctx}), "LoadLookupListException");
 
 
-    if (logger.isLogDebugEnabled()) {
-        logger.logInfo("loadLookupList.result=" + JSON.stringify(result));
-    }
+        if (logger.isLogDebugEnabled()) {
+            logger.logInfo("loadLookupList.result=" + JSON.stringify(result));
+        }
 
 
-    let retval = [];
+        retval = [];
 
-    for (let i = 0; i < result.length; ++i) {
-        retval.push({
-            key: result[i][0],
-            name: result[i][1]
-        });
+        for (let i = 0; i < result.length; ++i) {
+            retval.push({
+                key: result[i][0],
+                name: result[i][1]
+            });
+        }
+
+        myCache.set("reportlookuplist", retval);
     }
 
     return retval;
