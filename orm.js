@@ -319,7 +319,7 @@ function startApiServer() {
         });
 
         apiServer.get('/*/api/report/lookupdefinitions', async function (req, res) {
-            let rgroups = await loadQueryDocumentGroups();
+            let rgroups = await loadReportDocumentGroups();
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("lookupDefinitions=" + JSON.stringify(rgroups.lookupDefinitions));
             }
