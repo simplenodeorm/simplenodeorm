@@ -1914,7 +1914,11 @@ async function generateReport(report, query, parameters, options) {
                 chartData = {};
                 chartData.chartjsurl = appConfiguration.chartjsurl;
             }
+
             if (report.document.reportObjects[i].style) {
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("reportObject[" + report.document.reportObjects[i].objectType + "].style=" + report.document.reportObjects[i].style);
+                }
                 if (!mySet.has(report.document.reportObjects[i].style)) {
                     mySet.add(report.document.reportObjects[i].style);
                     style += (' '
