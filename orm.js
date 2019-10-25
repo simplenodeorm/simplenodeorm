@@ -1773,6 +1773,7 @@ function buildResultObjectGraph (doc, resultRows, asObject) {
             }
         }
     }
+    logger.logInfo('------------->al=' + JSON.stringify(aliasList));
 
     aliasList.sort();
 
