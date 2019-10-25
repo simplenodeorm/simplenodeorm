@@ -1007,9 +1007,15 @@ async function loadLookupList(lookupDef, ctx) {
     let sql = "select " + lookupDef.key + ", " + lookupDef.displayField + " from " + lookupDef.table + " order by " + lookupDef.orderBy;
     let result = parseOrmResult(await repo.executeSqlQuery(sql, [], {poolAlias: ctx}), "LoadLookupListException");
 
+
+    if (logger.isLogDebugEnabled()) {
+        logger.logInfo("loadLookupList.result=" + JSON.stringify(result));
+    }
+
+
     let retval = [];
 
-    for (let i = 0; i < result.rows.length; ++i) {
+    for (let i = 0; i < result.length; ++i) {
         retval.push({
             key: result[i][0],
             name: result[i][1]
