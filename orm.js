@@ -2181,6 +2181,11 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
         if (reportObject.reportColumns[i].displayResult) {
             let path = rowInfo.columnMap.get(reportObject.reportColumns[i].key).path;
             let val = getDbDataByPath(path, data);
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("report column key=" + reportObject.reportColumns[i].key);
+                logger.logDebug("report column path=" + reportObject.reportColumns[i].path);
+                logger.logDebug("report column value=" + reportObject.reportColumns[i].val);
+            }
             retval += '<td><div>';
             if (reportObject.reportColumns[i].specialHandlingType
                 && reportObject.reportColumns[i].specialHandlingType !== 'none') {
