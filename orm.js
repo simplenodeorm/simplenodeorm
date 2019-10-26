@@ -1789,6 +1789,8 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
 
     // object references by key
     let objectMap = new Map();
+    //object references by alias fr current branch
+    let parentObjectMap = new Map();
 
     for (let i = 0; i < resultRows.length; ++i) {
         let key = '';
@@ -1811,10 +1813,12 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
                     if (alias === 't0') {
                         model.__model__ = doc.document.rootModel;
                         retval.push(model);
+                        parentObjectMap = new Map();
+                        parentObjectMap.set(alias, model);
                     } else {
-                        let parentModel = aliasToModelMap.get(alias.substring(0, alias.lastIndexOf('t')));
+                        let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
                         let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
-                        let ref = repositoryMap.get(parentModel.__model__.toLowerCase()).getMetaData().findRelationshipByName(fieldName);
+                        let ref = getRepository(aliasToModelMap.get(alias.substring(0, alias.lastIndexOf('t')))).getMetaData().findRelationshipByName(fieldName);
                         model.__model__ = ref.targetModelName;
                         if (ref.type === 1) {
                             parentModel[fieldName] = model;
@@ -1822,7 +1826,6 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
                             if (!parentModel[fieldName]) {
                                 parentModel[fieldName] = [];
                             }
-
                             parentModel[fieldName].push(model);
                         }
                         parentObjectMap.set(alias, model);
