@@ -2271,7 +2271,16 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
 }
 
 function getDbDataByPath(path, rowData) {
-    function index(obj,i) {if (obj) { return obj[i]; } else { return '';}}
+    function index(obj,i) {
+        if (obj) {
+            if (Array.isArray(obj) && (obj.length === 1)) {
+                obj = obj[0];
+            }
+            return obj[i];
+        } else {
+            return '';
+        }
+    }
     return path.split('.').reduce(index, rowData);
 }
 
