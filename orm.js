@@ -1981,35 +1981,37 @@ async function generateReport(report, query, parameters, options) {
 
         let mySet = new Set();
         for (let i = 0; i < report.document.reportObjects.length; ++i) {
-            if (report.document.reportObjects[i].objectType === 'chart') {
-                haveCharts = true;
-                chartData = {};
-                chartData.chartjsurl = appConfiguration.chartjsurl;
-            }
-
-            if (report.document.reportObjects[i].style) {
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("reportObject[" + report.document.reportObjects[i].objectType + "].style=" + report.document.reportObjects[i].style);
-                }
-                if (!mySet.has(report.document.reportObjects[i].style)) {
-                    mySet.add(report.document.reportObjects[i].style);
-                    style += (' '
-                        + report.document.reportObjects[i].style.replace('div.rpt-'
-                            + report.document.reportObjects[i].objectType
-                            + '-' + report.document.reportObjects[i].id
-                            + ':hover { border: dotted 1px red;}', ''));
+            if (report.document.reportObjects[i].objectType !== 'deleted') {
+                if (report.document.reportObjects[i].objectType === 'chart') {
+                    haveCharts = true;
+                    chartData = {};
+                    chartData.chartjsurl = appConfiguration.chartjsurl;
                 }
 
-                switch(report.document.reportObjects[i].reportSection) {
-                    case "header":
-                        headerObjects.push(report.document.reportObjects[i]);
-                        break;
-                    case "body":
-                        bodyObjects.push(report.document.reportObjects[i]);
-                        break;
-                    case "footer":
-                        footerObjects.push(report.document.reportObjects[i]);
-                        break;
+                if (report.document.reportObjects[i].style) {
+                    if (logger.isLogDebugEnabled()) {
+                        logger.logDebug("reportObject[" + report.document.reportObjects[i].objectType + "].style=" + report.document.reportObjects[i].style);
+                    }
+                    if (!mySet.has(report.document.reportObjects[i].style)) {
+                        mySet.add(report.document.reportObjects[i].style);
+                        style += (' '
+                            + report.document.reportObjects[i].style.replace('div.rpt-'
+                                + report.document.reportObjects[i].objectType
+                                + '-' + report.document.reportObjects[i].id
+                                + ':hover { border: dotted 1px red;}', ''));
+                    }
+
+                    switch (report.document.reportObjects[i].reportSection) {
+                        case "header":
+                            headerObjects.push(report.document.reportObjects[i]);
+                            break;
+                        case "body":
+                            bodyObjects.push(report.document.reportObjects[i]);
+                            break;
+                        case "footer":
+                            footerObjects.push(report.document.reportObjects[i]);
+                            break;
+                    }
                 }
             }
         }
