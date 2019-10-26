@@ -1248,7 +1248,8 @@ function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
         queryDocument.document.selectedColumns[i].alias = alias;
 
         if (queryDocument.document.selectedColumns[i].customInput) {
-            sql += (comma + queryDocument.document.selectedColumns[i].customInput.replace('?', alias + '.' + colName));
+            sql += (comma + queryDocument.document.selectedColumns[i].customInput.replace('?', alias + '.' + colName).replace(/\$/g, alias));
+
         } else {
             if (queryDocument.document.selectedColumns[i].function) {
                 sql += (comma + queryDocument.document.selectedColumns[i].function + '(' + alias + '.' + colName + ')');
