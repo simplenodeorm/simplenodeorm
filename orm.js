@@ -1816,9 +1816,19 @@ function buildResultObjectGraph (doc, resultRows, aliasToModelMap, asObject) {
                         parentObjectMap = new Map();
                         parentObjectMap.set(alias, model);
                     } else {
-                        let parentModel = parentObjectMap.get(alias.substring(0, alias.lastIndexOf('t')));
+                        let parentAlias = alias.substring(0, alias.lastIndexOf('t'));
+                        let parentModel = parentObjectMap.get(parentAlias);
                         let fieldName = getParentFieldNameFromPath(doc.document.selectedColumns[keypos[0]].path);
-                        let ref = getRepository(aliasToModelMap.get(alias.substring(0, alias.lastIndexOf('t')))).getMetaData().findRelationshipByName(fieldName);
+                        let ref = getRepository(aliasToModelMap.get(parentAlias)).getMetaData().findRelationshipByName(fieldName);
+                        if (logger.isLogDebugEnabled()) {
+                            logger.logDebug("parentAlias: " + alias.substring(0, alias.lastIndexOf('t')));
+                            logger.logDebug("parentModel: " + aliasToModelMap.get(parentAlias));
+                            if (parentModel) {
+                                logger.logDebug("parentObject: " + JSON.stringify(parentModel));
+                            } else {
+                                logger.logDebug("parentObject: not found");
+                            }
+                        }
                         model.__model__ = ref.targetModelName;
                         if (ref.type === 1) {
                             parentModel[fieldName] = model;
