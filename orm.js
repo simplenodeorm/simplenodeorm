@@ -2185,6 +2185,7 @@ function getDbDataRowColumns(reportObject, rowInfo, data) {
                 logger.logDebug("report column key=" + reportObject.reportColumns[i].key);
                 logger.logDebug("report column path=" + rowInfo.columnMap.get(reportObject.reportColumns[i].key).path);
                 logger.logDebug("report column value=" + val);
+                logger.logDebug("row data=" + JSON.stringify(data));
             }
             retval += '<td><div>';
             if (reportObject.reportColumns[i].specialHandlingType
