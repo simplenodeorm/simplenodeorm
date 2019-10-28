@@ -1972,7 +1972,7 @@ async function generateReport(report, query, parameters, options) {
             + 'in;} @media screen .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}'
 */
         let style = ' @media print { '
-            + ' .printIcon { display: none; } '
+            + ' .printButton { display: none; } '
             + ' body {width: ' + width + 'in;} '
             + ' .pb { display: block; height: 1px; page-break-before: always;} '
             + ' @page {page-size: ' + report.document.documentSize + '; orientation: ' + report.document.orientation + '; margin: 0;} '
@@ -1980,7 +1980,7 @@ async function generateReport(report, query, parameters, options) {
             + ' @media screen {'
             + '.page {position: relative; background-color: white; width: '+ width + 'in; height: '+ height+ 'in;} '
             + ' .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black} '
-            + ' .printIcon { float: right; padding-left: 10px; padding-right: 35px; cursor: pointer; } '
+            + ' .printButton { left: 15px; top: 15px; cursor: pointer; position: fixed; z-index: 500;} '
             + ' }';
 
         let headerObjects = [];
