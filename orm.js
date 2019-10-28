@@ -1956,9 +1956,10 @@ async function generateReport(report, query, parameters, options) {
         let marginLeft = report.document.margins[0] / ppi;
         let marginTop = report.document.margins[1] / ppi;
         let chartData = {};
+
         let style = '@media print { .printIcon { display: none; } body {width: '
             + width
-            + 'in;} .pb { display: block; height: 1px; page-break-before: always;} @page {page-size: '
+            + 'in;} @media screen .pb { display: block; height: 1px; page-break-before: always;}} @page {page-size: '
             + report.document.documentSize
             + '; orientation: '
             + report.document.orientation
@@ -1967,8 +1968,9 @@ async function generateReport(report, query, parameters, options) {
             + width
             + 'in; height: '
             + height
-            + 'in;}} @media screen {.printIcon { float: right; padding-left: 10px; padding-right: 35px; cursor: pointer;}'
-            + ' .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}}';
+            + 'in;} @media screen .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}'
+            + ' @media screen { .printIcon { float: right; padding-left: 10px; padding-right: 35px; cursor: pointer;}}';
+
 
         let headerObjects = [];
         let bodyObjects = [];
