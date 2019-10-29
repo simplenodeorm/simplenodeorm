@@ -407,6 +407,7 @@ function startApiServer() {
         apiServer.post('/*/api/query/save', async function (req, res) {
             try {
                 saveQuery(req.body);
+                myCache.del("queryDocumentGroups2");
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.documentName, e);
@@ -417,6 +418,7 @@ function startApiServer() {
         apiServer.post('/*/api/report/save', async function (req, res) {
             try {
                 saveReport(req.body);
+                myCache.del("reportDocumentGroups2");
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while saving query document ' + req.body.document.documentName, e);
@@ -486,6 +488,7 @@ function startApiServer() {
         apiServer.get('/*/api/query/delete/:docid', async function (req, res) {
             try {
                 deleteQuery(req.params.docid);
+                myCache.del("queryDocumentGroups2");
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting query document ' + req.params.docid, e);
@@ -496,6 +499,7 @@ function startApiServer() {
         apiServer.get('/*/api/report/delete/:docid', async function (req, res) {
             try {
                 deleteReport(req.params.docid);
+                myCache.del("reportDocumentGroups2");
                 res.status(200).send('success');
             } catch (e) {
                 logger.logError('error occured while deleting report ' + req.params.docid, e);
@@ -1975,20 +1979,6 @@ async function generateReport(report, query, parameters, options) {
         let marginTop = report.document.margins[1] / ppi;
         let chartData = {};
 
-        /*
-        let style = '@media print { .printIcon { display: none; } body {width: '
-            + width
-            + 'in;} @media screen .pb { display: block; height: 1px; page-break-before: always;}} @page {page-size: '
-            + report.document.documentSize
-            + '; orientation: '
-            + report.document.orientation
-            + '; margin: 0;}'
-            + '.page {position: relative; background-color: white; width: '
-            + width
-            + 'in; height: '
-            + height
-            + 'in;} @media screen .pb { display: block; height: 4px; page-break-before: always; width: 100%; background: black}'
-*/
         let style = ' @media print { '
             + ' .printButton { display: none; } '
             + ' body {width: ' + width + 'in;} '
