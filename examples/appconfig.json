@@ -18,5 +18,10 @@
   "reportDocumentGroupsDefinition": "examples/docs/report-document-groups.json",
   "queryDocumentGroupsDefinition": "examples/docs/query-document-groups.json",
   "ormModuleRootPath": "./examples/orm-objects",
+  "formCacheTimeout": 60,
+  "reportCacheTimeout": 60,
+  "lookupListCacheTimeout": 10,
+  "reportHierarchyCacheTimeout": 60,
+  "sessionCacheTimeout": 60,
   "aliases" : {}
 }

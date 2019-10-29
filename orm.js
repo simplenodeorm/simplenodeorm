@@ -16,10 +16,11 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
+const defaultCacheTimeout = 10;
+
 
 const NodeCache = require("node-cache");
-const myCache = new NodeCache( { stdTTL: 60 * 60, checkperiod: 120 } );
-
+const myCache = new NodeCache( { stdTTL: 60 * defaultCacheTimeout, checkperiod: 120 } );
 
 const dbTypeMap = new Map();
 const orm = this;
@@ -262,7 +263,7 @@ function startApiServer() {
             } else if (req.url.endsWith("/login")) {
                 next();
             } else if (session && cacheVal) {
-                myCache.set(session, cacheVal);
+                myCache.set(session, cacheVal, getCacheTimeout("sessionCacheTimeout"));
                 next();
             } else {
                 let user = basicAuth(req);
@@ -1028,7 +1029,7 @@ async function loadLookupList(lookupDef, ctx) {
             });
         }
 
-        myCache.set(cacheKey, retval);
+        myCache.set(cacheKey, retval, getCacheTimeout("lookupListCacheTimeout"));
     }
 
     return retval;
@@ -1708,29 +1709,43 @@ function deleteReport(docid) {
 }
 
 async function loadQuery(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let docName = docid.substring(pos + 1);
+    let retval = myCache.get("query-" + docid);
 
-    let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+    if (!retval) {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let docName = docid.substring(pos + 1);
 
-    if (!fname.endsWith('.json')) {
-        fname = fname + '.json';
+        let fname = (appConfiguration.queryDocumentRoot + path.sep + group + path.sep + docName);
+
+        if (!fname.endsWith('.json')) {
+            fname = fname + '.json';
+        }
+        retval = JSON.parse(fs.readFileSync(fname));
+        myCache.set("query-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
     }
-    return JSON.parse(fs.readFileSync(fname));
+
+    return retval;
 }
 
 async function loadReport(docid) {
-    let pos = docid.indexOf('.');
-    let group = docid.substring(0, pos);
-    let reportName = docid.substring(pos + 1);
+    let retval = myCache.get("report-" + docid);
 
-    let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
+    if (!retval) {
+        let pos = docid.indexOf('.');
+        let group = docid.substring(0, pos);
+        let reportName = docid.substring(pos + 1);
 
-    if (!fname.endsWith('.json')) {
-        fname += '.json';
+        let fname = (appConfiguration.reportDocumentRoot + path.sep + group + path.sep + reportName);
+
+        if (!fname.endsWith('.json')) {
+            fname += '.json';
+        }
+        retval = JSON.parse(fs.readFileSync(fname));
+        myCache.set("report-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
     }
-    return JSON.parse(fs.readFileSync(fname));
+
+    return retval;
 }
 
 module.exports.buildResultObjectGraph = buildResultObjectGraph;
@@ -2810,78 +2825,107 @@ function getChartDataAxisDefs(reportObject, rowInfo) {
 
 async function loadReportDocumentGroups(groupsonly) {
     let retval;
-    try {
-        if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
-            retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
-            let reports = {};
-            let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
 
-            for (let i = 0; i < groups.length; ++i) {
-                let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
-                if (fs.lstatSync(rpath).isDirectory()) {
-                    let files = fs.readdirSync(rpath);
-                    reports[groups[i]] = [];
-                    for (let j = 0; j < files.length; ++j) {
-                        if (files[j].endsWith('.json')) {
-                            reports[groups[i]].push(files[j]);
-                        }
-                    }
-
-                    if (reports[groups[i]].length > 0) {
-                        reports[groups[i]].sort();
-                    }
-                }
-            }
-
-            traverseDocumentGroups(retval, reports);
-        }
-        if (groupsonly) {
-            util.removeTreeLeafItems(retval);
-        }
-    } catch(e) {
-        logger.logError('error ocurred during document reports definition load - ' + e);
+    if (groupsonly) {
+        retval = myCache.get("reportDocumentGroups1");
+    } else {
+        retval = myCache.get("reportDocumentGroups2");
     }
 
+
+    if (!retval) {
+        try {
+            if (util.isValidObject(appConfiguration.reportDocumentGroupsDefinition) && fs.existsSync(appConfiguration.reportDocumentGroupsDefinition)) {
+                retval = JSON.parse(fs.readFileSync(appConfiguration.reportDocumentGroupsDefinition));
+                let reports = {};
+                let groups = fs.readdirSync(appConfiguration.reportDocumentRoot);
+
+                for (let i = 0; i < groups.length; ++i) {
+                    let rpath = appConfiguration.reportDocumentRoot + path.sep + groups[i];
+                    if (fs.lstatSync(rpath).isDirectory()) {
+                        let files = fs.readdirSync(rpath);
+                        reports[groups[i]] = [];
+                        for (let j = 0; j < files.length; ++j) {
+                            if (files[j].endsWith('.json')) {
+                                reports[groups[i]].push(files[j]);
+                            }
+                        }
+
+                        if (reports[groups[i]].length > 0) {
+                            reports[groups[i]].sort();
+                        }
+                    }
+                }
+
+                traverseDocumentGroups(retval, reports);
+            }
+            if (groupsonly) {
+                util.removeTreeLeafItems(retval);
+            }
+
+            if (groupsonly) {
+                myCache.set("reportDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+            } else {
+                myCache.set("reportDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+            }
+        } catch (e) {
+            logger.logError('error ocurred during document reports definition load - ' + e);
+        }
+    }
 
     return retval;
 }
 
 async function loadQueryDocumentGroups(groupsonly) {
     let retval;
-    try {
-        if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
-            retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
-            let queries = {};
-            let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
 
-            for (let i = 0; i < groups.length; ++i) {
-                let rpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
-                if (fs.lstatSync(rpath).isDirectory()) {
-                    let files = fs.readdirSync(rpath);
-                    queries[groups[i]] = [];
-                    for (let j = 0; j < files.length; ++j) {
-                        if (files[j].endsWith('.json')) {
-                            queries[groups[i]].push(files[j]);
-                        }
-                    }
-
-                    if (queries[groups[i]].length > 0) {
-                        queries[groups[i]].sort();
-                    }
-                }
-            }
-
-            traverseDocumentGroups(retval, queries);
-        }
-
-
-        if (groupsonly) {
-            util.removeTreeLeafItems(retval);
-        }
-    } catch (e) {
-        logger.logError('error ocurred during document groups definition load - ' + e);
+    if (groupsonly) {
+        retval = myCache.get("queryDocumentGroups1");
+    } else {
+        retval = myCache.get("queryDocumentGroups2");
     }
 
+    if (!retval) {
+        try {
+            if (util.isValidObject(appConfiguration.queryDocumentGroupsDefinition) && fs.existsSync(appConfiguration.queryDocumentGroupsDefinition)) {
+                retval = JSON.parse(fs.readFileSync(appConfiguration.queryDocumentGroupsDefinition));
+                let queries = {};
+                let groups = fs.readdirSync(appConfiguration.queryDocumentRoot);
+
+                for (let i = 0; i < groups.length; ++i) {
+                    let rpath = appConfiguration.queryDocumentRoot + path.sep + groups[i];
+                    if (fs.lstatSync(rpath).isDirectory()) {
+                        let files = fs.readdirSync(rpath);
+                        queries[groups[i]] = [];
+                        for (let j = 0; j < files.length; ++j) {
+                            if (files[j].endsWith('.json')) {
+                                queries[groups[i]].push(files[j]);
+                            }
+                        }
+
+                        if (queries[groups[i]].length > 0) {
+                            queries[groups[i]].sort();
+                        }
+                    }
+                }
+
+                traverseDocumentGroups(retval, queries);
+            }
+
+
+            if (groupsonly) {
+                util.removeTreeLeafItems(retval);
+            }
+
+            if (groupsonly) {
+                myCache.set("queryDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+            } else {
+                myCache.set("queryDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+            }
+        } catch (e) {
+            logger.logError('error ocurred during document groups definition load - ' + e);
+        }
+    }
     return retval;
 }
 
@@ -2962,6 +3006,14 @@ function parseOrmResult(res, errorName) {
             }
         }
     }
+}
+
+function getCacheTimeout(name) {
+    let retval = appConfiguration[name];
+    if (!retval) {
+        retval = defaultCacheTimeout;
+    }
+    return retval * 60;
 }
 
 module.exports.parseOrmResult = parseOrmResult;
