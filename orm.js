@@ -1004,7 +1004,9 @@ async function loadLookupList(lookupDef, ctx) {
         logger.logInfo("lookupDefinition=" + JSON.stringify(lookupDef));
     }
 
-    let retval = myCache.get("reportlookuplist");
+    let cacheKey = "reportlookuplist." + lookupDef.table + "." + lookupDef.key;
+
+    let retval = myCache.get(cacheKey);
 
     if (!retval) {
         let repo = getRepository(lookupDef.modelName);
@@ -1013,7 +1015,7 @@ async function loadLookupList(lookupDef, ctx) {
 
 
         if (logger.isLogDebugEnabled()) {
-            logger.logInfo("loadLookupList.result=" + JSON.stringify(result));
+            logger.logInfo("loadLookupList." + lookupDef.key + ".result=" + JSON.stringify(result));
         }
 
 
@@ -1026,7 +1028,7 @@ async function loadLookupList(lookupDef, ctx) {
             });
         }
 
-        myCache.set("reportlookuplist", retval);
+        myCache.set(cacheKey, retval);
     }
 
     return retval;
