@@ -3018,6 +3018,7 @@ function getCacheTimeout(name) {
 }
 
 module.exports.parseOrmResult = parseOrmResult;
+module.exports.getCacheTimeout = getCacheTimeout;
 
 // self test mode if environment variable set
 if (process.env.RUN_SELF_TEST) {
