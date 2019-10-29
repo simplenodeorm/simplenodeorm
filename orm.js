@@ -1993,7 +1993,7 @@ async function generateReport(report, query, parameters, options) {
             + ' .printButton { display: none; } '
             + ' body {width: ' + width + 'in;} '
             + ' .pb { display: block; height: 1px; page-break-before: always;} '
-            + ' @page {page-size: ' + report.document.documentSize + '; orientation: ' + report.document.orientation + '; margin: 0;} '
+            + ' @page {page-size: ' + report.document.documentSize + ' ' + report.document.orientation + '; margin: 0;} '
             + ' } '
             + ' @media screen {'
             + '.page {position: relative; background-color: white; width: '+ width + 'in; height: '+ height+ 'in;} '
