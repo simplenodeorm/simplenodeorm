@@ -2503,19 +2503,21 @@ function sortRelatedEntriesIfRequired(results) {
                             let val2 = "";
 
                             for (let k = 0; k < keycols.length; ++k) {
-                                val1 += a[keycols[k]];
-                                val2 += b[keycols[k]];
+                                val1 = a[keycols[k]];
+                                val2 = b[keycols[k]];
 
                                 if (val1 > val2) {
-                                    retval = 1;
                                     if (desc) {
-                                        retval *= -1;
+                                        retval = -1;
+                                    } else {
+                                        retval = 1;
                                     }
                                     break;
                                 } else if (val1 < val2) {
-                                    retval = -1;
                                     if (desc) {
-                                        retval *= -1;
+                                        retval = 1;
+                                    } else {
+                                        retval = -1;
                                     }
                                     break;
                                 }
