@@ -2496,26 +2496,32 @@ function sortRelatedEntriesIfRequired(results) {
                         && (results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].length > 1)
                         && results[i].__metaData__.oneToManyDefinitions[j].orderBy) {
                         const keycols = results[i].__metaData__.oneToManyDefinitions[j].orderBy.split(",");
-                        const desc = results[i].__metaData__.oneToManyDefinitions[j].orderByDEsc;
+                        const desc = results[i].__metaData__.oneToManyDefinitions[j].orderByDesc;
                         results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
+                            let retval = 0;
                             let val1 = "";
                             let val2 = "";
 
                             for (let k = 0; k < keycols.length; ++k) {
-                                if (val > 0) {
-                                    val1 += ".";
-                                    val2 += ".";
-                                }
-
                                 val1 += a[keycols[k]];
                                 val2 += b[keycols[k]];
-                            }
 
-                            if (desc) {
-                                return (b - a);
-                            } else {
-                                return (a - b);
-                            }
+                                if (val1 > val2) {
+                                    retval = 1;
+                                    if (desc) {
+                                        retval *= -1;
+                                    }
+                                    break;
+                                } else if (val1 < val2) {
+                                    retval = -1;
+                                    if (desc) {
+                                        retval *= -1;
+                                    }
+                                    break;
+                                }
+                             }
+
+                            return retval;
                         })
                     }
                 }
