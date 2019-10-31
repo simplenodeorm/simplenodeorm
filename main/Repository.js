@@ -2492,11 +2492,11 @@ function sortRelatedEntriesIfRequired(results) {
         for (let i = 0; i < results.length; ++i) {
             if (results[i] && results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
                 for (let j = 0; j < results[i].__metaData__.oneToManyDefinitions.length; ++j) {
-                    if (results[i][__metaData.oneToManyDefinitions[j].fieldName]
-                        && (results[i][__metaData.oneToManyDefinitions[j].fieldName].length > 1)
-                        && results[i].__metaData.oneToManyDefinitions[j].orderBy) {
-                        const keycols = results[i].__metaData.oneToManyDefinitions[j].orderBy.split(",");
-                        results[i][__metaData.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
+                    if (results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName]
+                        && (results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].length > 1)
+                        && results[i].__metaData__.oneToManyDefinitions[j].orderBy) {
+                        const keycols = results[i].__metaData__.oneToManyDefinitions[j].orderBy.split(",");
+                        results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
                             let val1 = "";
                             let val2 = "";
 
