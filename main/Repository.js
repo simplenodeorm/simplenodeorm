@@ -2489,7 +2489,7 @@ function isRootTable(alias) {
 
 function sortRelatedEntriesIfRequired(results) {
     for (let i = 0; i < results.length; ++i) {
-        if (results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
+        if (results[i] && results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
             for (let j = 0; j < results[i].__metaData__.oneToManyDefinitions.length; ++j) {
                 if (results[i][__metaData.oneToManyDefinitions[j].fieldName]
                     && (results[i][__metaData.oneToManyDefinitions[j].fieldName].length > 1)
