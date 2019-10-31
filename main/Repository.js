@@ -220,7 +220,7 @@ module.exports = class Repository {
         let res =  await this.executeNamedDbOperation(util.FIND_ONE, primaryKey, options);
         if (util.isDefined(res.result)) {
             if (res.result && res.result.length > 0) {
-                sortRelatedEntriesIfRequired(res.result[0]);
+                sortRelatedEntriesIfRequired(res.result);
                 return {result: res.result[0]};
             }
         } else if (util.isDefined(res.error)) {
@@ -2488,29 +2488,31 @@ function isRootTable(alias) {
 }
 
 function sortRelatedEntriesIfRequired(results) {
-    for (let i = 0; i < results.length; ++i) {
-        if (results[i] && results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
-            for (let j = 0; j < results[i].__metaData__.oneToManyDefinitions.length; ++j) {
-                if (results[i][__metaData.oneToManyDefinitions[j].fieldName]
-                    && (results[i][__metaData.oneToManyDefinitions[j].fieldName].length > 1)
-                    && results[i].__metaData.oneToManyDefinitions[j].orderBy) {
-                    const keycols = results[i].__metaData.oneToManyDefinitions[j].orderBy.split(",");
-                    results[i][__metaData.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
-                        let val1 = "";
-                        let val2 = "";
+    if (results) {
+        for (let i = 0; i < results.length; ++i) {
+            if (results[i] && results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
+                for (let j = 0; j < results[i].__metaData__.oneToManyDefinitions.length; ++j) {
+                    if (results[i][__metaData.oneToManyDefinitions[j].fieldName]
+                        && (results[i][__metaData.oneToManyDefinitions[j].fieldName].length > 1)
+                        && results[i].__metaData.oneToManyDefinitions[j].orderBy) {
+                        const keycols = results[i].__metaData.oneToManyDefinitions[j].orderBy.split(",");
+                        results[i][__metaData.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
+                            let val1 = "";
+                            let val2 = "";
 
-                        for (let k = 0; k < keycols.length; ++k) {
-                            if (val > 0) {
-                                val1 += ".";
-                                val2 += ".";
+                            for (let k = 0; k < keycols.length; ++k) {
+                                if (val > 0) {
+                                    val1 += ".";
+                                    val2 += ".";
+                                }
+
+                                val1 += a[keycols[k]];
+                                val2 += b[keycols[k]];
                             }
 
-                            val1 += a[keycols[k]];
-                            val2 += b[keycols[k]];
-                        }
-
-                        return (a-b);
-                    })
+                            return (a - b);
+                        })
+                    }
                 }
             }
         }
