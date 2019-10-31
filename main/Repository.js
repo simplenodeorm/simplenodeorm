@@ -2496,6 +2496,7 @@ function sortRelatedEntriesIfRequired(results) {
                         && (results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].length > 1)
                         && results[i].__metaData__.oneToManyDefinitions[j].orderBy) {
                         const keycols = results[i].__metaData__.oneToManyDefinitions[j].orderBy.split(",");
+                        const desc = results[i].__metaData__.oneToManyDefinitions[j].orderByDEsc;
                         results[i][results[i].__metaData__.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
                             let val1 = "";
                             let val2 = "";
@@ -2510,7 +2511,11 @@ function sortRelatedEntriesIfRequired(results) {
                                 val2 += b[keycols[k]];
                             }
 
-                            return (a - b);
+                            if (desc) {
+                                return (b - a);
+                            } else {
+                                return (a - b);
+                            }
                         })
                     }
                 }
