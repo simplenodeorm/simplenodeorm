@@ -220,6 +220,7 @@ module.exports = class Repository {
         let res =  await this.executeNamedDbOperation(util.FIND_ONE, primaryKey, options);
         if (util.isDefined(res.result)) {
             if (res.result && res.result.length > 0) {
+                sortRelatedEntriesIfRequired(res.result[0]);
                 return {result: res.result[0]};
             }
         } else if (util.isDefined(res.error)) {
@@ -356,8 +357,14 @@ module.exports = class Repository {
                 comma = ',';
             }
         }
-        
-        return await this.executeQuery(sql, params, options);
+
+        let retval = this.executeQuery(sql, params, options);
+
+        if (!retval.error) {
+            sortRelatedEntriesIfRequired(res.result);
+        }
+
+        return retval;
     }
 
     findSync(whereComparisons, orderByEntries, options) {
@@ -2478,4 +2485,35 @@ function buildAlias(parentAlias, currentAlias, depth) {
 
 function isRootTable(alias) {
     return (alias === 't0');
+}
+
+function sortRelatedEntriesIfRequired(results) {
+    for (let i = 0; i < results.length; ++i) {
+        if (results[i].__metaData__ && results[i].__metaData__.oneToManyDefinitions) {
+            for (let j = 0; j < results[i].__metaData__.oneToManyDefinitions.length; ++j) {
+                if (results[i][__metaData.oneToManyDefinitions[j].fieldName]
+                    && (results[i][__metaData.oneToManyDefinitions[j].fieldName].length > 1)
+                    && results[i].__metaData.oneToManyDefinitions[j].orderBy) {
+                    const keycols = results[i].__metaData.oneToManyDefinitions[j].orderBy.split(",");
+                    results[i][__metaData.oneToManyDefinitions[j].fieldName].sort(function (a, b) {
+                        let val1 = "";
+                        let val2 = "";
+
+                        for (let k = 0; k < keycols.length; ++k) {
+                            if (val > 0) {
+                                val1 += ".";
+                                val2 += ".";
+                            }
+
+                            val1 += a[keycols[k]];
+                            val2 += b[keycols[k]];
+                        }
+
+                        return (a-b);
+                    })
+                }
+            }
+        }
+    }
+
 }
