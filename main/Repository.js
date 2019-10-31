@@ -361,7 +361,7 @@ module.exports = class Repository {
         let retval = this.executeQuery(sql, params, options);
 
         if (!retval.error) {
-            sortRelatedEntriesIfRequired(res.result);
+            sortRelatedEntriesIfRequired(retval.result);
         }
 
         return retval;
