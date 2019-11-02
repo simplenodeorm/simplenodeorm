@@ -1679,6 +1679,7 @@ function saveQuery(doc) {
         if (err) {
             throw err;
         } else {
+            myCache.del("query-" + doc.documentName);
             logger.logInfo('file created: ' + fname);
         }
     });
@@ -1690,6 +1691,7 @@ function saveReport(doc) {
         if (err) {
             throw err;
         } else {
+            myCache.del("report-" + doc.document.reportName);
             logger.logInfo('file created: ' + fname);
         }
     });
