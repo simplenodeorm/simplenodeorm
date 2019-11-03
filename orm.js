@@ -289,7 +289,9 @@ function startApiServer() {
                 res.sendStatus(401);
             } else {
                 let result = await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
-                if (result) {
+                if (result.error) {
+                    res.status(500).send({ error: result.error.toString() });
+                } else if (result) {
                     let cval = util.getContextFromUrl(req) + "." + uuidv1();
                     result.snosession = cval;
                     myCache.set(cval, user.name);
