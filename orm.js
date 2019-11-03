@@ -2965,6 +2965,8 @@ function getSession(req) {
     return session;
 }
 
+module.exports.getSession = getSession;
+
 function getAccessKey(req) {
     let retval;
     if ((req.method === "POST") && req.body && req.body.key) {
