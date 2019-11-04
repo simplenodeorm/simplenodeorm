@@ -291,7 +291,6 @@ function startApiServer() {
                 let result = await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
                     if (result.error) {
-                        logger.logError('---->' + result.error.toString());
                         res.status(500).send(result.error);
                     } else {
                         let cval = util.getContextFromUrl(req) + "." + uuidv1();
