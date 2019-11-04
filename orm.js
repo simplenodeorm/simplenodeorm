@@ -291,7 +291,7 @@ function startApiServer() {
                 let result = await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
                 if (result) {
                     if (result.error) {
-                        res.status(500).send(result.error);
+                        res.status(403).send(result.error);
                     } else {
                         let cval = util.getContextFromUrl(req) + "." + uuidv1();
                         result.snosession = cval;
