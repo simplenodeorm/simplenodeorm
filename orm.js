@@ -289,16 +289,16 @@ function startApiServer() {
                 res.sendStatus(401);
             } else {
                 let result = await authorizer.isAuthenticated(orm, req, user.name, md5(user.pass));
-                if (result.error) {
-                    res.status(500).json(result.error.toString());
-                } else if (result) {
-                    let cval = util.getContextFromUrl(req) + "." + uuidv1();
-                    result.snosession = cval;
-                    myCache.set(cval, user.name);
-                    if (logger.isLogDebugEnabled()) {
-                        logger.logDebug("login->myCache(" + cval + ")=" + myCache.get(cval));
+                if (result) {
+                    if (result.error) {
+                        let cval = util.getContextFromUrl(req) + "." + uuidv1();
+                        result.snosession = cval;
+                        myCache.set(cval, user.name);
+                        if (logger.isLogDebugEnabled()) {
+                            logger.logDebug("login->myCache(" + cval + ")=" + myCache.get(cval));
+                        }
+                        res.status(200).send(result);
                     }
-                    res.status(200).send(result);
                 } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                     res.sendStatus(401);
