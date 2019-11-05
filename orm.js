@@ -3018,6 +3018,22 @@ function getCacheTimeout(name) {
 module.exports.parseOrmResult = parseOrmResult;
 module.exports.getCacheTimeout = getCacheTimeout;
 
+function getContextActiveUserCount(context) {
+    let retval = 0;
+    let keys = orm.cache.keys();
+    let keyPrefix = context + ".";
+    for (let i = 0; i < keys.length; ++i) {
+        if (keys[i].startsWith(keyPrefix)) {
+            retval++;
+        }
+    }
+
+    return retval;
+}
+
+module.exports.getContextActiveUserCount = getContextActiveUserCount;
+
+
 // self test mode if environment variable set
 if (process.env.RUN_SELF_TEST) {
     const appConfig = JSON.parse(fs.readFileSync('./examples/appconfig.json'));
