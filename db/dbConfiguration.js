@@ -11,7 +11,7 @@ const logger = require('../main/Logger.js');
 // try the various supported databases - ignore errors, assume no driver present
 let oracledb;
 try {
-    oracledb = require('oracledb');
+ //   oracledb = require('oracledb');
 } catch(e) {}
 
 
@@ -23,7 +23,7 @@ try {
 
 let postgresdb;
 try {
-    postgresdb = require('pg-pool');
+   // postgresdb = require('pg-pool');
 } catch (e) {}
 
 module.exports = function(poolCreatedEmitter, appConfiguration, testConfiguration, dbTypeMap) {
