@@ -14,18 +14,23 @@ module.exports.lazyLoadData = function (model, fieldName) {
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("in LazyLoader.lazyLoadData()")
     }
-    loadData(model, fieldName, resultWrapper);
+    let ld = deasync(loadData);
+
+    ld(model, fieldName, resultWrapper);
 
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("after loadData()")
+        orm.logger.logDebug("after loadData()");
     }
 
+    /*
     let startTime = Date.now();
     while (util.isUndefined(resultWrapper.result) 
         && util.isUndefined(resultWrapper.error)
         && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
         deasync.sleep(sleepTime);
     }
+    */
+
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("after deasync logic")
     }
