@@ -1407,9 +1407,14 @@ module.exports = class Repository {
                 await conn.close();
                 break;
             case util.MYSQL:
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("closing connection for postgres pool ");
+                }
+                await conn.releaseConnection();
+                break;
             case util.POSTGRES:
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("closing connection for mysql/postgres pool ");
+                    logger.logDebug("closing connection for postgres pool ");
                 }
                 await conn.release();
                 break;
