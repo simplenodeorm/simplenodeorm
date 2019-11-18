@@ -6,11 +6,19 @@ const orm = require('../orm.js');
 const util = require('./util.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
-var deasync = require('deasync');
+const deasync = require('deasync');
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("in LazyLoader.lazyLoadData()")
+    }
     loadData(model, fieldName, resultWrapper);
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("after loadData()")
+    }
 
     let startTime = Date.now();
     while (util.isUndefined(resultWrapper.result) 
@@ -18,7 +26,11 @@ module.exports.lazyLoadData = function (model, fieldName) {
         && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
         deasync.sleep(sleepTime);
     }
-    
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("after deasync logic")
+    }
+
+
     if (util.isDefined(resultWrapper.error)) {
         util.thowError('LazyLoadError', resultWrapper.error);
     } else if (util.isDefined(resultWrapper.result)) {
@@ -28,6 +40,11 @@ module.exports.lazyLoadData = function (model, fieldName) {
     } else {
         model.__setFieldValue(fieldName, null);
     }
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("model[" + fieldName + "]=" + model[fieldName])
+    }
+
 
 };
 
