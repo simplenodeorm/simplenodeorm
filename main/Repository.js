@@ -2260,6 +2260,9 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                 }
             }
 
+            curobj.__setModified(false);
+            curobj.__setNew(false);
+            curobj.__poolAlias__ = poolAlias;
 
             let cpos = columnPos[joinDepth].get(curAlias);
             for (let j = 0; j < cpos.length; ++j) {
@@ -2420,10 +2423,6 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                         }
                     }
                 }
-
-                curobj.__setModified(false);
-                curobj.__setNew(false);
-                curobj.__poolAlias__ = poolAlias
             }
         }
     }
