@@ -10,7 +10,7 @@ module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
 
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("in LazyLoader.lazyLoadData()")
+        orm.logger.logDebug("in LazyLoader.lazyLoadData(): fieldName=" + fieldName)
     }
 
     loadData(model, fieldName, resultWrapper);
@@ -44,7 +44,7 @@ async function loadData(model, fieldName, resultWrapper) {
         orm.logger.logDebug("in LazyLoader.loadData()")
     }
 
-    let md = model.__metaData__ ;
+    let md = model.__metaData__;
     
     let field = md.getField(fieldName);
 
