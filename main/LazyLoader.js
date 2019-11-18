@@ -108,7 +108,7 @@ async function loadData(model, fieldName, resultWrapper) {
                         if (orm.logger.isLogDebugEnabled()) {
                             orm.logger.logDebug("before find: poolAlias=" + model.__poolAlias__);
                         }
-                        let res = await refrepo.find(criteria, [], {joinDepth: 0, poolAlias: model.__poolAlias__});
+                        let res = await refrepo.find(criteria, [], {poolAlias: model.__poolAlias__});
 
                         if (orm.logger.isLogDebugEnabled()) {
                             orm.logger.logDebug("after find");
