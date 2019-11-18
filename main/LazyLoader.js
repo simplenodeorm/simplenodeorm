@@ -4,7 +4,7 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-import deasyncPromise from 'deasync-promise';
+const deasyncPromise = require('deasync-promise');
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
