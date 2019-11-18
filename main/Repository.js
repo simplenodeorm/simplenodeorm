@@ -7,7 +7,6 @@
 const orm = require('../orm.js');
 const util = require('./util.js');
 const insertSqlMap = new Map();
-const updateSqlMap = new Map();
 const logger = require('./Logger.js');
 const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
 const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
@@ -330,11 +329,15 @@ module.exports = class Repository {
      * @returns return json error or result: {error: <result> } or { result: <data> }
      */
     async find(whereComparisons, orderByEntries, options) {
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("in Repository.find()");
+        }
         options = checkOptions(options);
         let where = this.buildWhereClause(whereComparisons);
         let params = this.getParametersFromWhereComp(whereComparisons);
         let sql = (this.getSelectClause(options.joinDepth) + " from " + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth) + where);
-        
+
+
         if (util.isDefined(orderByEntries)) {
             let comma = '';
             for (let i = 0; i < orderByEntries.length; ++i) {
@@ -358,8 +361,14 @@ module.exports = class Repository {
             }
         }
 
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("before find.executeQuery");
+        }
         let retval = this.executeQuery(sql, params, options);
 
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("after find.executeQuery: retval=" + retval);
+        }
         if (!retval.error) {
             sortRelatedEntriesIfRequired(retval.result);
         }
