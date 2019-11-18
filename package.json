@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.10.91",
+  "version": "1.10.92",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -24,6 +24,7 @@
     "jsonpath-plus": "^0.18.0",
     "md5": "^2.2.1",
     "mysql": "^2.16.0",
+    "mysql2": "^2.0.0",
     "node-cache": "^4.2.1",
     "pg": "^7.12.1",
     "pg-pool": "^2.0.6",
