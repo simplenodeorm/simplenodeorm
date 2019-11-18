@@ -4,7 +4,7 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-const deasyncPromise = require('deasync-promise');
+const deasync = require('deasync');
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
@@ -12,7 +12,7 @@ module.exports.lazyLoadData = function (model, fieldName) {
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("in LazyLoader.lazyLoadData()")
     }
-    let ld = deasyncPromise(loadData);
+    let ld = deasync(loadData);
 
     ld(model, fieldName, resultWrapper);
 
@@ -59,7 +59,15 @@ async function loadData(model, fieldName, resultWrapper) {
             params.push(model.__getFieldValue(pkfields[i].fieldName));
         }
 
+        if (orm.logger.isLogDebugEnabled()) {
+            orm.logger.logDebug("in LazyLoader.loadData()")
+        }
         let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
+
+        if (orm.logger.isLogDebugEnabled()) {
+            orm.logger.logDebug("after executeSqlQuery: result=" + ret)
+        }
+
         if (util.isDefined(ret.error)) {
             resultWrapper.error = ret.error;
         } else if (util.isDefined(ret.result)) {
