@@ -42,7 +42,7 @@ async function loadData(model, fieldName, resultWrapper) {
     
     let field = md.getField(fieldName);
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("in loadData()");
+        orm.logger.logDebug("in loadData(): model=" + md.getObjectName() + ", field=" + fieldName);
     }
 
     if (util.isDefined(field)) {
@@ -106,7 +106,7 @@ async function loadData(model, fieldName, resultWrapper) {
                     
                     if (okToQuery) {
                         if (orm.logger.isLogDebugEnabled()) {
-                            orm.logger.logDebug("before find");
+                            orm.logger.logDebug("before find: poolAlias=" + model.__poolAlias__);
                         }
                         let res = await refrepo.find(criteria, [], {joinDepth: 0, poolAlias: model.__poolAlias__});
 
