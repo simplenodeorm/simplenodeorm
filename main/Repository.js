@@ -2313,7 +2313,8 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                             result, 
                                             retval,
                                             columnPos,
-                                            joinDepth);
+                                            joinDepth,
+                                            poolAlias);
                                     } else {
                                         curobj.__setFieldValue(mtodefs[j].fieldName, obj);
                                     }
@@ -2357,7 +2358,8 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                             result, 
                                             retval,
                                             columnPos,
-                                            joinDepth);
+                                            joinDepth,
+                                            poolAlias);
                                     } else {
                                        curobj.__setFieldValue(otodefs[j].fieldName, obj);
                                     }
@@ -2403,7 +2405,8 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         result,
                                         retval,
                                         columnPos,
-                                        joinDepth);
+                                        joinDepth,
+                                        poolAlias);
                                 }
 
                                 if (!otmset.has(key)) {
