@@ -4,20 +4,24 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-const deasync = require('deasync');
+var deasync = require('deasync');
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
-
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("in LazyLoader.lazyLoadData(): fieldName=" + fieldName)
+        orm.logger.logDebug("in lazyLoadData()");
     }
 
-    loadData(model, fieldName, resultWrapper);
-    deasync.loopWhile(function(){return !(resultWrapper.result && resultWrapper.error);});
+    let ld = deasync(loadData);
 
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("after deasync logic")
+        orm.logger.logDebug("before loadData call");
+    }
+
+    ld(model, fieldName, resultWrapper);
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("after loadData call");
     }
 
     if (util.isDefined(resultWrapper.error)) {
@@ -30,28 +34,21 @@ module.exports.lazyLoadData = function (model, fieldName) {
         model.__setFieldValue(fieldName, null);
     }
 
-    if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("model[" + fieldName + "]=" + model[fieldName])
-    }
-
-
 };
 
 async function loadData(model, fieldName, resultWrapper) {
     let retval = null;
-
-    if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("in LazyLoader.loadData()")
-    }
-
-    let md = model.__metaData__;
+    let md = model.__getMetaData();
     
     let field = md.getField(fieldName);
-
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("in LazyLoader.loadData() field=" + field)
+        orm.logger.logDebug("in loadData()");
     }
+
     if (util.isDefined(field)) {
+        if (orm.logger.isLogDebugEnabled()) {
+            orm.logger.logDebug("in loadData field");
+        }
         let params = [];
         let sql = 'select ' + field.columnName + ' from ' + md.tableName + ' where ';
         let and = '';
@@ -62,12 +59,7 @@ async function loadData(model, fieldName, resultWrapper) {
             params.push(model.__getFieldValue(pkfields[i].fieldName));
         }
 
-         let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
-
-        if (orm.logger.isLogDebugEnabled()) {
-            orm.logger.logDebug("after executeSqlQuery: result=" + ret)
-        }
-
+        let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
         if (util.isDefined(ret.error)) {
             resultWrapper.error = ret.error;
         } else if (util.isDefined(ret.result)) {
@@ -76,8 +68,14 @@ async function loadData(model, fieldName, resultWrapper) {
             resultWrapper.result = null;
         }
     } else {
+        if (orm.logger.isLogDebugEnabled()) {
+            orm.logger.logDebug("in loadData ref");
+        }
         let ref = md.getReferenceDefinition(fieldName);
         if (util.isDefined(ref)) {
+            if (orm.logger.isLogDebugEnabled()) {
+                orm.logger.logDebug("found ref")
+            }
             let refrepo = orm.getRepository(ref.targetModelName);
             let okToQuery = true;
             if (util.isDefined(refrepo)) {
@@ -87,6 +85,9 @@ async function loadData(model, fieldName, resultWrapper) {
                 if (srccols.length !== tgtcols.length) {
                     okToQuery = false;
                 } else {
+                    if (orm.logger.isLogDebugEnabled()) {
+                        orm.logger.logDebug("okToQuery=true");
+                    }
                     for (let i = 0; i < srccols.length; ++i) {
                         let fnm = md.getFieldNameFromColumnName(srccols[i]);
                         
@@ -104,7 +105,13 @@ async function loadData(model, fieldName, resultWrapper) {
                     }
                     
                     if (okToQuery) {
+                        if (orm.logger.isLogDebugEnabled()) {
+                            orm.logger.logDebug("before find");
+                        }
                         let res = await refrepo.find(criteria, [], {joinDepth: 0});
+                        if (orm.logger.isLogDebugEnabled()) {
+                            orm.logger.logDebug("after find");
+                        }
                         if (util.isDefined(res.error)) {
                             resultWrapper.error = res.error;
                         } else if (util.isDefined(res.result)) {
