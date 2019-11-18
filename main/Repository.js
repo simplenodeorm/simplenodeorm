@@ -1341,6 +1341,11 @@ module.exports = class Repository {
      * @returns json with standard oracledb result or error
      */
     async executeSqlQuery(sql, parameters, options) {
+        if (logger.isLogDebugEnabled()) {
+            logger.logDebug("in Repository.executeSqlQuery()");
+         }
+
+
         options = checkOptions(options);
         
         if (util.isNotValidObject(parameters)) {
@@ -1349,6 +1354,9 @@ module.exports = class Repository {
 
         let conn;
         try {
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in Repository.executeSqlQuery(), before get connection");
+            }
             if (util.isValidObject(options.conn)) {
                 conn = options.conn;
             } else if (options.poolAlias) {
@@ -1493,7 +1501,19 @@ module.exports = class Repository {
             if (util.isDefined(options.distinct) && options.distinct) {
                 sql = 'select distinct ' + sql.substring(7);
             }
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in Repository.executeQuery(): before executeSqlQuery");
+                logger.logDebug("sql: " + sql);
+                logger.logDebug("parameters: " + JSON.stringify(parameters));
+            }
+
             let res = await this.executeSqlQuery(sql, parameters, options);
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("in Repository.executeQuery(): after executeSqlQuery");
+                logger.logDebug("res: " + res);
+            }
+
             if (util.isUndefined(res.error)) {
                 let retval = [];
                 // load column positions by alias if needed
