@@ -1400,6 +1400,10 @@ module.exports = class Repository {
             if (options.poolAlias) {
                 poolAlias = options.poolAlias;
             }
+
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("executeDatabaseSpecificQuery - before execute");
+            }
             switch (orm.getDbType(poolAlias)) {
                 case util.ORACLE:
                     retval = await conn.execute(sql, parameters, options);
@@ -1411,6 +1415,9 @@ module.exports = class Repository {
                     retval = await conn.query({text: sql, values: parameters, rowMode: 'array'});
                     retval.metaData = util.toColumnMetaData(retval.fields);
                     break;
+            }
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug("executeDatabaseSpecificQuery - after execute: result=" + retval);
             }
         } catch (e) {
             logger.logError(e.toString(), e);
