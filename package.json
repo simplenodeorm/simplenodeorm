@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.10.77",
+  "version": "1.10.78",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -17,7 +17,6 @@
     "cluster": "^0.7.7",
     "cors": ">=2.8.4",
     "deasync": ">=0.1.13",
-    "deasync-promise": "^1.0.1",
     "events": "^3.0.0",
     "express": ">=4.14",
     "express-session": "^1.17.0",

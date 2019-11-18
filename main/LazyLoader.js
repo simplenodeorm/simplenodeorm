@@ -39,10 +39,18 @@ module.exports.lazyLoadData = function (model, fieldName) {
 
 async function loadData(model, fieldName, resultWrapper) {
     let retval = null;
-    let md = model.__getMetaData();
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("in LazyLoader.loadData()")
+    }
+
+    let md = model.__metaData__ ;
     
     let field = md.getField(fieldName);
-    
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("in LazyLoader.loadData() field=" + field)
+    }
     if (util.isDefined(field)) {
         let params = [];
         let sql = 'select ' + field.columnName + ' from ' + md.tableName + ' where ';
@@ -54,10 +62,7 @@ async function loadData(model, fieldName, resultWrapper) {
             params.push(model.__getFieldValue(pkfields[i].fieldName));
         }
 
-        if (orm.logger.isLogDebugEnabled()) {
-            orm.logger.logDebug("in LazyLoader.loadData()")
-        }
-        let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
+         let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
 
         if (orm.logger.isLogDebugEnabled()) {
             orm.logger.logDebug("after executeSqlQuery: result=" + ret)
