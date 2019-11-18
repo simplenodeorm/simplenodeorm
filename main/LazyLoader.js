@@ -4,9 +4,7 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
-const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
-const deasync = require('deasync');
+import deasyncPromise from 'deasync-promise';
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
@@ -14,22 +12,13 @@ module.exports.lazyLoadData = function (model, fieldName) {
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("in LazyLoader.lazyLoadData()")
     }
-    let ld = deasync(loadData);
+    let ld = deasyncPromise(loadData);
 
     ld(model, fieldName, resultWrapper);
 
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("after loadData()");
     }
-
-    /*
-    let startTime = Date.now();
-    while (util.isUndefined(resultWrapper.result) 
-        && util.isUndefined(resultWrapper.error)
-        && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-        deasync.sleep(sleepTime);
-    }
-    */
 
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("after deasync logic")
