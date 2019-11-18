@@ -364,7 +364,7 @@ module.exports = class Repository {
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("before find.executeQuery");
         }
-        let retval = this.executeQuery(sql, params, options);
+        let retval = await this.executeQuery(sql, params, options);
 
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("after find.executeQuery: retval=" + retval);
