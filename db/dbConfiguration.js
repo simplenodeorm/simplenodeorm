@@ -58,8 +58,8 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
 
         if (pool) {
             logger.logInfo("    " + pdefs.pools[i].poolAlias + " connection pool created");
-            dbTypeMap.set(pdefs.pools[i].poolAlias, pdefs.pools[i].dbtype);
-            dbTypeMap.set(pdefs.pools[i].poolAlias + '.pool', pool);
+            dbTypeMap[pdefs.pools[i].poolAlias] = pdefs.pools[i].dbtype;
+            dbTypeMap[pdefs.pools[i].poolAlias + '.pool'] =  pool;
         } else {
             logger.logWarning('invalid dbtype: ' + pdefs.pools[i].dbtype)
         }
@@ -77,6 +77,6 @@ async function initPool(securityPath, poolCreatedEmitter, dbTypeMap) {
 }
 
 module.exports.getDbType = function(alias) {
-    return dbType.get(alias);
+    return dbType[alias];
 };
 

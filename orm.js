@@ -22,7 +22,7 @@ const defaultCacheTimeout = 10;
 const NodeCache = require("node-cache");
 const myCache = new NodeCache( { stdTTL: 60 * defaultCacheTimeout, checkperiod: 120 } );
 
-const dbTypeMap = new Map();
+const dbTypeMap = {};
 const orm = this;
 
 
@@ -124,7 +124,7 @@ function getOneTimeAccessKey(ttl) {
 module.exports.getOneTimeAccessKey = getOneTimeAccessKey;
 
 async function getConnection(poolAlias) {
-    let pool = dbTypeMap.get(poolAlias + '.pool');
+    let pool = dbTypeMap[poolAlias + '.pool'];
     if (logger.isLogDebugEnabled()) {
         logger.logDebug("poolAlias: " + poolAlias);
         logger.logDebug("pool: " + pool);
@@ -134,7 +134,7 @@ async function getConnection(poolAlias) {
     let retval;
 
     try {
-        switch (dbTypeMap.get(poolAlias)) {
+        switch (dbTypeMap[poolAlias]) {
             case util.POSTGRES:
                 retval = await pool.connect();
                 break;
@@ -159,7 +159,7 @@ async function getConnection(poolAlias) {
 module.exports.getConnection = getConnection;
 
 function getDbType(poolAlias) {
-    return dbTypeMap.get(poolAlias);
+    return dbTypeMap[poolAlias];
 }
 
 module.exports.getDbType = getDbType;
