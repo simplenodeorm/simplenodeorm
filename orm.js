@@ -128,7 +128,7 @@ async function getConnection(poolAlias) {
     if (logger.isLogDebugEnabled()) {
         logger.logDebug("poolAlias: " + poolAlias);
         logger.logDebug("pool: " + pool);
-        logger.logDebug("type: " + dbTypeMap.get(poolAlias));
+        logger.logDebug("type: " + dbTypeMap[poolAlias]);
     }
 
     let retval;
@@ -1289,7 +1289,7 @@ function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
 
         if (queryDocument.document.selectedColumns[i].label) {
             sql += (' as "' + queryDocument.document.selectedColumns[i].label + '" ');
-        } else if (!forDisplay && (dbTypeMap.get(repo.poolAlias) === 'mysql')) {
+        } else if (!forDisplay && (dbTypeMap[repo.poolAlias] === 'mysql')) {
             sql += (' as ' + alias + '_' + colName)
         }
         comma = ', ';
@@ -1305,7 +1305,7 @@ function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
             for (let i = 0; i < requiredPkColumns.length; ++i) {
                 sql += (',' + requiredPkColumns[i].alias + '.' + requiredPkColumns[i].columnName);
 
-                if (!forDisplay && (dbTypeMap.get(requiredPkColumns[i].poolAlias) === util.MYSQL)) {
+                if (!forDisplay && (dbTypeMap[requiredPkColumns[i].poolAlias] === util.MYSQL)) {
                     sql += (' as ' + requiredPkColumns[i].alias + '_' + requiredPkColumns[i].columnName)
                 }
 
@@ -1360,7 +1360,7 @@ function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
             if (!util.isUnaryOperator(queryDocument.document.whereComparisons[i].comparisonOperator)) {
                 if (queryDocument.document.whereComparisons[i].comparisonValue) {
                     if (repo.isDateType(field)) {
-                        switch(dbTypeMap.get(repo.poolAlias)) {
+                        switch(dbTypeMap[repo.poolAlias]) {
                             case util.ORACLE:
                                 sql += ' to_timestamp(\'' + queryDocument.document.whereComparisons[i].comparisonValue + '\', \'YYYY-MM-DD"T"HH24:MI:SS.ff3"Z"\') ';
                                 break;
@@ -1397,7 +1397,7 @@ function buildQueryDocumentSql(queryDocument, aliasToModelMap, forDisplay) {
 
                     }
                 } else {
-                    switch (dbTypeMap.get(repo.poolAlias)) {
+                    switch (dbTypeMap[repo.poolAlias]) {
                         case util.ORACLE:
                             sql += (' :' + replaceIndex + ' ');
                             break;
