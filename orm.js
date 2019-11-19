@@ -2978,6 +2978,7 @@ module.exports.getCacheTimeout = getCacheTimeout;
 
 function getContextActiveUserCount(context) {
     let retval = 0;
+    /*
     let keys = orm.cache.keys();
     let keyPrefix = context + ".";
     for (let i = 0; i < keys.length; ++i) {
@@ -2985,7 +2986,7 @@ function getContextActiveUserCount(context) {
             retval++;
         }
     }
-
+*/
     return retval;
 }
 
