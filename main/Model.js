@@ -37,7 +37,10 @@ class Model {
         let retval =  this[fieldName];
 
         // only lazy load when running under node
-        if (!ignoreLazyLoad && this.lazyLoadRequired(fieldName)) {
+        if (!ignoreLazyLoad 
+            && util.isUndefined(retval) 
+            && util.isNodeEnv() 
+            && this.__metaData__.isLazyLoad(fieldName)) {
             if (util.isUndefined(lazyLoader)) {
                 lazyLoader = require('./LazyLoader.js');
             }
@@ -46,12 +49,6 @@ class Model {
         }
         
         return retval;
-    }
-
-    lazyLoadRequired(fieldName) {
-        return (util.isUndefined(this[fieldName])
-        && util.isNodeEnv()
-        && this.__metaData__.isLazyLoad(fieldName));
     }
 
     __setFieldValue(fieldName, value) {
