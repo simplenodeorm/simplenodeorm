@@ -1398,25 +1398,25 @@ module.exports = class Repository {
         }
     }
     
-    async closeDatabaseConnection(conn) {
+    closeDatabaseConnection(conn) {
         switch(orm.getDbType(this.poolAlias)) {
             case util.ORACLE:
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("closing connection for oracle pool ");
                 }
-                await conn.close();
+                conn.close();
                 break;
             case util.MYSQL:
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("closing connection for mysql pool ");
                 }
-                await conn.release();
+                conn.release();
                 break;
             case util.POSTGRES:
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("closing connection for postgres pool ");
                 }
-                await conn.release();
+                conn.release();
                 break;
         }
     }
