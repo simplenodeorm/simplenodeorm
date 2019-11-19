@@ -140,12 +140,12 @@ async function getConnection(poolAlias) {
                 break;
             default:
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("before " + pollAlias + " pool.getConection()");
+                    logger.logDebug("before " + poolAlias + " pool.getConection()");
                 }
 
                 retval = await pool.getConnection();
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("after " + pollAlias + " pool.getConection()");
+                    logger.logDebug("after " + poolAlias + " pool.getConection()");
                 }
                 break;
         }
