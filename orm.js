@@ -131,12 +131,29 @@ async function getConnection(poolAlias) {
         logger.logDebug("type: " + dbTypeMap.get(poolAlias));
     }
 
-    switch(dbTypeMap.get(poolAlias)) {
-        case util.POSTGRES:
-            return await pool.connect();
-        default:
-            return await pool.getConnection();
+    let retval;
+
+    try {
+        switch (dbTypeMap.get(poolAlias)) {
+            case util.POSTGRES:
+                retval = await pool.connect();
+                break;
+            default:
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("before " + pollAlias + " pool.getConection()");
+                }
+
+                retval = await pool.getConnection();
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("after " + pollAlias + " pool.getConection()");
+                }
+                break;
+        }
+    } catch (e) {
+        logger.logError("get connection error", e);
+        throw e;
     }
+    return retval;
 }
 
 module.exports.getConnection = getConnection;
