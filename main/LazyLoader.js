@@ -16,7 +16,7 @@ module.exports.lazyLoadData = function (model, fieldName) {
     }
      loadData(model, fieldName, resultWrapper);
 
-    require('deasync').loopWhile(function(){return (!resultWrapper.error && resultWrapper.result);});
+    require('deasync').loopWhile(function(){return !(resultWrapper.error && resultWrapper.result);});
 
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("after loadData call");
