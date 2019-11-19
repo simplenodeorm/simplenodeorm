@@ -4,7 +4,6 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-var deasync = require('deasync');
 
 module.exports.lazyLoadData = function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
@@ -12,13 +11,12 @@ module.exports.lazyLoadData = function (model, fieldName) {
         orm.logger.logDebug("in lazyLoadData()");
     }
 
-    let ld = deasync(loadData);
-
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("before loadData call");
     }
+     loadData(model, fieldName, resultWrapper);
 
-    ld(model, fieldName, resultWrapper);
+    require('deasync').loopWhile(function(){return (!resultWrapper.error && resultWrapper.result);});
 
     if (orm.logger.isLogDebugEnabled()) {
         orm.logger.logDebug("after loadData call");
