@@ -98,7 +98,6 @@ async function testFindOne(repository,  testResults) {
                params.push(result.result.rows[0][i]);
             }
            testUtil.verifyRepositoryTestResult(repository, util.FIND_ONE, result.result, await repository.findOne(params), testResults);
-            testUtil.verifyRepositoryTestResult(repository, util.FIND_ONE, result.result, repository.findOneSync(params), testResults);
             return true;
         }
      });
@@ -118,11 +117,7 @@ async function testFind(repository, testResults) {
                  for (let i = 0; i < whereList.length; ++i) {
                     await testUtil.verifyRepositoryTestResult(repository, util.FIND, whereList[i], await repository.find(whereList[i]), testResults);
                  }
-                 
-                 for (let i = 0; i < whereList.length; ++i) {
-                    await testUtil.verifyRepositoryTestResult(repository, util.FIND, whereList[i], repository.findSync(whereList[i]), testResults);
-                 }
-            }
+             }
         }
     });
 }
@@ -131,7 +126,6 @@ async function testGetAll(repository, testResults) {
     // control getAll test to only test tables with small number of rows
     if (await testUtil.isGetAllTestAllowed(repository, testResults)) {
         await testUtil.verifyRepositoryTestResult(repository, util.GET_ALL, {}, await repository.getAll(), testResults);
-        await testUtil.verifyRepositoryTestResult(repository, util.GET_ALL, {}, repository.getAllSync(), testResults);
     } else {
         testResults.push(require('./testStatus.js')(util.WARN,  'not performing getAll() test on ' + repository.getMetaData().objectName, util.GET_ALL));
     }

@@ -8,10 +8,6 @@ const orm = require('../orm.js');
 const util = require('./util.js');
 const insertSqlMap = new Map();
 const logger = require('./Logger.js');
-const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
-const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
-
-var deasync = require('deasync');
 
 /**
  * this class is the heart of the orm - all the relations to object graph logic occurs here as well as the sql operations
@@ -44,7 +40,7 @@ module.exports = class Repository {
     async tableExists() {
         let params = [];
         params.push(this.getMetaData().tableName);
-        let result = await this.executeSqlQuerySync('SELECT table_name FROM user_tables where table_name = :tableName', params);
+        let result = await this.executeSqlQuery('SELECT table_name FROM user_tables where table_name = :tableName', params);
         if (util.isDefined(result.error)) {
             util.throwError("SQLError", result.error);
         }
@@ -227,34 +223,6 @@ module.exports = class Repository {
         } 
     }
     
-    findOneSync(primaryKey, options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            try {
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("findOneSync: before findOne");
-                }
-                let result = await repo.findOne(primaryKey, options);
-
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("findOneSync: after findOne - " + JSON.stringify(result));
-                }
-                resultWrapper.result = result.result;
-                resultWrapper.error = result.error;
-            } catch (e) { resultWrapper.error = e;}
-        })(resultWrapper, repo, primaryKey, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper;
-    }
-    
     /**
      * 
      * @param {type} whereComparisons - array of where definitions using WhereComparison.js - if empty then will count all rows
@@ -293,27 +261,7 @@ module.exports = class Repository {
         }
     }
 
-    countSync(whereComparisons, options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        
-        (async function() {
-            let result = await repo.count(whereComparisons, options);
-            resultWrapper.result = result.result;
-            resultWrapper.error = result.error;
-        })(resultWrapper, repo, whereComparisons, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
 
-        return resultWrapper;
-    }
-
-    
     /**
      * 
      * @param {type} whereComparisons - array of where definitions using WhereComparison.js - will fail if empty
@@ -376,25 +324,6 @@ module.exports = class Repository {
         return retval;
     }
 
-    findSync(whereComparisons, orderByEntries, options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            let result = await repo.find(whereComparisons, orderByEntries, options);
-            resultWrapper.result = result.result;
-            resultWrapper.error = result.error;
-        })(resultWrapper, repo, whereComparisons, orderByEntries, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper;
-    }
-
     /**
      * 
     * @param {type} options - query options as json of the form below
@@ -409,25 +338,6 @@ module.exports = class Repository {
     async getAll(options) {
         options = checkOptions(options);
         return await this.executeNamedDbOperation(util.GET_ALL, [], options);
-    }
-
-    getAllSync(options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        (async function(resultWrapper, func, options) {
-            let result = await repo.getAll(options);
-            resultWrapper.result = result.result;
-            resultWrapper.error = result.error;
-        }(resultWrapper, repo, options));
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper;
     }
 
     /**
@@ -508,26 +418,6 @@ module.exports = class Repository {
            return {error: e};
        }
     }
-
-    deleteSync(modelInstances, options) {
-        let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            let result = await repo.delete(modelInstances, options);
-            resultWrapper.rowsAffected = result.rowsAffected;
-            resultWrapper.error = result.error;
-        })(resultWrapper, repo, modelInstances, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.rowsAffected) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper;
-    }
-    
 
     /**
      * @param {type} model - model instance to update/insert
@@ -1108,27 +998,6 @@ module.exports = class Repository {
         }
     }
     
-    saveSync(modelInstances, options) {
-        let resultWrapper = {rowsAffected: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            let result = await repo.save(modelInstances, options);
-            resultWrapper.rowsAffected = result.rowsAffected;
-            resultWrapper.error = result.error;
-            resultWrapper.updatedValues = result.updatedValues;
-        })(resultWrapper, repo, modelInstances, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.rowsAffected) 
-            && util.isUndefined(resultWrapper.error)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper;
-    }
-
-
     /**
      * 
      * @param {type} inputParams - can be a list of primary key values or an object instance
@@ -1184,24 +1053,6 @@ module.exports = class Repository {
 
         return retval;
     }
-
-    existsSync(inputParams, options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            resultWrapper.result = await repo.exists(inputParams, options);
-            })(resultWrapper, repo, inputParams, options);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result) 
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper.result;
-    }
-
 
     /**
      * 
@@ -1477,22 +1328,6 @@ module.exports = class Repository {
         return retval;
     }
 
-    executeSqlQuerySync(sql, parameters, options) {
-        let resultWrapper = {result: undefined, error: undefined};
-        let repo = this;
-        (async function() {
-            resultWrapper.result = await repo.executeSqlQuery(sql, parameters, options);
-          })(resultWrapper, repo, sql, parameters);
-        
-        let startTime = Date.now();
-        while (util.isUndefined(resultWrapper.result)
-            && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-            deasync.sleep(sleepTime);
-        }
-
-        return resultWrapper.result;
-    }
-    
     /**
      * 
      * @param {type} sql - sql query string

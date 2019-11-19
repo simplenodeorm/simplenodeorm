@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const util = require('./main/util.js');
+const Cache = require('./main/Cache.js');
 const modelList = [];
 const repositoryMap = new Map();
 const events = require('events');
@@ -16,11 +17,6 @@ const fspath = require('fs-path');
 const randomColor = require('randomcolor');
 const tinycolor = require('tinycolor2');
 const md5 = require('md5');
-const defaultCacheTimeout = 10;
-
-
-const NodeCache = require("node-cache");
-const myCache = new NodeCache( { stdTTL: 60 * defaultCacheTimeout, checkperiod: 120 } );
 
 const dbTypeMap = {};
 const orm = this;
@@ -33,9 +29,9 @@ const orm = this;
 let appConfiguration;
 let testConfiguration;
 let logger;
+let myCache;
 
 module.exports.util = util;
-module.exports.cache = myCache;
 
 // start and initialize the orm
 module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, serverStartedCallback) {
@@ -56,6 +52,9 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
     logger = require('./main/Logger.js');
     logger.initialize(appConfiguration);
     module.exports.logger = logger;
+
+    myCache = new Cache(appConfiguration, logger);
+    module.exports.cache = myCache;
 
     const poolCreatedEmitter = new events.EventEmitter();
     poolCreatedEmitter.on('poolscreated', async function() {
@@ -267,15 +266,15 @@ function startApiServer() {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
 
-            let session = getSession(req);
-            let accessKey = getAccessKey(req);
+            let session = await getSession(req);
+            let accessKey = await getAccessKey(req);
             let cacheVal;
 
             if (session) {
-                cacheVal = myCache.get(session);
+                cacheVal = await myCache.get(session);
             }
 
-            if (accessKey && myCache.get(accessKey)) {
+            if (accessKey && await myCache.get(accessKey)) {
                 myCache.del(accessKey);
                 next();
             } else if (req.url.endsWith("/login")) {
@@ -314,7 +313,7 @@ function startApiServer() {
                         result.snosession = cval;
                         myCache.set(cval, user.name);
                         if (logger.isLogDebugEnabled()) {
-                            logger.logDebug("login->myCache(" + cval + ")=" + myCache.get(cval));
+                            logger.logDebug("login->myCache(" + cval + ")=" + await myCache.get(cval));
                         }
                         res.status(200).send(result);
                     }
@@ -659,37 +658,6 @@ function startApiServer() {
                             }
                             result = await repo.exists(params, options);
                             break;
-                        case util.FIND_ONE_SYNC.toLowerCase():
-                            for (let i = 0; i < pk.length; ++i) {
-                                params.push(req.query[pk[i].fieldName]);
-                            }
-                            result = await repo.findOneSync(params, options);
-                            break;
-                        case util.GET_ALL_SYNC.toLowerCase():
-                            result = await repo.getAllSync(params, options);
-                            break;
-                        case util.FIND_SYNC.toLowerCase():
-                            for (let i = 0; i < fields.length; ++i) {
-                                if (util.isDefined(req.query[fields[i].fieldName])) {
-                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                                }
-                            }
-                            result = await repo.findSync(params, options);
-                            break;
-                        case util.COUNT_SYNC.toLowerCase():
-                            for (let i = 0; i < fields.length; ++i) {
-                                if (util.isDefined(req.query[fields[i].fieldName])) {
-                                    params.push(require('./main/WhereComparison.js')(fields[i].fieldName, req.query[fields[i].fieldName], util.EQUAL_TO));
-                                }
-                            }
-                            result = await repo.countSync(params, options);
-                            break;
-                        case util.EXISTS_SYNC.toLowerCase():
-                            for (let i = 0; i < pk.length; ++i) {
-                                params.push(req.query[pk[i].fieldName]);
-                            }
-                            result = await repo.existsSync(params, options);
-                            break;
                         case util.NEW_MODEL.toLowerCase():
                             result = new (require(appConfiguration.ormModuleRootPath + '/model/' + req.params.module))(md);
                             break;
@@ -764,26 +732,9 @@ function startApiServer() {
                             result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                             endTransaction(repo, result, options);
                             break;
-                        case util.FIND_ONE_SYNC.toLowerCase():
-                            result = await repo.findOneSYnc(req.body.primaryKeyValues);
-                            break;
-                        case util.FIND_SYNC.toLowerCase():
-                            result = await repo.findSync(populateWhereFromRequestInput(req.body.whereComparisons),
-                                populateOrderByFromRequestInput(req.body.orderByEntries), options);
-                            break;
-                        case util.SAVE_SYNC.toLowerCase():
-                            startTransaction(repo, options);
-                            result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                            endTransaction(repo, result, options);
-                            break;
                         case util.DELETE.toLowerCase():
                             startTransaction(repo, options);
                             result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                            endTransaction(repo, result, options);
-                            break;
-                        case util.DELETE_SYNC.toLowerCase():
-                            startTransaction(repo, options);
-                            result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                             endTransaction(repo, result, options);
                             break;
                         default:
@@ -847,11 +798,6 @@ function startApiServer() {
                         result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         endTransaction(repo, result, options);
                         break;
-                    case util.SAVE_SYNC.toLowerCase():
-                        startTransaction(repo, options);
-                        result = repo.saveSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        endTransaction(repo, result, options);
-                        break;
                     default:
                         res.status(400).send('invalid method \'' + req.params.method + '\' specified');
                         break;
@@ -898,11 +844,6 @@ function startApiServer() {
                     case util.DELETE.toLowerCase():
                         startTransaction(repo, options);
                         result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        endTransaction(repo, result, options);
-                        break;
-                    case util.DELETE_SYNC.toLowerCase():
-                        startTransaction(repo, options);
-                        result = repo.deleteSync(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
                         endTransaction(repo, result, options);
                         break;
                     default:
@@ -1033,7 +974,7 @@ async function loadLookupList(lookupDef, ctx) {
 
     let cacheKey = "reportlookuplist." + lookupDef.table + "." + lookupDef.key;
 
-    let retval = myCache.get(cacheKey);
+    let retval = await myCache.get(cacheKey);
 
     if (!retval) {
         let repo = getRepository(lookupDef.modelName);
@@ -1737,7 +1678,7 @@ function deleteReport(docid) {
 }
 
 async function loadQuery(docid) {
-    let retval = myCache.get("query-" + docid);
+    let retval = await myCache.get("query-" + docid);
 
     if (!retval) {
         let pos = docid.indexOf('.');
@@ -1757,7 +1698,7 @@ async function loadQuery(docid) {
 }
 
 async function loadReport(docid) {
-    let retval = myCache.get("report-" + docid);
+    let retval = await myCache.get("report-" + docid);
 
     if (!retval) {
         let pos = docid.indexOf('.');
@@ -2841,9 +2782,9 @@ async function loadReportDocumentGroups(groupsonly) {
     let retval;
 
     if (groupsonly) {
-        retval = myCache.get("reportDocumentGroups1");
+        retval = await myCache.get("reportDocumentGroups1");
     } else {
-        retval = myCache.get("reportDocumentGroups2");
+        retval = await myCache.get("reportDocumentGroups2");
     }
 
 
@@ -2894,9 +2835,9 @@ async function loadQueryDocumentGroups(groupsonly) {
     let retval;
 
     if (groupsonly) {
-        retval = myCache.get("queryDocumentGroups1");
+        retval = await myCache.get("queryDocumentGroups1");
     } else {
-        retval = myCache.get("queryDocumentGroups2");
+        retval = await myCache.get("queryDocumentGroups2");
     }
 
     if (!retval) {
@@ -2974,13 +2915,13 @@ function traverseDocumentGroups(grp,  documents) {
     }
 }
 
-function getSession(req) {
+async function getSession(req) {
     let session = req.headers['x-snosession'];
 
     if (logger.isLogDebugEnabled()) {
         logger.logDebug("snosession=" + session);
         if (session) {
-            logger.logDebug("myCache[" + session + "]=" + myCache.get(session));
+            logger.logDebug("myCache[" + session + "]=" + await myCache.get(session));
         }
     }
     return session;
@@ -2988,19 +2929,19 @@ function getSession(req) {
 
 module.exports.getSession = getSession;
 
-function getAccessKey(req) {
+async function getAccessKey(req) {
     let retval;
     if ((req.method === "POST") && req.body && req.body.key) {
         retval = req.body.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in body object: " + retval);
-            logger.logDebug("myCache(" + retval + ")=" + myCache.get(retval));
+            logger.logDebug("myCache(" + retval + ")=" + await myCache.get(retval));
         }
     } else if ((req.method === "GET") && req.query && req.query.key) {
         retval = req.query.key;
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("found access key in query object: " + retval);
-            logger.logDebug("myCache(" + retval + ")=" + myCache.get(retval));
+            logger.logDebug("myCache(" + retval + ")=" + await myCache.get(retval));
         }
     }
 
