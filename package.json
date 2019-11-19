@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.10.104",
+  "version": "1.10.105",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -21,6 +21,7 @@
     "express": ">=4.14",
     "express-session": "^1.17.0",
     "fs-path": ">=0.0.24",
+    "ioredis": "^4.14.1",
     "jsonpath-plus": "^0.18.0",
     "md5": "^2.2.1",
     "mysql": "^2.16.0",
@@ -30,7 +31,6 @@
     "promise-mysql": "^4.1.1",
     "properties-reader": "^0.3.1",
     "randomcolor": "^0.5.4",
-    "redis": "^2.8.0",
     "tinycolor2": "^1.4.1",
     "util": "^0.12.1",
     "uuid": "^3.3.3",

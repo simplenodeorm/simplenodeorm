@@ -1,8 +1,7 @@
 /*
  * Copyright (c) 2019  simplenodeorm.org
  */
-const redis = require('redis');
-const {promisify} = require('util');
+const Redis = require("ioredis");
 
 class Cache {
     constructor(config, logger) {
@@ -13,8 +12,7 @@ class Cache {
             this.client = new Map();
         } else {
             try {
-                this.client = redis.createClient(config.redisClusterPort, config.redisClusterHost);
-                this.getAsync = promisify(this.client.get).bind(this.client);
+                this.client = new Redis(config.redisClusterPort, config.redisClusterHost);
             }
 
             catch (e) {
@@ -28,9 +26,9 @@ class Cache {
             this.logger.logDebug("setting cache[" + key + "]=" + value + " with ttl " + ttl);
         }
         if (ttl) {
-            client.set('key', 'value!', 'EX', ttl);
+            this.client.set(key, value, 'ex', ttl);
         } else {
-            client.set('key', 'value!', 'EX', this.config.defaultCacheTimeout);
+            this.client.set(key, value, 'ex', this.config.defaultCacheTimeout);
         }
     }
 
@@ -42,7 +40,7 @@ class Cache {
         if (this.islocal) {
             retval = this.client.get(key);
         } else {
-            retval = await this.getAsync(key);
+            retval = await this.client.get(key);
         }
         if (this.logger.isLogDebugEnabled()) {
             this.logger.logDebug("found cache[" + key + "]=" + retval);
