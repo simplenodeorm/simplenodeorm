@@ -2976,9 +2976,9 @@ function getCacheTimeout(name) {
 module.exports.parseOrmResult = parseOrmResult;
 module.exports.getCacheTimeout = getCacheTimeout;
 
-function getContextActiveUserCount(context) {
+async function getContextActiveUserCount(context) {
     let retval = 0;
-    let keys = myCache.keys("*");
+    let keys = myCache.keys();
     let keyPrefix = context + ".";
     for (let i = 0; i < keys.length; ++i) {
         if (keys[i].startsWith(keyPrefix)) {

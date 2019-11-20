@@ -64,6 +64,10 @@ class Cache {
             this.client.del(key);
         }
     }
+
+    async keys() {
+        return await this.client.keys("*");
+    }
 }
 
 module.exports = function(config, logger) {
