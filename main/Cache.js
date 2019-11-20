@@ -65,7 +65,7 @@ class Cache {
     }
 }
 
-module.exports = function(config) {
-    return new Cache(config);
+module.exports = function(config, logger) {
+    return new Cache(config, logger);
 };
 
