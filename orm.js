@@ -311,7 +311,7 @@ function startApiServer() {
                     } else {
                         let cval = util.getContextFromUrl(req) + "." + uuidv1();
                         result.snosession = cval;
-                        myCache.set(cval, user.name);
+                        myCache.set(cval, user.name, getCacheTimeout("sessionCacheTimeout"));
                         if (logger.isLogDebugEnabled()) {
                             logger.logDebug("login->myCache(" + cval + ")=" + await myCache.get(cval));
                         }
@@ -2970,7 +2970,7 @@ function getCacheTimeout(name) {
     if (!retval) {
         retval = defaultCacheTimeout;
     }
-    return retval * 60;
+    return retval;
 }
 
 module.exports.parseOrmResult = parseOrmResult;
@@ -2978,15 +2978,14 @@ module.exports.getCacheTimeout = getCacheTimeout;
 
 function getContextActiveUserCount(context) {
     let retval = 0;
-    /*
-    let keys = orm.cache.keys();
+    let keys = myCache.keys("*");
     let keyPrefix = context + ".";
     for (let i = 0; i < keys.length; ++i) {
         if (keys[i].startsWith(keyPrefix)) {
             retval++;
         }
     }
-*/
+
     return retval;
 }
 

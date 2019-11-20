@@ -33,9 +33,9 @@ class Cache {
             this.logger.logDebug("setting cache[" + key + "]=" + value + " with ttl " + ttl);
         }
         if (ttl) {
-            this.client.set(key, value, 'ex', ttl);
+            this.client.set(key, value, 'EX', ttl);
         } else {
-            this.client.set(key, value, 'ex', this.config.defaultCacheTimeout);
+            this.client.set(key, value, 'EX', this.config.defaultCacheTimeout);
         }
     }
 
