@@ -23,10 +23,18 @@ class Cache {
     }
 
     set(key, value, ttl) {
-        if (ttl) {
-            this.client.set(key, value, 'EX', ttl);
+        if (this.config.redisCache) {
+            if (ttl) {
+                this.client.set(key, value, 'EX', ttl);
+            } else {
+                this.client.set(key, value, 'EX', this.config.defaultCacheTimeout);
+            }
         } else {
-            this.client.set(key, value, 'EX', this.config.defaultCacheTimeout);
+            if (ttl) {
+                this.client.set(key, value, ttl);
+            } else {
+                this.client.set(key, value, this.config.defaultCacheTimeout);
+            }
         }
     }
 
