@@ -21,7 +21,8 @@
   "lookupListCacheTimeout": 600,
   "reportHierarchyCacheTimeout": 3660,
   "sessionCacheTimeout": 3660,
-  "defaultCacheTimeout": 10,
+  "defaultCacheTimeout": 60,
+  "redisCache": false,
   "redisClusterPort": 6666,
   "redisClusterHost": "localhost",
   "aliases" : {}

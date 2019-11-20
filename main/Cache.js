@@ -2,25 +2,18 @@
  * Copyright (c) 2019  simplenodeorm.org
  */
 const Redis = require("ioredis");
+const NodeCache = require("node-cache");
 
 class Cache {
     constructor(config, logger) {
         this.config = config;
         this.logger = logger;
-        if (config.redisClusterHost === "localhost") {
-            this.islocal = true;
-            this.client = new Map();
+        if (!config.redisCache) {
+            this.client = new NodeCache( { stdTTL: config.defaultCacheTimeout, checkperiod: 120 } );
         } else {
             try {
-
-                if (this.logger.isLogDebugEnabled()) {
-                    this.logger.logDebug("in Cache() before client create");
-                }
                 this.client = new Redis(config.redisClusterPort, config.redisClusterHost);
                 this.client.flushall();
-                if (this.logger.isLogDebugEnabled()) {
-                    this.logger.logDebug("in Cache() after client create");
-                }
             }
 
             catch (e) {
@@ -30,9 +23,6 @@ class Cache {
     }
 
     set(key, value, ttl) {
-        if (this.logger.isLogDebugEnabled()) {
-            this.logger.logDebug("setting cache[" + key + "]=" + value + " with ttl " + ttl);
-        }
         if (ttl) {
             this.client.set(key, value, 'EX', ttl);
         } else {
@@ -41,11 +31,7 @@ class Cache {
     }
 
     setJson(key, value, ttl) {
-        if (ttl) {
-            this.client.set(key, JSON.stringify(value), 'EX', ttl);
-        } else {
-            this.client.set(key, JSON.stringify(value), 'EX', this.config.defaultCacheTimeout);
-        }
+        this.set(key, JSON.stringify(value), 'EX', ttl);
     }
 
     async get(key) {
@@ -53,11 +39,8 @@ class Cache {
         if (this.logger.isLogDebugEnabled()) {
             this.logger.logDebug("attempting to get cached value for " + key);
         }
-        if (this.islocal) {
-            retval = this.client.get(key);
-        } else {
-            retval = await this.client.get(key);
-        }
+        retval = await this.client.get(key);
+
         if (this.logger.isLogDebugEnabled()) {
             this.logger.logDebug("found cache[" + key + "]=" + retval);
         }
@@ -66,12 +49,7 @@ class Cache {
     }
 
     async getJson(key) {
-        let retval;
-        if (this.islocal) {
-            retval = this.client.get(key);
-        } else {
-            retval = await this.client.get(key);
-        }
+        let retval = await this.get(key);
 
         if (retval) {
             return JSON.parse(retval);
@@ -81,11 +59,7 @@ class Cache {
     }
 
     del(key) {
-        if (this.islocal) {
-            this.client.delete(key);
-        } else {
-            this.client.del(key);
-        }
+        this.client.del(key);
     }
 
     async keys() {
