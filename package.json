@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.10.110",
+  "version": "1.10.111",
   "description": "A simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {

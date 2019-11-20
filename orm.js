@@ -974,7 +974,7 @@ async function loadLookupList(lookupDef, ctx) {
 
     let cacheKey = "reportlookuplist." + lookupDef.table + "." + lookupDef.key;
 
-    let retval = await myCache.get(cacheKey);
+    let retval = await myCache.getJson(cacheKey);
 
     if (!retval) {
         let repo = getRepository(lookupDef.modelName);
@@ -996,7 +996,7 @@ async function loadLookupList(lookupDef, ctx) {
             });
         }
 
-        myCache.set(cacheKey, retval, getCacheTimeout("lookupListCacheTimeout"));
+        myCache.setJson(cacheKey, retval, getCacheTimeout("lookupListCacheTimeout"));
     }
 
     return retval;
@@ -1678,7 +1678,7 @@ function deleteReport(docid) {
 }
 
 async function loadQuery(docid) {
-    let retval = await myCache.get("query-" + docid);
+    let retval = await myCache.getJson("query-" + docid);
 
     if (!retval) {
         let pos = docid.indexOf('.');
@@ -1691,14 +1691,14 @@ async function loadQuery(docid) {
             fname = fname + '.json';
         }
         retval = JSON.parse(fs.readFileSync(fname));
-        myCache.set("query-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
+        myCache.setJson("query-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
     }
 
     return retval;
 }
 
 async function loadReport(docid) {
-    let retval = await myCache.get("report-" + docid);
+    let retval = await myCache.getJson("report-" + docid);
 
     if (!retval) {
         let pos = docid.indexOf('.');
@@ -1711,7 +1711,7 @@ async function loadReport(docid) {
             fname += '.json';
         }
         retval = JSON.parse(fs.readFileSync(fname));
-        myCache.set("report-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
+        myCache.setJson("report-" + docid, retval, getCacheTimeout("reportCacheTimeout"))
     }
 
     return retval;
@@ -2782,9 +2782,9 @@ async function loadReportDocumentGroups(groupsonly) {
     let retval;
 
     if (groupsonly) {
-        retval = await myCache.get("reportDocumentGroups1");
+        retval = await myCache.getJson("reportDocumentGroups1");
     } else {
-        retval = await myCache.get("reportDocumentGroups2");
+        retval = await myCache.getJson("reportDocumentGroups2");
     }
 
 
@@ -2819,9 +2819,9 @@ async function loadReportDocumentGroups(groupsonly) {
             }
 
             if (groupsonly) {
-                myCache.set("reportDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+                myCache.setJson("reportDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
             } else {
-                myCache.set("reportDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+                myCache.setJson("reportDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
             }
         } catch (e) {
             logger.logError('error ocurred during document reports definition load - ' + e);
@@ -2835,9 +2835,9 @@ async function loadQueryDocumentGroups(groupsonly) {
     let retval;
 
     if (groupsonly) {
-        retval = await myCache.get("queryDocumentGroups1");
+        retval = await myCache.getJson("queryDocumentGroups1");
     } else {
-        retval = await myCache.get("queryDocumentGroups2");
+        retval = await myCache.getJson("queryDocumentGroups2");
     }
 
     if (!retval) {
@@ -2873,9 +2873,9 @@ async function loadQueryDocumentGroups(groupsonly) {
             }
 
             if (groupsonly) {
-                myCache.set("queryDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+                myCache.setJson("queryDocumentGroups1", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
             } else {
-                myCache.set("queryDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
+                myCache.setJson("queryDocumentGroups2", retval, getCacheTimeout("reportHierarchyCacheTimeout"));
             }
         } catch (e) {
             logger.logError('error ocurred during document groups definition load - ' + e);

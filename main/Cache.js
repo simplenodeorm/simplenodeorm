@@ -40,6 +40,14 @@ class Cache {
         }
     }
 
+    setJson(key, value, ttl) {
+        if (ttl) {
+            this.client.set(key, JSON.stringify(value), 'EX', ttl);
+        } else {
+            this.client.set(key, JSON.stringify(value), 'EX', this.config.defaultCacheTimeout);
+        }
+    }
+
     async get(key) {
         let retval;
         if (this.logger.isLogDebugEnabled()) {
@@ -55,6 +63,21 @@ class Cache {
         }
 
         return retval;
+    }
+
+    async getJson(key) {
+        let retval;
+        if (this.islocal) {
+            retval = this.client.get(key);
+        } else {
+            retval = await this.client.get(key);
+        }
+
+        if (retval) {
+            return JSON.parse(retval);
+        } else {
+            return retval;
+        }
     }
 
     del(key) {
