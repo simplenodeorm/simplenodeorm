@@ -17,6 +17,7 @@ class Cache {
                     this.logger.logDebug("in Cache() before client create");
                 }
                 this.client = new Redis(config.redisClusterPort, config.redisClusterHost);
+                this.client.flushall();
                 if (this.logger.isLogDebugEnabled()) {
                     this.logger.logDebug("in Cache() after client create");
                 }
