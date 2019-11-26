@@ -231,7 +231,6 @@ function startApiServer() {
     logger.logInfo('starting api server...');
     let apiServer;
     try {
-        const cors = require('cors');
         const express = require('express');
         const bodyParser = require('body-parser');
         apiServer = express();
@@ -239,7 +238,12 @@ function startApiServer() {
 
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
-        apiServer.options('*', cors());
+
+        apiServer.use(function(req, res, next) {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+            next();
+        });
 
         const authorizer = new (require(appConfiguration.authorizer));
 
