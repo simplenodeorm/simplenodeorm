@@ -25,5 +25,17 @@
   "redisCache": false,
   "redisClusterPort": 6666,
   "redisClusterHost": "localhost",
+  "corsEntries": [
+    {
+      "header": "Access-Control-Allow-Origin",
+      "value": "*"
+
+    },
+    {
+      "header": "Access-Control-Allow-Methods",
+      "value": "PUT, GET, POST, DELETE, OPTIONS'"
+
+    }
+  ],
   "aliases" : {}
 }

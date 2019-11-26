@@ -234,8 +234,6 @@ function startApiServer() {
         const express = require('express');
         const bodyParser = require('body-parser');
         apiServer = express();
-
-
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
 
@@ -260,11 +258,14 @@ function startApiServer() {
         }
 
         apiServer.all('*', async function (req, res, next) {
-            res.header('Access-Control-Allow-Origin', '*');
-            res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-            res.header('Access-Control-Allow-Headers', '*');
             if (logger.isLogDebugEnabled()) {
-                logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
+                logger.logDebug("in apiServer.all");
+            }
+            for (let i = 0; i < appConfiguration.corsEntries.length; ++i) {
+                res.header(appConfiguration.corsEntries[i].header, appConfiguration.corsEntries[i].value);
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("cors[" + appConfiguration.corsEntries[i].header + "]=" + appConfiguration.corsEntries[i].value);
+                }
             }
 
             let session = await getSession(req);
