@@ -239,7 +239,7 @@ function startApiServer() {
 
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
-        apiServer.use(cors());
+        apiServer.options('*', cors());
 
         const authorizer = new (require(appConfiguration.authorizer));
 
