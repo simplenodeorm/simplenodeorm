@@ -239,14 +239,6 @@ function startApiServer() {
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
 
-        apiServer.use(function(req, res, next) {
-            res.header("Access-Control-Allow-Origin", "*");
-            res.header("Access-Control-Allow-Credentials", "true");
-            res.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT,DELETE");
-            res.header("Access-Control-Allow-Headers", "*");
-            next();
-        });
-
         const authorizer = new (require(appConfiguration.authorizer));
 
         let server;
@@ -268,6 +260,9 @@ function startApiServer() {
         }
 
         apiServer.all('*', async function (req, res, next) {
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+            res.header('Access-Control-Allow-Headers', '*');
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in /" + appConfiguration.context + ' checkAuthorization');
             }
