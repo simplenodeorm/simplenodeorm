@@ -17,7 +17,7 @@ try {
 
 let mysqldb;
 try {
-    mysqldb = require('promise-mysql');
+    mysqldb = require('mariadb');
 } catch (e) {}
 
 
