@@ -11,13 +11,13 @@ class Category extends Model {
         super(metaData);
     }
 
-    getCategoryId() { return this.__getFieldValue("categoryId"); }
+    async getCategoryId() { return await this.__getFieldValue("categoryId"); }
     setCategoryId(value) { this.__setFieldValue("categoryId", value); }
-    
-    getName() { return this.__getFieldValue("name"); }
+
+    async getName() { return await this.__getFieldValue("name"); }
     setName(value) { this.__setFieldValue("name", value); }
-    
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 

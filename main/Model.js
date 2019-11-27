@@ -33,7 +33,7 @@ class Model {
         this.__new__ = newModel;
     }
     
-    __getFieldValue(fieldName, ignoreLazyLoad) {
+    async __getFieldValue(fieldName, ignoreLazyLoad) {
         let retval =  this[fieldName];
 
         // only lazy load when running under node
@@ -45,7 +45,7 @@ class Model {
                 lazyLoader = require('./LazyLoader.js');
             }
             
-            lazyLoader.lazyLoadData(this, fieldName);
+            await lazyLoader.lazyLoadData(this, fieldName);
         }
         
         return retval;

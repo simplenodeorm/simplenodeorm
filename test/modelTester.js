@@ -7,9 +7,9 @@
 const testUtil = require("./testUtil.js");
 const assert = require('chai').assert;
 
-module.exports.test = function(model, metaData) {
+module.exports.test = async function(model, metaData) {
     for (let i = 0; i < metaData.fields.length; ++i) {
-        testFieldDataHandling(model, metaData, metaData.fields[i]);
+        await testFieldDataHandling(model, metaData, metaData.fields[i]);
     }
     
     assert(model.__isModified(), 'expected model to be modified but is not');
@@ -18,18 +18,18 @@ module.exports.test = function(model, metaData) {
     model.__enableConstraints(true);
     
     for (let i = 0; i < metaData.fields.length; ++i) {
-        testFieldConstraints(model, metaData, metaData.fields[i]);
+        await testFieldConstraints(model, metaData, metaData.fields[i]);
     }
     
     model.__enableConstraints(false);
 
 };
 
-function testFieldConstraints(model, metaData, field) {
+async function testFieldConstraints(model, metaData, field) {
     if (field.required) {
         try {
             let nm = testUtil.getSetFunctionName(field);
-            model[nm]();
+            await model[nm]();
             assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.' + testUtil.getSetFunctionName(field) + '  to fail NotNullConstraint and throw Exception but it did not');
         }
         
@@ -45,7 +45,7 @@ function testFieldConstraints(model, metaData, field) {
         try {
             let len = metaData.getMaxLength(field);
             let nm = testUtil.getSetFunctionName(field);
-            model[nm](testUtil.fillString('x', len+2));
+            await model[nm](testUtil.fillString('x', len+2));
             assert.fail('No Exception', 'Exception', 'expected ' + metaData.objectName + '.' + nm + ' to fail LengthConstraint(' + len + ') and throw Exception but it did not');
         }
 
@@ -59,13 +59,13 @@ function testFieldConstraints(model, metaData, field) {
 }
 
 
-function testFieldDataHandling(model, metaData, field) {
+async function testFieldDataHandling(model, metaData, field) {
     let testData = testUtil.getTestValue(field);
     let nm = testUtil.getSetFunctionName(field);
     try {
-        model[nm](testData);
+        await model[nm](testData);
         nm = testUtil.getGetFunctionName(field);
-        let result = model[nm]();
+        let result = await model[nm]();
         assert(testData === result, metaData.objectName + '.' + testUtil.getSetFunctionName(field) + 'expected to be ' + testData + ' but was ' + result);
     }
     

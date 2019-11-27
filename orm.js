@@ -60,11 +60,6 @@ module.exports.startOrm = function startOrm(installdir, appconfig, testconfig, s
     poolCreatedEmitter.on('poolscreated', async function() {
         loadOrm();
 
-        // check for associated table existence and create if configured to do so
-        if (appConfiguration.createTablesIfRequired) {
-            createTablesIfRequired();
-        }
-
         if (appConfiguration.testMode) {
             let suite = require("./test/testSuite.js");
             await suite.run();
@@ -1014,30 +1009,6 @@ function populateOptionsFromRequestInput(input) {
     }
 
     return retval;
-}
-
-async function createTablesIfRequired() {
-    let newTableRepos = [];
-    logger.logInfo('in createTablesIfRequired()');
-
-    let keys = Array.from(repositoryMap.keys());
-
-    for (let i = 0; i < keys.length; ++i) {
-        let repo = repositoryMap.get(keys[i]);
-        let exists = await repo.tableExists();
-        if (!exists) {
-            logger.logInfo('creating table ' + repo.getMetaData().getTableName());
-            await repo.createTable();
-            newTableRepos.push(repo);
-        }
-    }
-
-    for (let i = 0; i < newTableRepos.length; ++i) {
-        logger.logInfo('adding forign keys for table ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
-        await newTableRepos[i].createForeignKeys();
-        logger.logInfo('creating sequences for ' + newTableRepos[i].getMetaData().getTableName() + ' if required');
-        await newTableRepos[i].createAutoIncrementGeneratorIfRequired();
-    }
 }
 
 function loadModelData(data, md, refs, path, child) {

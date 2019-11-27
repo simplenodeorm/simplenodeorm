@@ -10,23 +10,23 @@ class Inventory extends Model {
     constructor(metaData) {
         super(metaData);
     }
-    
-    getInventoryId() { return this.__getFieldValue("inventoryId"); }
+
+    async getInventoryId() { return await this.__getFieldValue("inventoryId"); }
     setInventoryId(value) { this.__setFieldValue("inventoryId", value); }
-    
-    getFilmId() { return this.__getFieldValue("filmId"); }
+
+    async getFilmId() { return await this.__getFieldValue("filmId"); }
     setFilmId(value) { this.__setFieldValue("filmId", value); }
-    
-    getStoreId() { return this.__getFieldValue("storeId"); }
+
+    async getStoreId() { return await this.__getFieldValue("storeId"); }
     setStoreId(value) { this.__setFieldValue("storeId", value); }
-    
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
-    
-    getFilm() { return this.__getFieldValue("film"); }
+
+    async getFilm() { return await this.__getFieldValue("film"); }
     setFilm(value) { this.__setFieldValue("film", value); }
-    
-    getStore() { return this.__getFieldValue("store"); }
+
+    async getStore() { return await this.__getFieldValue("store"); }
     setStore(value) { this.__setFieldValue("store", value); }
 }
 

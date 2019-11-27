@@ -483,7 +483,7 @@ module.exports.verifyFindOneResults = async function(repo, exampleData, result, 
         if (util.isDefined(result.error)) {
             testResults.push(require('./testStatus.js')(util.ERROR, result.error, util.FIND_ONE));
         } else if (util.isDefined(result.result)) {
-            if (rowToModelMatch(exampleData.metaData, exampleData.rows[0], result.result, testResults, util.FIND_ONE)) {
+            if (await rowToModelMatch(exampleData.metaData, exampleData.rows[0], result.result, testResults, util.FIND_ONE)) {
                 await oneToOneRelationshipMatch(repo, 't0', 0, result.result, testResults, util.FIND_ONE);
                 await oneToManyRelationshipMatch(repo, 't0', 0, result.result, testResults, util.FIND_ONE);
             } else {
@@ -531,7 +531,7 @@ module.exports.verifyFindResults = async function(repo, whereList, result, testR
    } else {
         if (res.result.rows.length === 1) {
             if (result.result.length === 1) {
-                rowToModelMatch(res.result.metaData, res.result.rows[0], result.result[0], testResults, util.FIND);
+                await rowToModelMatch(res.result.metaData, res.result.rows[0], result.result[0], testResults, util.FIND);
             } else {
                 testResults.push(require('./testStatus.js')(util.ERROR, 'expected 1 model object found ' + result.result.length, util.FIND));
             }
@@ -548,7 +548,7 @@ module.exports.verifyFindResults = async function(repo, whereList, result, testR
                         let foundit = true;
                         model = result.result[k];
                         for (let j = 0; j < pk.length; ++j) {
-                            if (res.result.rows[i][j] !== result.result[k].getFieldValue(pk[j].fieldName)) {
+                            if (res.result.rows[i][j] !== await result.result[k].__getFieldValue(pk[j].fieldName)) {
                                 foundit = false;
                                 break;
                             }
@@ -562,7 +562,7 @@ module.exports.verifyFindResults = async function(repo, whereList, result, testR
                 }
                 
                 if (rownum > -1) {
-                    rowToModelMatch(res.result.metaData, res.result.rows[rownum], model,  testResults, util.FIND);
+                    await rowToModelMatch(res.result.metaData, res.result.rows[rownum], model,  testResults, util.FIND);
                 } else {
                     testResults.push(require('./testStatus.js')(util.ERROR, 'failed to find model match for sql result', util.FIND));
                 }
@@ -638,15 +638,6 @@ module.exports.testCount = async function(repository, testResults) {
         } else if (res.result.rows[0][0] !== res2.result) {
             testResults.push(require('./testStatus.js')(util.ERROR, 'expect count = ' + res.result.rows[0][0] + ' but was ' +  res2.result.rows[0][0], util.COUNT));
         }
-
-        res2 = repository.countSync([], {joinDepth: 0});
-        if (util.isDefined(res2.error)) {
-            testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.COUNT));
-        } else if (res.result.rows[0][0] !== res2.result) {
-            testResults.push(require('./testStatus.js')(util.ERROR, 'expect count = ' + res.result.rows[0][0] + ' but was ' +  res2.result.rows[0][0], util.COUNT));
-        }
-
-    
     }
 };
 
@@ -746,7 +737,7 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                 testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
             } else {
                 let m = res.result;
-                if (updateModelForTest(md, m)) {
+                if (await updateModelForTest(md, m)) {
                     let res2 = await repository.save(m, {conn: conn, returnValues: true});
                     if (util.isDefined(res2.error)) {
                         testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
@@ -754,30 +745,7 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                         if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
                             testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
                         } else {
-                            verifyModelUpdates(m, res2.updatedValues[0], testResults);
-                            // use for list update test
-                            testList.push(res2.updatedValues[0]);
-                        }
-                    }
-                } else {
-                    testResults.push(require('./testStatus.js')(util.WARN, 'unable to determine updateable fields for test on ' + md.getObjectName(), util.SAVE + '[update]'));
-                }
-            }
-
-            res = repository.findOneSync(params, {conn: conn});
-            if (util.isDefined(res.error)) {
-                testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
-            } else {
-                let m = res.result;
-                if (updateModelForTest(md, m)) {
-                    let res2 = repository.saveSync(m, {conn: conn, returnValues: true});
-                    if (util.isDefined(res2.error)) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
-                    } else {
-                        if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
-                            testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
-                        } else {
-                            verifyModelUpdates(m, res2.updatedValues[0], testResults);
+                            await verifyModelUpdates(m, res2.updatedValues[0], testResults);
                             // use for list update test
                             testList.push(res2.updatedValues[0]);
                         }
@@ -812,7 +780,7 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
     
     if (testList.length > 0) {
         for (let i = 0; i < testList.length; ++i) {
-            updateModelForTest(md, testList[i]);
+            await updateModelForTest(md, testList[i]);
         }
         let res = await repository.save(testList, {"conn": conn, returnValues: true});
         if (util.isDefined(res.error)) {
@@ -821,24 +789,9 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
             testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
         } else {
             for (let i = 0; i < testList.length; ++i) {
-                verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
+                await verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
             }
         }
-
-        for (let i = 0; i < testList.length; ++i) {
-            updateModelForTest(md, testList[i]);
-        }
-        res = repository.saveSync(testList, {"conn": conn, returnValues: true});
-        if (util.isDefined(res.error)) {
-            testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
-        } else if (util.isUndefined(res.updatedValues)) {
-            testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
-        } else {
-            for (let i = 0; i < testList.length; ++i) {
-                verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
-            }
-        }
-
     }
 };
 
@@ -874,7 +827,7 @@ module.exports.testInsert = async function (repository, conn, testResults) {
                     testResults.push(require('./testStatus.js')(util.ERROR, 'expected to have ' + models.length + ' ' + md.getObjectName() + ' objects inserted  but found ' + res.updateValues.length, util.SAVE + '[insert]'));
                 } else {
                     for (let i = 0; i < res.updatedValues.length; ++i) {
-                        verifyModelInserts(models[i], res.updatedValues[i], testResults);
+                        await verifyModelInserts(models[i], res.updatedValues[i], testResults);
                     }
                 }
             }
@@ -900,41 +853,18 @@ module.exports.testInsert = async function (repository, conn, testResults) {
                 await conn.query('BEGIN');
                 break;
         }
-    
-        models = [];
-        modelTestData = loadModelInsertData(md);
-    
-        for (let i = 0; i < modelTestData.length; ++i) {
-            models.push(modelTestData[i]);
-        }
-        res = repository.saveSync(models, {conn: conn, returnValues: true});
-        
-        if (res.error) {
-            testResults.push(require('./testStatus.js')(util.ERROR, res.error + md.getObjectName() , util.SAVE + '[insert]'));
-        } else {
-            if (util.isDefined(res.updatedValues)) {
-                if (res.updatedValues.length !== models.length) {
-                    testResults.push(require('./testStatus.js')(util.ERROR, 'expected to have ' + models.length + ' ' + md.getObjectName() + ' objects inserted  but found ' + res.updateValues.length, util.SAVE + '[insert]'));
-                } else {
-                    for (let i = 0; i < res.updatedValues.length; ++i) {
-                        verifyModelInserts(models[i], res.updatedValues[i], testResults);
-                    }
-                }
-            }
-        }
-        
     }
 };
 
-function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
+async function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) {
     let repo = orm.getRepository(modelBeforeSave.__model__);
 
     let md = repo.getMetaData();
     let fields = md.fields;
     
     for (let i = 0; i < fields.length; ++i) {
-        let val1 = modelBeforeSave.__getFieldValue(fields[i].fieldName);
-        let val2 = modelFromDbAfterSave.__getFieldValue(fields[i].fieldName);
+        let val1 = await modelBeforeSave.__getFieldValue(fields[i].fieldName);
+        let val2 = await modelFromDbAfterSave.__getFieldValue(fields[i].fieldName);
         
         if (fields[i].columnName !== 'OBJ_ID') {
             let mismatch = ((util.isValidObject(val1) && util.isNotValidObject(val2)) || (util.isValidObject(val2) && util.isNotValidObject(val1)));
@@ -963,7 +893,7 @@ function verifyModelInserts(modelBeforeSave, modelFromDbAfterSave, testResults) 
     }
 }
 
-function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) {
+async function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) {
     let onm = modelBeforeSave.getObjectName();
     let md = orm.getMetaData(onm);
     
@@ -971,8 +901,8 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
     
     for (let i = 0; i < fields.length; ++i) {
         
-        let val1 = modelBeforeSave.getFieldValue(fields[i].fieldName);
-        let val2 = modelFromDbAfterSave.getFieldValue(fields[i].fieldName);
+        let val1 = await modelBeforeSave.__getFieldValue(fields[i].fieldName);
+        let val2 = await modelFromDbAfterSave.__getFieldValue(fields[i].fieldName);
 
         if (util.isValidObject(val1) && util.isValidObject(val2)) {
             if (val1 instanceof Date) {
@@ -1013,11 +943,11 @@ function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testResults) 
     let otmdefs = md.getOneToManyDefinitions();
     
     if (util.isValidObject(otmdefs) && (otmdefs.length > 0)) {
-        let val1 = modelBeforeSave.getFieldValue(otmdefs[0].fieldName);
-        let val2 = modelFromDbAfterSave.getFieldValue(otmdefs[0].fieldName);
+        let val1 = await modelBeforeSave.__getFieldValue(otmdefs[0].fieldName);
+        let val2 = await modelFromDbAfterSave.__getFieldValue(otmdefs[0].fieldName);
         if (util.isValidObject(val1) && util.isValidObject(val2) 
             && (val1.length > 0) && (val1.length === val2.length)) {
-            verifyModelUpdates(val1[0], val2[0], testResults);
+            await verifyModelUpdates(val1[0], val2[0], testResults);
         }
     }
 }
@@ -1037,12 +967,12 @@ function loadModelInsertData(metaData) {
     return retval;
 }
     
-function updateModelForTest(metaData, model) {
+async function updateModelForTest(metaData, model) {
     let updateableFields = findUpdateableFields(metaData);
     if (util.isNotValidObject(updateableFields) || (updateableFields.length === 0)) {
         return false;
     } else {
-        let saveValue = model.getFieldValue(updateableFields[0].fieldName);
+        let saveValue = await model.__getFieldValue(updateableFields[0].fieldName);
         let testValue = getTestValue(updateableFields[0]);
 
         if (testValue !== saveValue) {
@@ -1055,9 +985,9 @@ function updateModelForTest(metaData, model) {
         if (util.isValidObject(otmdefs)) {
             for (let i = 0; i < otmdefs.length; ++i) {
                 if (otmdefs[i].cascadeUpdate) {
-                    let otmModels = model.getFieldValue(otmdefs[i].fieldName, true);
+                    let otmModels = await model.__getFieldValue(otmdefs[i].fieldName, true);
                     if (util.isValidObject(otmModels) && (otmModels.length > 0)) {
-                        updateModelForTest(orm.getMetaData(otmdefs[i].targetModelName), otmModels[0]);
+                        await updateModelForTest(orm.getMetaData(otmdefs[i].targetModelName), otmModels[0]);
                         break;
                     }
                 }    
@@ -1265,7 +1195,7 @@ module.exports.outputTestResults = function(nm, testResults) {
 };
 
 
-function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentFunction) {
+async function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentFunction) {
     let retval = false;
     let fields = modelObject.__getMetaData().getFields();
     if (fields) {
@@ -1281,7 +1211,7 @@ function rowToModelMatch(columnNames, rowData, modelObject, testResults, parentF
                     rd = require('../converters/' + field.converter + '.js')(field, rd, true);
                 }
     
-                let fv = modelObject.__getFieldValue(cmap.get(columnNames[i].name).fieldName);
+                let fv = await modelObject.__getFieldValue(cmap.get(columnNames[i].name).fieldName);
                 if (util.isNotValidObject(fv)) {
                     fv = null;
                 }
@@ -1331,7 +1261,7 @@ async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelOb
                     } else if (result.result.rows.length > 1) {
                         testResults.push(require('./testStatus.js')(util.ERROR, 'expected one row for  one-to-one relationship ' + otodefs[i].fieldName + ' found ' + result.result.rows.length,  parentFunction + '.oneToOneRelationshipMatch'));
                     } else if ((curDepth+1) < 2) {
-                        let relobj = modelObject.getFieldValue(otodefs[i].fieldName);
+                        let relobj = await modelObject.__getFieldValue(otodefs[i].fieldName);
                         if (util.isDefined(relobj)) {
                             let repo = orm.getRepository(otodefs[i].targetModelName);
                             let md = orm.getMetaData(otodefs[i].targetModelName);
@@ -1340,7 +1270,7 @@ async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelOb
                             
                             let haveRefFields = true;
                             for (let j = 0; j < pkfields.length; ++j) {
-                                let val = relobj.getFieldValue(pkfields[j].fieldName);
+                                let val = await relobj.__getFieldValue(pkfields[j].fieldName);
                                 if (val) {
                                     params.push(val);
                                 } else {
@@ -1354,7 +1284,7 @@ async function oneToOneRelationshipMatch(repository, curAlias, curDepth, modelOb
                                 if (sql) {
                                     let res = await runQuery(repo.getPoolAlias(), sql, params);
                                     if (res.result.rows.length > 0) {
-                                        rowToModelMatch(res.result.metaData, res.result.rows[0], relobj, testResults, parentFunction);
+                                        await rowToModelMatch(res.result.metaData, res.result.rows[0], relobj, testResults, parentFunction);
                                         await oneToOneRelationshipMatch(repo, otodefs[i].alias, curDepth+1, relobj, testResults, parentFunction);
                                         await oneToManyRelationshipMatch(repo, otodefs[i].alias, curDepth+1, relobj, testResults, parentFunction);
                                     } else if (otodefs[i].required) {
@@ -1382,15 +1312,15 @@ async function oneToManyRelationshipMatch(repository, curAlias, curDepth, modelO
                         testResults.push(require('./testStatus.js')(util.ERROR, result.error, parentFunction + '.oneToManyRelationshipMatch'));
                     } else if (result.result.rows.length > 0) {
                         let repo = orm.getRepository(otmdefs[i].targetModelName);
-                        let childModels = modelObject.getFieldValue(otmdefs[i].fieldName);
+                        let childModels = await modelObject.__getFieldValue(otmdefs[i].fieldName);
 
                         if (util.isValidObject(childModels)) {
                             for (let j = 0; j < childModels.length; ++j) {
                                 let cm = childModels[j];
-                                let rd = findRowDataForModel(result.result.metaData, cm, result.result.rows);
+                                let rd = await findRowDataForModel(result.result.metaData, cm, result.result.rows);
 
                                 if (rd) {
-                                    rowToModelMatch(result.result.metaData, rd, cm, testResults, parentFunction);
+                                    await rowToModelMatch(result.result.metaData, rd, cm, testResults, parentFunction);
 
                                     if (curDepth < 2) {
                                         await oneToOneRelationshipMatch(repo, otmdefs[i].alias, curDepth+1, cm, testResults, parentFunction);
@@ -1408,14 +1338,14 @@ async function oneToManyRelationshipMatch(repository, curAlias, curDepth, modelO
     }
 }
 
-function findRowDataForModel(columnNames, model, rows) {
+async function findRowDataForModel(columnNames, model, rows) {
     let retval;
     let pkfields = model.getMetaData().getPrimaryKeyFields();
     
     let cmap = new Map();
     
     for (let i = 0; i < pkfields.length; ++i) {
-        cmap.set(pkfields[i].columnName, model.getFieldValue(pkfields[i].fieldName));
+        cmap.set(pkfields[i].columnName, await model.__getFieldValue(pkfields[i].fieldName));
     }
     
     for (let i = 0; i < rows.length; ++i) {
@@ -1510,7 +1440,7 @@ function haveTestWarnings(testResults) {
     return retval;
 }
 
-function buildSelectFromRelationship(modelObject, reldef) {
+async function buildSelectFromRelationship(modelObject, reldef) {
     let retval = "select ";
     let md = orm.getMetaData(reldef.targetModelName);
     let comma = '';
@@ -1530,7 +1460,7 @@ function buildSelectFromRelationship(modelObject, reldef) {
     let and = "";
     
     for (let i = 0; i < targetCols.length; ++i) {
-        let val = modelObject.getFieldValue(cmap.get(sourceCols[i]).fieldName);
+        let val = await modelObject.__getFieldValue(cmap.get(sourceCols[i]).fieldName);
         
         if (util.isNotValidObject(val)) {
             retval = null;

@@ -10,14 +10,14 @@ class MSCountry extends Model {
     constructor(metaData) {
         super(metaData);
     }
-    
-    getCountryId() { return this.__getFieldValue("countryId"); }
+
+    async getCountryId() { return await this.__getFieldValue("countryId"); }
     setCountryId(value) { this.__setFieldValue("countryId", value); }
-    
-    getCountry() { return this.__getFieldValue("country"); }
+
+    async getCountry() { return await this.__getFieldValue("country"); }
     setCountry(value) { this.__setFieldValue("country", value); }
-    
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 

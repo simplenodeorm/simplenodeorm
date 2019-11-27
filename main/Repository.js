@@ -37,137 +37,6 @@ module.exports = class Repository {
         this.loadNamedDbOperations();
     }
     
-    async tableExists() {
-        let params = [];
-        params.push(this.getMetaData().tableName);
-        let result = await this.executeSqlQuery('SELECT table_name FROM user_tables where table_name = :tableName', params);
-        if (util.isDefined(result.error)) {
-            util.throwError("SQLError", result.error);
-        }
-        
-        return (util.isDefined(result.result.rows) && (result.result.rows.length> 0) && (result.result.rows[0][0] === this.getMetaData().tableName));
-    }
-    
-    
-    async createTable() {
-        let result = await repo.executeSql(repo.buildCreateTableSql());
-        if (util.isDefined(result.error)) {
-            util.throwError("SQLError", result.error);
-        }
-    }
-
-    async createAutoIncrementGeneratorIfRequired() {
-        let fields = this.getMetaData().fields;
-        let showMessage = true;
-        let dbType = orm.getDbType(this.poolAlias);
-        
-        switch(dbType) {
-            case util.ORACLE:
-                for (let i = 0; i < fields.length; ++i) {
-                    if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                        if (showMessage) {
-                            logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
-                            showMessage = false;
-                        }
-                
-                        let result = this.executeSql('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator + ' START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE');
-                        if (util.isDefined(result.error)) {
-                            util.throwError("SQLError", result.error);
-                        }
-                    }
-                }
-                break;
-            case util.POSTGRES:
-                for (let i = 0; i < fields.length; ++i) {
-                    if (util.isDefined(fields[i].autoIncrementGenerator)) {
-                        if (showMessage) {
-                            logger.logInfo('        creating sequences for ' + newTableRepos[i].getMetaData().getTableName());
-                            showMessage = false;
-                        }
-                
-                        let result = this.query('CREATE SEQUENCE ' + fields[i].autoIncrementGenerator);
-                        if (util.isDefined(result.error)) {
-                            util.throwError("SQLError", result.error);
-                        }
-                    }
-                }
-                break;
-        }
-    }
-
-    buildCreateTableSql() {
-        let retval = 'create table ' + this.getMetaData().tableName + '(';
-        let primaryKey = ' primary key(';
-        let comma = '';
-        let fields = this.getMetaData().fields;
-        
-        for (let i = 0; i < fields.length; ++i) {
-            let f = fields[i];
-            if (f.primaryKey) {
-                primaryKey += (comma + f.columnName);
-                comma = ',';
-            }
-            
-            retval += (' ' + f.columnName + ' ' + f.type);
-            
-            if (util.isDefined(f.length) && util.isDefined(f.decimalDigits)) {
-                retval += '(' + f.length + ', ' + f.decimalDigits + ') ';
-            } else if (util.isUndefined(f.length) && util.isDefined(f.decimalDigits)) {
-                retval += '(' + util.DEFAULT_NUMBER_LENGTH + ', ' + f.decimalDigits + ') ';
-            } else if (util.isDefined(f.length)) {
-                retval += '(' + f.length + ') ';
-            }
-            
-            if (util.isDefined(f.defaultValue)) {
-                retval += (' DEFAULT ' + f.defaultValue);
-            } else if (f.required) {
-                retval += ' NOT NULL ';
-            }
-            
-            retval += ',\n';
-        }
-        
-        retval += (primaryKey + '))');
-        
-        return retval;
-    }
-
-    async createForeignKeys() {
-        let repo = this;
-        let md = repo.getMetaData();
-        let showMessage = true;
-        for (let i = 0; i < md.oneToOneDefinitions.length; ++i) {
-            if (showMessage) {
-                logger.logInfo('        adding foreign keys for table ' + md.tableName);
-                showMessage = false;
-            }
-            await this.createForeignKey(md.oneToOneDefinitions[i]);
-        }
-
-        for (let i = 0; i < md.manyToManyDefinitions.length; ++i) {
-            if (showMessage) {
-                logger.logInfo('        adding foreign keys for table ' + md.tableName);
-                showMessage = false;
-            }
-            await this.createForeignKey(md.manyToManyDefinitions[i]);
-        }
-    }
-    
-    async createForeignKey(fkdef) {
-        let sql = ('alter table ' 
-            + this.getMetaData().tableName 
-            + ' add foreign key (' 
-            + fkdef.joinColumns.sourceColumns
-            + ') references  ' 
-            + fkdef.targetTableName
-            + '(' + fkdef.joinColumns.targetColumns + ')');
-        let result = await this.executeSql(sql);
-        if (util.isDefined(result.error)) {
-            util.throwError("SQLError", result.error);
-        }
-    }
-
-    
     loadNamedDbOperations() {
     }
     
@@ -374,7 +243,7 @@ module.exports = class Repository {
                    if (util.isDefined(otodefs)) {
                        for (let j = 0; j < otodefs.length; ++j) {
                            if (util.isDefined(otodefs[j].cascadeDelete) && otodefs[j].cascadeDelete) {
-                               let rel = l[i].__getFieldValue(otodefs[j].fieldName);
+                               let rel = await l[i].__getFieldValue(otodefs[j].fieldName);
                                if (util.isDefined(rel)) {
                                    let ret = await this.delete(rel, options);
                                    if (ret.error) {
@@ -390,7 +259,7 @@ module.exports = class Repository {
                    if (util.isDefined(otmdefs)) {
                        for (let j = 0; j < otmdefs.length; ++j) {
                            if (util.isDefined(otmdefs[j].cascadeDelete) && otmdefs[j].cascadeDelete) {
-                               let rel = l[i].__getFieldValue(otmdefs[j].fieldName);
+                               let rel = await l[i].__getFieldValue(otmdefs[j].fieldName);
                                if (util.isDefined(rel)) {
                                    let ret2 = await this.delete(rel, options);
                                    if (ret2.error) {
@@ -1039,7 +908,7 @@ module.exports = class Repository {
                 if (Array.isArray(inputParams)) {
                     params.push(inputParams[i]);
                 } else {
-                    params.push(inputParams.__getFieldValue(pkfields[i].fieldName));
+                    params.push(await inputParams.__getFieldValue(pkfields[i].fieldName));
                 }
             }
 
@@ -1387,7 +1256,7 @@ module.exports = class Repository {
                     }
                 }
 
-                populateModel(this,
+                await populateModel(this,
                     't0',
                     0,
                     0,
@@ -2114,7 +1983,7 @@ module.exports = class Repository {
  * @param {type} joinDepth - max joinDepth
  * @param {type} poolAlias - db pool used to pull this object
  */
-function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, result, retval, columnPos, joinDepth, poolAlias) {
+async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, result, retval, columnPos, joinDepth, poolAlias) {
     let otmset = new Set();
     for (let i = curRow; i < result.rows.length; ++i) {
         let curpkp = pkp[joinDepth].get(curAlias);
@@ -2177,7 +2046,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         obj = require(mtodefs[j].targetModule)(orm.getMetaData(mtodefs[j].targetModelName));
                                         curobj.__setFieldValue(mtodefs[j].fieldName, obj);
                                         pkmap.set(key, obj);
-                                        populateModel(
+                                        await populateModel(
                                             r, 
                                             a, 
                                             curDepth+1, 
@@ -2222,7 +2091,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                         obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otodefs[j].targetModule)(orm.getMetaData(otodefs[j].targetModelName));
                                         pkmap.set(key, obj);
                                         curobj.__setFieldValue(otodefs[j].fieldName, obj);
-                                        populateModel(
+                                        await populateModel(
                                             r, 
                                             a, 
                                             curDepth+1, 
@@ -2269,7 +2138,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
                                 if (util.isUndefined(obj)) {
                                     obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
                                     pkmap.set(key, obj);
-                                    populateModel(
+                                    await populateModel(
                                         r,
                                         a,
                                         curDepth + 1,
@@ -2286,7 +2155,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
                                 if (!otmset.has(key)) {
                                     otmset.add(key);
-                                    let l = curobj.__getFieldValue(otmdefs[j].fieldName, true);
+                                    let l = await curobj.__getFieldValue(otmdefs[j].fieldName, true);
 
                                     if (util.isUndefined(l)) {
                                         l = [];
@@ -2295,7 +2164,7 @@ function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInfo, res
 
                                     l.push(obj);
                                 }
-                            } else if (util.isUndefined(curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
+                            } else if (util.isUndefined(await curobj.__getFieldValue(otmdefs[j].fieldName, true))) {
                                curobj.__setFieldValue(otmdefs[j].fieldName, null);
                             }
                         }

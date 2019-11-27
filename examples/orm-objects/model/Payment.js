@@ -11,34 +11,34 @@ class Payment extends Model {
         super(metaData);
     }
 
-    getPaymentId() { return this.__getFieldValue("paymentId"); }
+    async getPaymentId() { return await this.__getFieldValue("paymentId"); }
     setPaymentId(value) { this.__setFieldValue("paymentId", value); }
-    
-    getCustomerId() { return this.__getFieldValue("customerId"); }
+
+    async getCustomerId() { return await this.__getFieldValue("customerId"); }
     setCustomerId(value) { this.__setFieldValue("customerId", value); }
-    
-    getStaffId() { return this.__getFieldValue("staffId"); }
+
+    async getStaffId() { return await this.__getFieldValue("staffId"); }
     setStaffId(value) { this.__setFieldValue("staffId", value); }
-    
-    getRentalId() { return this.__getFieldValue("rentalId"); }
+
+    async getRentalId() { return await this.__getFieldValue("rentalId"); }
     setRentalId(value) { this.__setFieldValue("rentalId", value); }
 
-    getAmount() { return this.__getFieldValue("amount"); }
+    async getAmount() { return await this.__getFieldValue("amount"); }
     setAmount(value) { this.__setFieldValue("amount", value); }
 
-    getPaymentDate() { return this.__getFieldValue("paymentDate"); }
+    async getPaymentDate() { return await this.__getFieldValue("paymentDate"); }
     setPaymentDate(value) { this.__setFieldValue("paymentDate", value); }
 
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 
-    getRental() { return this.__getFieldValue("rental"); }
+    async getRental() { return await this.__getFieldValue("rental"); }
     setRental(value) { this.__setFieldValue("rental", value); }
 
-    getCustomer() { return this.__getFieldValue("customer"); }
+    async getCustomer() { return await this.__getFieldValue("customer"); }
     setCustomer(value) { this.__setFieldValue("customer", value); }
 
-    getStaff() { return this.__getFieldValue("staff"); }
+    async getStaff() { return await this.__getFieldValue("staff"); }
     setStaff(value) { this.__setFieldValue("staff", value); }
 }
 

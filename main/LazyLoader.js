@@ -4,21 +4,11 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-const sleepTime = orm.appConfiguration.deasyncSleepTimeMillis || 200;
-const maxDeasyncWaitTime = orm.appConfiguration.maxDeasyncWaitTime || 30000;
-var deasync = require('deasync');
 
-module.exports.lazyLoadData = function (model, fieldName) {
+module.exports.lazyLoadData = async function (model, fieldName) {
     let resultWrapper = {result: undefined, error: undefined};
-    loadData(model, fieldName, resultWrapper);
+    await loadData(model, fieldName, resultWrapper);
 
-    let startTime = Date.now();
-    while (util.isUndefined(resultWrapper.result) 
-        && util.isUndefined(resultWrapper.error)
-        && ((Date.now() - startTime) < maxDeasyncWaitTime)) {
-        deasync.sleep(sleepTime);
-    }
-    
     if (util.isDefined(resultWrapper.error)) {
         util.thowError('LazyLoadError', resultWrapper.error);
     } else if (util.isDefined(resultWrapper.result)) {
@@ -45,7 +35,7 @@ async function loadData(model, fieldName, resultWrapper) {
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + pkfields[i].columnName + ' = ? ');
             and = ' and ';
-            params.push(model.__getFieldValue(pkfields[i].fieldName));
+            params.push(await model.__getFieldValue(pkfields[i].fieldName));
         }
 
         let ret = await repo.executeSqlQuery(sql, params, {maxRows: 1, poolAlias: model.__poolAlias__});
@@ -72,7 +62,7 @@ async function loadData(model, fieldName, resultWrapper) {
                         let fnm = md.getFieldNameFromColumnName(srccols[i]);
                         
                         if (util.isDefined(fnm)) {
-                            let srcval = model.__getFieldValue(fnm);
+                            let srcval = await model.__getFieldValue(fnm);
                             
                             // no query if no reference key
                             if (util.isUndefined(srcval)) {

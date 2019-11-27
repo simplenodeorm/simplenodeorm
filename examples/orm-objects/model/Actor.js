@@ -11,16 +11,16 @@ class Actor extends Model {
         super(metaData);
     }
     
-    getActorId() { return this.__getFieldValue("actorId"); }
+    async getActorId() { return await this.__getFieldValue("actorId"); }
     setActorId(value) { this.__setFieldValue("actorId", value); }
     
-    getFirstName() { return this.__getFieldValue("firstName"); }
+    async getFirstName() { return await this.__getFieldValue("firstName"); }
     setFirstName(value) { this.__setFieldValue("firstName", value); }
     
-    getLastName() { return this.__getFieldValue("lastName"); }
+    async getLastName() { return await this.__getFieldValue("lastName"); }
     setLastName(value) { this.__setFieldValue("lastName", value); }
     
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 }
 

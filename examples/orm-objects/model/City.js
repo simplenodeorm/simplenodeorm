@@ -10,20 +10,20 @@ class City extends Model {
     constructor(metaData) {
         super(metaData);
     }
-    
-    getCityId() { return this.__getFieldValue("cityId"); }
+
+    async getCityId() { return await this.__getFieldValue("cityId"); }
     setCityId(value) { this.__setFieldValue("cityId", value); }
-    
-    getCity() { return this.__getFieldValue("city"); }
+
+    async getCity() { return await this.__getFieldValue("city"); }
     setCity(value) { this.__setFieldValue("city", value); }
-    
-    getCountryId() { return this.__getFieldValue("countryId"); }
+
+    async getCountryId() { return await this.__getFieldValue("countryId"); }
     setCountryId(value) { this.__setFieldValue("countryId", value); }
-    
-    getLastUpdate() { return this.__getFieldValue("lastUpdate"); }
+
+    async getLastUpdate() { return await this.__getFieldValue("lastUpdate"); }
     setLastUpdate(value) { this.__setFieldValue("lastUpdate", value); }
 
-    getCountry() { return this.__getFieldValue("country"); }
+    async getCountry() { return await this.__getFieldValue("country"); }
     setCountry(value) { this.__setFieldValue("country", value); }
 }
 

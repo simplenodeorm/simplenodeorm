@@ -19,7 +19,7 @@ module.exports.run = async function(orm) {
             let md = orm.getMetaData(models[i].name);
             assert(util.isDefined(md), 'failed to load metadata for model ' + models[i].name);
             assert(md.getObjectName() === models[i].name, 'model/metadata mismatch: expected ' + models[i].name + ' but found ' + md.getObjectName());
-            modelTester.test(orm.newModelInstance(md), md);
+            await modelTester.test(orm.newModelInstance(md), md);
         }
         
         catch (e) {
