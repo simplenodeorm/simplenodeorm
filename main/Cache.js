@@ -71,7 +71,11 @@ class Cache {
     }
 
     async keys() {
-        return await this.client.keys("*");
+        if (this.config.redisCache) {
+            return await this.client.keys("*");
+        } else {
+            return await this.client.keys();
+        }
     }
 }
 
