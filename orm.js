@@ -230,7 +230,7 @@ function startApiServer() {
         apiServer = express();
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
-        apiServer.options('*', cors());
+        apiServer.use(cors());
 
 
         const authorizer = new (require(appConfiguration.authorizer));
