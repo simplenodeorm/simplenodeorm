@@ -4,7 +4,7 @@
   "certLocation": "cert",
   "defaultMaxJoinDepth" : 4,
   "defaultDesignTableDepth": 4,
-  "apiPort" : 8888,
+  "apiPort" : 8989,
   "logFile" : "orm.log",
   "logLevel" : "info",
   "maxRowsForGetAll" : 1000,
@@ -24,17 +24,5 @@
   "redisCache": false,
   "redisClusterPort": 6666,
   "redisClusterHost": "localhost",
-  "corsEntries": [
-    {
-      "header": "Access-Control-Allow-Origin",
-      "value": "*"
-
-    },
-    {
-      "header": "Access-Control-Allow-Methods",
-      "value": "PUT, GET, POST, DELETE, OPTIONS'"
-
-    }
-  ],
   "aliases" : {}
 }

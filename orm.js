@@ -158,8 +158,6 @@ function getDbType(poolAlias) {
 
 module.exports.getDbType = getDbType;
 
-
-
 function getModelNameFromPath(path) {
     let retval = path;
     let pos = path.lastIndexOf('/');
@@ -226,11 +224,14 @@ function startApiServer() {
     logger.logInfo('starting api server...');
     let apiServer;
     try {
+        const cors = require('cors');
         const express = require('express');
         const bodyParser = require('body-parser');
         apiServer = express();
         apiServer.use(bodyParser.urlencoded({limit: '5MB', extended: false}));
         apiServer.use(bodyParser.json({limit: '5MB'}));
+        apiServer.options('*', cors());
+
 
         const authorizer = new (require(appConfiguration.authorizer));
 
@@ -255,12 +256,6 @@ function startApiServer() {
         apiServer.all('*', async function (req, res, next) {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in apiServer.all");
-            }
-            for (let i = 0; i < appConfiguration.corsEntries.length; ++i) {
-                res.header(appConfiguration.corsEntries[i].header, appConfiguration.corsEntries[i].value);
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("cors[" + appConfiguration.corsEntries[i].header + "]=" + appConfiguration.corsEntries[i].value);
-                }
             }
 
             let session = await getSession(req);
