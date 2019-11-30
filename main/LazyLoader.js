@@ -64,7 +64,7 @@ async function loadData(model, fieldName) {
     }
 
     if (orm.logger.isLogDebugEnabled()) {
-        orm.logger.logDebug("loadData.result=" + JSON.stringfy(retval));
+        orm.logger.logDebug("loadData.result=" + JSON.stringify(retval));
     }
     return retval;
 }
