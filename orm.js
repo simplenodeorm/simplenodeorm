@@ -879,7 +879,7 @@ function startApiServer() {
 }
 
 async function startTransaction(repo, options) {
-    let conn = await getConnection(option.poolAlias);
+    let conn = await getConnection(options.poolAlias);
     await repo.doBeginTransaction(conn);
     options.conn = conn;
 }
