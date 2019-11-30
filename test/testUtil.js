@@ -689,7 +689,6 @@ function sleep(milliseconds) {
 }
 
 module.exports.testUpdate = async function(repository, rows, conn, testResults) {
-    let testList = [];
     logger.logInfo("            testing update");
     if (!orm.testConfiguration.modelsToExcludeFromUpdateTests
         || !orm.testConfiguration.modelsToExcludeFromUpdateTests.includes(repository.getMetaData().getObjectName())) {
@@ -714,6 +713,7 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                         poolAlias: orm.testConfiguration.poolAlias,
                         conn: conn
                     });
+
                     if (util.isDefined(res.error)) {
                         testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
                     } else {
@@ -739,8 +739,6 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                                     testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
                                 } else {
                                     await verifyModelUpdates(m, res2.result, testResults);
-                                    // use for list update test
-                                    testList.push(res2.result);
                                 }
                             }
                         } else {
@@ -750,27 +748,6 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                 }
             }
 
-            repository.doRollback(conn);
-
-            if (testList.length > 0) {
-                for (let i = 0; i < testList.length; ++i) {
-                    await updateModelForTest(md, testList[i]);
-                }
-                let res = await repository.save(testList, {
-                    poolAlias: orm.testConfiguration.poolAlias,
-                    "conn": conn,
-                    returnValues: true
-                });
-                if (util.isDefined(res.error)) {
-                    testResults.push(require('./testStatus.js')(util.ERROR, res.error, util.SAVE + '[update]'));
-                } else if (util.isUndefined(res.updatedValues)) {
-                    testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
-                } else {
-                    for (let i = 0; i < testList.length; ++i) {
-                        await verifyModelUpdates(testList[i], res.updatedValues[i], testResults);
-                    }
-                }
-            }
         } catch (e) {
             testResults.push(require('./testStatus.js')(util.ERROR, "update test failed - " + e, util.SAVE));
         }
@@ -890,7 +867,7 @@ async function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testRes
             if (util.isValidObject(fields[i].versionColumn) && fields[i].versionColumn) {
                 if (modelBeforeSave.__isModified()) {
                     if (Number(val1) >= Number(val2)) {
-                        testResults.push(require('./testStatus.js')(util.ERROR, 'version column value match on ' + onm + '.' + fields[i].fieldName + ' - expected updated version[' + val2 + '] to be great than original version[' + val1 + ']', util.SAVE + '[update]'));
+                        testResults.push(require('./testStatus.js')(util.ERROR, 'version column value match on ' + onm + '.' + fields[i].fieldName + ' - expected updated version[' + val2 + '] to be greater than original version[' + val1 + ']', util.SAVE + '[update]'));
                     }
                 }
             } else {
