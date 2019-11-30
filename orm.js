@@ -270,8 +270,24 @@ function startApiServer() {
             } else if (req.url.endsWith("/login")) {
                 next();
             } else if (session && cacheVal) {
-                myCache.set(session, cacheVal, getCacheTimeout("sessionCacheTimeout"));
-                next();
+                let pos = session.indexOf(".");
+                if (pos > -1) {
+                    let context = session.substring(0, pos);
+                    if (logger.isLogDebugEnabled()) {
+                        logger.logDebug("session context=" + context);
+                        logger.logDebug("url context=" + util.getContextFromUrl(req));
+                    }
+                    if (context === util.getContextFromUrl(req)) {
+                        myCache.set(session, cacheVal, getCacheTimeout("sessionCacheTimeout"));
+                        next();
+                    } else {
+                        res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                        res.sendStatus(401);
+                    }
+                }  else {
+                    res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+                    res.sendStatus(401);
+                }
             } else {
                 let user = basicAuth(req);
 

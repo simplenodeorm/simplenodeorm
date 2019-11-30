@@ -1097,7 +1097,7 @@ module.exports = class Repository {
                 logger.logDebug("in Repository.executeSqlQuery(), before get connection");
                 logger.logDebug('input parameters: ' + util.toString(parameters));
                 logger.logDebug('sql: ' + sql);
-                logger.logDebug('poolAlias: ' + option.poolAlias);
+                logger.logDebug('poolAlias: ' + options.poolAlias);
             }
             if (util.isValidObject(options.conn)) {
                 conn = options.conn;
