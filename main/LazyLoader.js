@@ -6,17 +6,17 @@ const orm = require('../orm.js');
 const util = require('./util.js');
 
 module.exports.lazyLoadData = async function (model, fieldName) {
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("lazyLoadData: " + JSON.stringify(model));
+    }
+
     let result = await loadData(model, fieldName);
 
-    if (result) {
-        if (util.isDefined(result.error)) {
-            util.throwError('LazyLoadError', result.error);
-        } else {
-            model.__setFieldValue(fieldName, result);
-        }
-    } else {
-        model.__setFieldValue(fieldName, null);
+    if (result && result.error) {
+        util.throwError('LazyLoadError', result.error);
     }
+
+    return result;
 };
 
 async function loadData(model, fieldName) {

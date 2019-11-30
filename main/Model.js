@@ -44,8 +44,10 @@ class Model {
             if (util.isUndefined(lazyLoader)) {
                 lazyLoader = require('./LazyLoader.js');
             }
-            
-            await lazyLoader.lazyLoadData(this, fieldName);
+
+
+            this[fieldName] = await lazyLoader.lazyLoadData(this, fieldName);
+            retval = this[fieldName];
         }
         
         return retval;
