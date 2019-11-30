@@ -716,10 +716,9 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                         // different timestamps for fields that
                         // use time as version
                         sleep(500);
-                        let res2 = await repository.save(m, {
+                        await repository.save(m, {
                             conn: conn,
-                            poolAlias: orm.testConfiguration.poolAlias,
-                            returnValues: true
+                            poolAlias: orm.testConfiguration.poolAlias
                         });
                         if (util.isDefined(res2.error)) {
                             testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
@@ -727,9 +726,14 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                             if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
                                 testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
                             } else {
-                                await verifyModelUpdates(m, res2.updatedValues[0], testResults);
-                                // use for list update test
-                                testList.push(res2.updatedValues[0]);
+                                let res2 = await repository.findOne(params, {poolAlias: orm.testConfiguration.poolAlias, conn: conn});
+                                if (util.isDefined(res2.error)) {
+                                    testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
+                                } else {
+                                    await verifyModelUpdates(m, res2.result, testResults);
+                                    // use for list update test
+                                    testList.push(res2.updatedValues[0]);
+                                }
                             }
                         }
                     } else {
