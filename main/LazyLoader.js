@@ -39,9 +39,10 @@ async function loadData(model, fieldName) {
                     }
                 }
 
-                let options = {poolAlias: model.__poolAlias__, joinDepth: 0};
+                const options = {poolAlias: model["__poolAlias__"], joinDepth: 0};
                 if (orm.logger.isLogDebugEnabled()) {
-                    orm.logger.logDebug("LazyLoader.loadData.find: " + JSON.stringify(options));
+                    orm.logger.logDebug("LazyLoader.loadData.find: options=" + JSON.stringify(options));
+                    orm.logger.logDebug("LazyLoader.loadData.find: model=" + JSON.stringify(model));
                 }
                 let res = await refrepo.find(criteria, [], options);
                 if (util.isDefined(res.error)) {
@@ -58,6 +59,9 @@ async function loadData(model, fieldName) {
             retval = {error: ref.targetModelName + ' repository not found'};
         }
     }
-        
+
+    if (orm.logger.isLogDebugEnabled()) {
+        orm.logger.logDebug("loadData.result=" + JSON.stringfy(result));
+    }
     return retval;
 }
