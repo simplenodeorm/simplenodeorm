@@ -158,7 +158,7 @@ module.exports = class Repository {
         let sql = (this.getSelectClause(options.joinDepth) + " from " + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth) + where);
 
 
-        if (util.isDefined(orderByEntries)) {
+        if (util.isDefined(orderByEntries) && (orderByEntries.length > 0)) {
             let comma = '';
             for (let i = 0; i < orderByEntries.length; ++i) {
                 if (i === 0) {
@@ -183,6 +183,8 @@ module.exports = class Repository {
 
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("before find.executeQuery");
+            logger.logDebug("sql: " + sql);
+            logger.logDebug("poolAlias: " + options.poolAlias);
         }
         let retval = await this.executeQuery(sql, params, options);
 
@@ -1209,6 +1211,7 @@ module.exports = class Repository {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in Repository.executeQuery(): before executeSqlQuery");
                 logger.logDebug("sql: " + sql);
+                logger.logDebug("poolAlias: " + options.poolAlias);
                 logger.logDebug("parameters: " + JSON.stringify(parameters));
             }
 
