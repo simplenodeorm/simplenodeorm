@@ -1981,7 +1981,7 @@ async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInf
             if (util.isUndefined(curobj)) {
                 curobj = require(orm.appConfiguration.ormModuleRootPath + "/" + repo.getMetaData().getModule())(orm.getMetaData(objname));
                 curobj.__poolAlias__ = poolAlias;
-                curobj.__new__ = true;
+                curobj.__new__ = false;
                 curobj.__modified__ = false;
                 pkmap.set(objkey, curobj);
 
@@ -2026,6 +2026,10 @@ async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInf
                                     let obj = pkmap.get(key);
                                     if (util.isUndefined(obj)) {
                                         obj = require(mtodefs[j].targetModule)(orm.getMetaData(mtodefs[j].targetModelName));
+                                        obj.__poolAlias__ = poolAlias;
+                                        obj.__new__ = false;
+                                        obj.__modified__ = false;
+
                                         curobj.__setFieldValue(mtodefs[j].fieldName, obj);
                                         pkmap.set(key, obj);
                                         await populateModel(
@@ -2071,6 +2075,9 @@ async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInf
                                     let obj = pkmap.get(key);
                                     if (util.isUndefined(obj)) {
                                         obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otodefs[j].targetModule)(orm.getMetaData(otodefs[j].targetModelName));
+                                        obj.__poolAlias__ = poolAlias;
+                                        obj.__new__ = false;
+                                        obj.__modified__ = false;
                                         pkmap.set(key, obj);
                                         curobj.__setFieldValue(otodefs[j].fieldName, obj);
                                         await populateModel(
@@ -2119,6 +2126,9 @@ async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInf
                                 let obj = pkmap.get(key);
                                 if (util.isUndefined(obj)) {
                                     obj = require(orm.appConfiguration.ormModuleRootPath + "/" + otmdefs[j].targetModule)(orm.getMetaData(otmdefs[j].targetModelName));
+                                    obj.__poolAlias__ = poolAlias;
+                                    obj.__new__ = false;
+                                    obj.__modified__ = false;
                                     pkmap.set(key, obj);
                                     await populateModel(
                                         r,
