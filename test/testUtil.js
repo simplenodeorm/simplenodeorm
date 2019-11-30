@@ -843,18 +843,22 @@ async function verifyModelUpdates(modelBeforeSave, modelFromDbAfterSave, testRes
 
         if (util.isValidObject(val1) && util.isValidObject(val2)) {
             if (val1 instanceof Date) {
-                // round of millis
-                val1.setSeconds(val1.getSeconds(), 0);
-                val1 = val1.getTime();
+                if (!fields[i].versionColumn) {
+                    // round of millis
+                    val1.setSeconds(val1.getSeconds(), 0);
+                    val1 = val1.getTime();
+                }
             } else if (val1 instanceof Object) {
                 val1 = util.toString(val1);
                 val1 = val1.trim();
             }
 
             if (val2 instanceof Date) {
-                // round off millis
-                val2.setSeconds(val2.getSeconds(), 0);
-                val2 = val2.getTime();
+                if (!fields[i].versionColumn) {
+                    // round off millis
+                    val2.setSeconds(val2.getSeconds(), 0);
+                    val2 = val2.getTime();
+                }
             } else if (val2 instanceof Object) {
                 val2 = util.toString(val2);
                 val2 = val2.trim();
