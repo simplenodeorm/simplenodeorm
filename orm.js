@@ -77,9 +77,7 @@ function loadOrm() {
     loadOrmDefinitions();
 
     modelList.sort(function(a, b) {
-        let s1 = (a.poolAlias + '.' + a.name);
-        let s2 = (b.poolAlias + '.' + b.name);
-        return (s1 < s2)
+        return (a.name < b.name)
     });
 
     // ensure no changes after load
@@ -134,12 +132,12 @@ async function getConnection(poolAlias) {
                 break;
             default:
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("before " + poolAlias + " pool.getConection()");
+                    logger.logDebug("before " + poolAlias + " pool.getConnection()");
                 }
 
                 retval = await pool.getConnection();
                 if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("after " + poolAlias + " pool.getConection()");
+                    logger.logDebug("after " + poolAlias + " pool.getConnection()");
                 }
                 break;
         }
@@ -182,7 +180,7 @@ function loadOrmDefinitions() {
         let md = new (require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/metadata').replace('.js', 'MetaData.js')));
         if (util.isDefined(md)) {
             let repo = require(modelFiles[i].replace(appConfiguration.ormModuleRootPath + '/model', appConfiguration.ormModuleRootPath + '/repository').replace('.js', 'Repository.js'))(md);
-            modelList.push({poolAlias: repo.getPoolAlias(), name: modelName});
+            modelList.push(modelName);
             repositoryMap.set(modelName.toLowerCase(), repo);
             if (md.getOneToOneDefinitions()) {
                 for (let k = 0; k < md.getOneToOneDefinitions().length; ++k) {
@@ -865,7 +863,7 @@ function startApiServer() {
 }
 
 async function startTransaction(repo, options) {
-    let conn = await getConnection(repo.getPoolAlias());
+    let conn = await getConnection(option.poolAlias);
     await repo.doBeginTransaction(conn);
     options.conn = conn;
 }
@@ -873,27 +871,15 @@ async function startTransaction(repo, options) {
 async function endTransaction(repo, result, options) {
     if (options.conn) {
         if (result.error) {
-            repo.doRollback(options.conn);
+            await repo.doRollback(options.conn);
         } else {
-            repo.doCommit(options.conn);
+            await repo.doCommit(options.conn);
         }
 
-        switch(orm.getDbType(repo.poolAlias)) {
-            case util.ORACLE:
-                await options.conn.close();
-                break;
-            case util.MYSQL:
-                await options.conn.release();
-                break;
-            case util.POSTGRES:
-                await options.conn.release();
-                break;
-        }
-
+        await repo.releaseConnection(options.conn);
         options.conn = '';
     }
 }
-
 
 function populateWhereFromRequestInput(input) {
     if (util.isUndefined(input)) {
@@ -964,7 +950,7 @@ async function loadLookupList(lookupDef, ctx) {
         logger.logInfo("lookupDefinition=" + JSON.stringify(lookupDef));
     }
 
-    let cacheKey = "reportlookuplist." + lookupDef.table + "." + lookupDef.key;
+    let cacheKey = "lookuplist." + lookupDef.table + "." + lookupDef.key;
 
     let retval = await myCache.getJson(cacheKey);
 

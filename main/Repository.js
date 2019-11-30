@@ -6,21 +6,20 @@
 
 const orm = require('../orm.js');
 const util = require('./util.js');
-const insertSqlMap = new Map();
 const logger = require('./Logger.js');
 
 /**
  * this class is the heart of the orm - all the relations to object graph logic occurs here as well as the sql operations
  */
 module.exports = class Repository {
-    constructor(poolAlias, metaData) {
+    constructor(metaData, dbType) {
         this.metaData = metaData;
-        this.poolAlias = poolAlias;
         this.selectedColumnFieldInfo = [];
         this.columnPositions = [];
         this.pkPositions = [];
         this.namedDbOperations = new Map();
         this.generatedSql = [];
+        this.dbType = dbType;
         
         // default named db operations
         this.namedDbOperations.set(util.FIND_ONE, this.buildFindOneNamedOperation(metaData));
@@ -38,14 +37,6 @@ module.exports = class Repository {
     }
     
     loadNamedDbOperations() {
-    }
-    
-    /**
-     * 
-     * @returns pool alias associated with this repository
-     */
-    getPoolAlias() {
-        return this.poolAlias;
     }
     
     /**
@@ -106,15 +97,27 @@ module.exports = class Repository {
     async count(whereComparisons, options) {
         options = checkOptions(options);
         let sql = 'select count(';
-        let sep = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
-        sql += 'distinct ';
-        for (let i = 0; i < pkfields.length; ++i) {
-            sql += (sep + 't0.' + pkfields[i].columnName);
-            sep = ' || \'.\' ||';
+
+        if (pkfields.length > 1) {
+            sql += ' concat('
         }
-        
-        sql += (') from ' + this.metaData.getTableName() + ' t0 ' + this.getJoinClause(options.joinDepth));
+
+        let comma = '';
+        for (let i = 0; i < pkfields.length; ++i) {
+            sql += (comma + 't0.' + pkfields[i].columnName);
+            comma = ',\'.\',';
+         }
+
+        if (pkfields.length > 1) {
+            sql += ') ';
+        }
+
+        let join = this.getJoinClause(options.joinDepth);
+        if (!join) {
+            join = ''
+        }
+        sql += (') from ' + this.metaData.getTableName() + ' t0 ' + join);
         let params = [];
         if (util.isDefined(whereComparisons) && (whereComparisons.length > 0)) {
             sql += this.buildWhereClause(whereComparisons);
@@ -438,7 +441,21 @@ module.exports = class Repository {
         
         return retval;
     }
-    
+
+    async releaseConnection(conn) {
+        switch(this.dbType) {
+            case util.ORACLE:
+                await conn.close();
+                break;
+            case util.MYSQL:
+                await conn.release();
+                break;
+            case util.POSTGRES:
+                await conn.release();
+                break;
+        }
+    }
+
     async getCurrentVersion(model, options) {
         let md = this.metaData;
         let sql = ('select ' + md.getVersionField().columnName + ' from ' + md.tableName + ' where ');
@@ -446,10 +463,9 @@ module.exports = class Repository {
         let params = [];
         let pkfields = md.getPrimaryKeyFields();
         let and = '';
-        let dbType = orm.getDbType(this.poolAlias);
-        for (let i = 0; i < pkfields.length; ++i) {
+         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + pkfields[i].columnName + ' = ');
-            switch(dbType) {
+            switch(this.dbType) {
                 case util.ORACLE:
                     sql += (':p' + pkfields[i].fieldName);
                     break;
@@ -526,12 +542,11 @@ module.exports = class Repository {
         options = checkOptions(options);
         let retval = [];
         let fields = this.getMetaData().fields;
-        let dbType = orm.getDbType(this.poolAlias);
         for (let i = 0; i < fields.length; ++i) {
             let val = doConversionIfRequired(fields[i], model[fields[i].fieldName], false);
             if (util.isNotValidObject(val) && (fields[i].required || util.isDefined(fields[i].defaultValue))) {
                 if (util.isValidObject(fields[i].autoIncrementGenerator)) {
-                    if ((dbType === util.ORACLE) || (dbType === util.POSTGRES)) {
+                    if ((this.dbType === util.ORACLE) || (this.dbType === util.POSTGRES)) {
                         val = await this.getAutoIncrementValue(fields[i].autoIncrementGenerator, options);
                         model.__setFieldValue(fields[i].fieldName, val);
                     }
@@ -611,7 +626,7 @@ module.exports = class Repository {
                         
                     }
                 } else if (this.isGeometryType(fields[i]) && util.isDefined(val)) {
-                    val = 'POINT(' + val.x + ' ' + val.y + ')';
+                    retval.push('POINT(' + val.x + ' ' + val.y + ')');
                 } else {
                     retval.push(val);
                 }
@@ -643,10 +658,9 @@ module.exports = class Repository {
         let mr = options.maxRows;
         options.maxRows = 1;
         
-        let dbType  = orm.getDbType(this.poolAlias);
         let res;
         
-        switch(dbType) {
+        switch(this.dbType) {
             case util.ORACLE:
                 res = await this.executeSqlQuery('select ' + name + '.nextVal from dual', [], options);
                 break;
@@ -675,45 +689,41 @@ module.exports = class Repository {
      * @returns insert sql string
      */
     getInsertSql(model) {
-        let retval = insertSqlMap.get(model.__model__);
-        if (util.isNotValidObject(retval)) {
-            let md = this.getMetaData();
-            retval = ('insert into ' + md.tableName+ '(');
-            let fields = md.fields;
-            let comma = '';
-            for (let i = 0; i < fields.length; ++i) {
-                retval += (comma + fields[i].columnName);
-                comma = ',';
-            }
-
-            retval += ') values (';
-
-            let dbType = orm.getDbType(this.poolAlias);
-            comma = '';
-            for (let i = 0; i < fields.length; ++i) {
-                switch(dbType) {
-                    case util.ORACLE:
-                        retval += (comma + ' :' + (fields[i].fieldName));
-                        break;
-                    case util.MYSQL:
-                        if (this.isGeometryType(fields[i])) {
-                            retval += (comma + ' ST_GeomFromText(?)');
-                        } else if (this.isBlobType(fields[i])) {
-                            retval += (comma + ' BINARY(?)');
-                        } else {
-                            retval += (comma + ' ?');
-                        }
-                        break;
-                    case util.POSTGRES:
-                        retval += (comma + ' $' + (i+1));
-                        break
-                }
-                comma = ',';
-            }
-
-            retval += ')';
-            insertSqlMap.set(md.getObjectName(), retval);
+        let retval;
+        let md = this.getMetaData();
+        retval = ('insert into ' + md.tableName+ '(');
+        let fields = md.fields;
+        let comma = '';
+        for (let i = 0; i < fields.length; ++i) {
+            retval += (comma + fields[i].columnName);
+            comma = ',';
         }
+
+        retval += ') values (';
+
+        comma = '';
+        for (let i = 0; i < fields.length; ++i) {
+            switch(this.dbType) {
+                case util.ORACLE:
+                    retval += (comma + ' :' + (fields[i].fieldName));
+                    break;
+                case util.MYSQL:
+                    if (this.isGeometryType(fields[i])) {
+                        retval += (comma + ' ST_GeomFromText(?)');
+                    } else if (this.isBlobType(fields[i])) {
+                        retval += (comma + ' BINARY(?)');
+                    } else {
+                        retval += (comma + ' ?');
+                    }
+                    break;
+                case util.POSTGRES:
+                    retval += (comma + ' $' + (i+1));
+                    break
+            }
+            comma = ',';
+        }
+
+        retval += ')';
 
         return retval;
     }
@@ -724,7 +734,6 @@ module.exports = class Repository {
      * @returns update sql string
      */
    getUpdateSql(model) {
-        let nm = model.__model__;
         let retval;
         let md = this.getMetaData();
         retval = ('update ' + md.tableName + ' ');
@@ -733,10 +742,10 @@ module.exports = class Repository {
         let comma = '';
         let and = '';
         let set = ' set ';
-        let dbType = orm.getDbType(this.poolAlias);
+
         for (let i = 0; i < fields.length; ++i) {
             if (util.isDefined(fields[i].primaryKey) && fields[i].primaryKey) {
-                switch(dbType) {
+                switch(this.dbType) {
                     case util.ORACLE:
                         where += (and + fields[i].columnName + ' = :' + fields[i].fieldName);
                         break;
@@ -749,7 +758,7 @@ module.exports = class Repository {
                 }
                 and = ' and ';
             } else {
-                switch(dbType) {
+                switch(this.dbType) {
                     case util.ORACLE:
                         retval += (comma + set + fields[i].columnName + ' = :' + fields[i].fieldName);
                         break;
@@ -772,7 +781,6 @@ module.exports = class Repository {
         }
 
         retval += where;
-
         return retval;
     }
 
@@ -886,11 +894,11 @@ module.exports = class Repository {
             let sql = 'select count(*) from ' + this.getMetaData().getTableName() + ' where  ';
             let and = '';
             let params = [];
-            let dbType = orm.getDbType(this.poolAlias);
+
             for (let i = 0; i < pkfields.length; ++i) {
                 sql += (and + pkfields[i].columnName  + ' = ');
 
-                switch(dbType) {
+                switch(this.dbType) {
                     case util.ORACLE:
                         sql += (':p' + pkfields[i].fieldName);
                         break;
@@ -1003,7 +1011,7 @@ module.exports = class Repository {
     
     currentDateFunctionName() {
         let retval;
-        switch(orm.getDbType(this.poolAlias)) {
+        switch(this.dbType) {
             case util.ORACLE:
                 retval = 'sysdate';
                 break;
@@ -1081,8 +1089,6 @@ module.exports = class Repository {
                 conn = options.conn;
             } else if (options.poolAlias) {
                 conn = await orm.getConnection(options.poolAlias);
-            } else {
-                conn = await orm.getConnection(this.getPoolAlias());
             }
 
             if (logger.isLogDebugEnabled()) {
@@ -1119,7 +1125,7 @@ module.exports = class Repository {
     }
     
     closeDatabaseConnection(conn) {
-        switch(orm.getDbType(this.poolAlias)) {
+        switch(this.dbType) {
             case util.ORACLE:
                 if (logger.isLogDebugEnabled()) {
                     logger.logDebug("closing connection for oracle pool ");
@@ -1143,16 +1149,13 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificQuery(conn, sql, parameters, options) {
         let retval;
+
         try {
-            let poolAlias = this.poolAlias;
-            if (options.poolAlias) {
-                poolAlias = options.poolAlias;
-            }
 
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("executeDatabaseSpecificQuery - before execute");
             }
-            switch (orm.getDbType(poolAlias)) {
+            switch (this.dbType) {
                 case util.ORACLE:
                     retval = await conn.execute(sql, parameters, options);
                     break;
@@ -1177,7 +1180,7 @@ module.exports = class Repository {
     
     async executeDatabaseSpecificSql(conn, sql, parameters, options) {
         let retval;
-        switch (orm.getDbType(this.poolAlias)) {
+        switch (this.dbType) {
             case util.ORACLE:
                 retval = await conn.execute(sql, parameters, options);
                 break;
@@ -1315,8 +1318,6 @@ module.exports = class Repository {
                 conn = options.conn;
             } else if (options.poolAlias) {
                 conn = await orm.getConnection(options.poolAlias);
-            } else {
-                conn = await orm.getConnection(this.getPoolAlias());
             }
 
             let res = await this.executeDatabaseSpecificSql(conn, sql, parameters, options);
@@ -1330,11 +1331,9 @@ module.exports = class Repository {
         }
 
         catch (err) {
-            if (!orm.appConfiguration.testMode) {
-                logger.logError(this.getMetaData().getObjectName() + 'Repository.executeSql()', err);
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug(sql);
-                }
+            logger.logError(this.getMetaData().getObjectName() + 'Repository.executeSql()', err);
+            if (logger.isLogDebugEnabled()) {
+                logger.logDebug(sql);
             }
 
             return {error: err};
@@ -1373,7 +1372,7 @@ module.exports = class Repository {
             if (this.isStandardOqlSelect(oql)) {
                 op = this.getSelectClause(options.joinDepth);
             } else if (this.isDelete(oql)) {
-                if (orm.getDbType(this.poolAlias) === util.MYSQL) {
+                if (this.dbType === util.MYSQL) {
                     op = 'delete t0';
                 } else {
                     op = 'delete';
@@ -1511,9 +1510,7 @@ module.exports = class Repository {
      * @returns sql select clause
      */
     buildSelectClause(parentMetaData, tableAlias, currentDepth, joinDepth, checkSet) {
-        // special case for depth 0 - just pull columns for table - no
-        // joins
-        let dbType = orm.getDbType(this.poolAlias);
+        // special case for depth 0 - just pull columns for table - no joins
         if (joinDepth === 0) {
             let pfields = parentMetaData.getFields();
             let comma = "";
@@ -1541,7 +1538,7 @@ module.exports = class Repository {
                     this.selectedColumnFieldInfo[joinDepth].push({alias: tableAlias, field: pfields[i]});
     
                     let colsel = (tableAlias + "." + pfields[i].columnName);
-                    if (dbType === 'mysql') {
+                    if (this.dbType === util.MYSQL) {
                         colsel += (' as ' + tableAlias + "_" + pfields[i].columnName);
                     }
     
@@ -1778,8 +1775,6 @@ module.exports = class Repository {
      */
     buildWhereClause(whereComparisons) {
         let where = '';
-        
-        let dbType = orm.getDbType(this.poolAlias);
         let bindex = 1;
         for (let i = 0; i < whereComparisons.length; ++i) {
             if (i > 0) {
@@ -1795,7 +1790,7 @@ module.exports = class Repository {
             where += this.getColumnNameFromFieldName(fieldName);
             where += (' ' + whereComparisons[i].getComparisonOperator() + ' ');
             if (whereComparisons[i].getUseBindParams()) {
-                switch(dbType) {
+                switch(this.dbType) {
                     case util.ORACLE:
                         where += (':p' + (i+1));
                         break;
@@ -1829,13 +1824,12 @@ module.exports = class Repository {
         }
         let sql = ('select ' + onm + ' o from ' + onm + ' where ');
 
-        let dbType = orm.getDbType(this.poolAlias);
         let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
             
-            switch(dbType) {
+            switch(this.dbType) {
                 case util.ORACLE:
                     sql += (':' + pkfields[i].fieldName);
                     break;
@@ -1843,7 +1837,7 @@ module.exports = class Repository {
                     sql += ' ?';
                     break;
                 case util.POSTGRES:
-                    sql += (' $' + (i+1));
+                    sql += (' ' + (i+1));
                     break;
     
             }
@@ -1875,12 +1869,11 @@ module.exports = class Repository {
         let onm = this.metaData.getObjectName();
         let sql = ('delete from ' + onm + ' o where  ');
 
-        let dbType = orm.getDbType(this.poolAlias);
         let and = '';
         let pkfields = this.metaData.getPrimaryKeyFields();
         for (let i = 0; i < pkfields.length; ++i) {
             sql += (and + 'o.' +  pkfields[i].fieldName + ' = ');
-            switch(dbType) {
+            switch(this.dbType) {
                 case util.ORACLE:
                     sql += (':' + pkfields[i].fieldName);
                     break;
@@ -1909,7 +1902,7 @@ module.exports = class Repository {
     }
 
     async doBeginTransaction(conn) {
-        switch (orm.getDbType(this.poolAlias)) {
+        switch (this.dbType) {
             case util.ORACLE:
             case util.MYSQL:
                 await conn.beginTransaction();
@@ -1922,7 +1915,7 @@ module.exports = class Repository {
     }
 
     async doRollback(conn) {
-        switch(orm.getDbType(this.poolAlias)) {
+        switch(this.dbType) {
             case util.ORACLE:
             case util.MYSQL:
                 await conn.rollback();
@@ -1934,7 +1927,7 @@ module.exports = class Repository {
     }
 
     async doCommit(conn) {
-        switch(orm.getDbType(this.poolAlias)) {
+        switch(this.dbType) {
             case util.ORACLE:
             case util.MYSQL:
                 await conn.commit();
@@ -2283,5 +2276,4 @@ function sortRelatedEntriesIfRequired(results) {
             }
         }
     }
-
 }

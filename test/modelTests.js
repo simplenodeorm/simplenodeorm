@@ -14,16 +14,16 @@ module.exports.run = async function(orm) {
     let models = orm.getModelList();
     let success = true;
     for (let i = 0; i < models.length; ++i) {
-        testUtil.logInfo("testing model " + models[i].name);
+        testUtil.logInfo("testing model " + models[i]);
         try {
-            let md = orm.getMetaData(models[i].name);
-            assert(util.isDefined(md), 'failed to load metadata for model ' + models[i].name);
-            assert(md.getObjectName() === models[i].name, 'model/metadata mismatch: expected ' + models[i].name + ' but found ' + md.getObjectName());
+            let md = orm.getMetaData(models[i]);
+            assert(util.isDefined(md), 'failed to load metadata for model ' + models[i]);
+            assert(md.getObjectName() === models[i], 'model/metadata mismatch: expected ' + models[i] + ' but found ' + md.getObjectName());
             await modelTester.test(orm.newModelInstance(md), md);
         }
         
         catch (e) {
-            testUtil.logError('Exception in modelTests[' + models[i].name + '] - ' + e);
+            testUtil.logError('Exception in modelTests[' + models[i] + '] - ' + e);
             success = false;
             if (orm.testConfiguration.stopTestsOnFailure) {
                 break;

@@ -9,7 +9,7 @@
 		"database": "sakila",
 		"supportBigNumbers": true,
 		"waitForConnections": true,
-		"connectionLimit": 20
+		"connectionLimit": 50
 	},
 		{
 			"dbtype": "mysql",
@@ -20,7 +20,7 @@
 			"database": "sakila",
 			"supportBigNumbers": true,
 			"waitForConnections": true,
-			"connectionLimit": 20
+			"connectionLimit": 50
 		}
 	]
 }

@@ -4,12 +4,11 @@
 
 "use strict";
 
-const poolAlias = 'sakila';
 const Repository = require('../../../main/Repository');
 
 class RentalRepository extends Repository {
     constructor(metaData) {
-        super(poolAlias, metaData);
+        super(metaData, "mysql");
     };
     
     loadNamedDbOperations() {

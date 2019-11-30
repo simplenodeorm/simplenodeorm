@@ -4,9 +4,9 @@ Source:
 https://github.com/simplenodeorm/simplenodeorm.git
 
 
-Simplenodeorm provides database access to Oracle, MySQL and PostgreSQL databases. It is designed to be imported 
-into an existing javascript app to provide database access based on configuration files provided by the parent 
-application as in the example below:
+Simplenodeorm is a cloud-ready object relational mapping application that provides database access to Oracle, MySQL and PostgreSQL databases
+as well as query design and reporting functionality.It is designed to be imported into an existing javascript app to provide database access 
+based on configuration files provided by the parent application as in the example code snippet below:
 
 
 ```
@@ -91,7 +91,9 @@ server.post('/*/save/panelaccess', async function (req, res) {
         }
     });
 ```
-For more detailed information see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
+For a real-world implementation see npm project <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper">Clinical Helper</a> 
+For a quick tour of the Clinical Helper application click <a href="https://github.com/clinical-helper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>
+For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
 
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
 

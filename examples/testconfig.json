@@ -2,7 +2,8 @@
     "stopTestsOnFailure" : false,
     "testDbConfiguration" : "examples/exampledb.json",
     "maxRowsForGetAll" : 50,
-    "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId"],
-    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate","rentalDate"],
-    "testDataRootPath": "examples/testdata"
+    "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId", "rentalDate", "lastUpdate", "returnDate", "location"],
+    "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate","rentalDate", "returnDate"],
+    "testDataRootPath": "examples/testdata",
+    "poolAlias": "sakila"
 }

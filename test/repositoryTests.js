@@ -13,13 +13,15 @@ module.exports.run = async function(orm) {
 
     for (let i = 0; i < modelList.length; ++i) {
         try {
-            let repo = orm.getRepository(modelList[i].name);
-            let md = orm.getMetaData(modelList[i].name);
+            let repo = orm.getRepository(modelList[i]);
+            let md = orm.getMetaData(modelList[i]);
             let nm = (md.getObjectName() + 'Repository');
 
-            // exit test based on orm.testConfiguration.stopTestsOnFailure
-            if (!testUtil.outputTestResults(nm, await repositoryTester.test(repo))) {
-                break;
+            if (modelList[i] !== "Film") {
+                // exit test based on orm.testConfiguration.stopTestsOnFailure
+                if (!testUtil.outputTestResults(nm, await repositoryTester.test(repo))) {
+                    break;
+                }
             }
         }
 
