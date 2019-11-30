@@ -353,6 +353,10 @@ module.exports = class Repository {
 
                 if ((currentVersion > -1) && (ver < currentVersion)) {
                     util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
+                } else {
+                    if (ver instanceof Date) {
+                        model[verField.fieldName] = new Date();
+                    }
                 }
             }
 
