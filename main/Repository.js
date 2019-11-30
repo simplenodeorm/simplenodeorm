@@ -345,6 +345,11 @@ module.exports = class Repository {
                 }
 
                 let verField = this.getVersionField(model);
+
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("current version[" + verField.fieldName + "]=" + currentVersion);
+                }
+
                 let ver = model[verField.fieldName];
 
                 if (ver instanceof Date) {
@@ -353,10 +358,10 @@ module.exports = class Repository {
 
                 if ((currentVersion > -1) && (ver < currentVersion)) {
                     util.throwError('OptimisticLockException', model.__model__ + ' has been modified by another user');
-                } else {
-                    if (ver instanceof Date) {
-                        model[verField.fieldName] = new Date();
-                    }
+                }
+
+                if (logger.isLogDebugEnabled()) {
+                    logger.logDebug("new version[" + verField.fieldName + "]=" + currentVersion);
                 }
             }
 
@@ -1020,6 +1025,8 @@ module.exports = class Repository {
                 retval = 'sysdate';
                 break;
             case util.MYSQL:
+                retval = "CURRENT_TIMESTAMP()";
+                break;
             case util.POSTGRES:
                 retval = 'NOW()';
                 break;
