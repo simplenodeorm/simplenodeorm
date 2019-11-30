@@ -151,6 +151,7 @@ module.exports = class Repository {
     async find(whereComparisons, orderByEntries, options) {
         if (logger.isLogDebugEnabled()) {
             logger.logDebug("in Repository.find()");
+            logger.logDebug("Repository.find - options: " + JSON.stringify(options));
         }
         options = checkOptions(options);
         let where = this.buildWhereClause(whereComparisons);
