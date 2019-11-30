@@ -5,10 +5,11 @@
 "use strict";
 
 const Repository = require('../../../main/Repository');
+const util = require('../../../main/util');
 
 class StoreRepository extends Repository {
     constructor(metaData) {
-        super(metaData, "mysql");
+        super(metaData, util.MYSQL);
     };
     
     loadNamedDbOperations() {
