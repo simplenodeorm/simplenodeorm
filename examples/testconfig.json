@@ -4,7 +4,8 @@
     "maxRowsForGetAll" : 50,
     "fieldsToIgnoreForUpdate" : ["startDate", "picture", "languageId", "addressId", "rentalDate", "lastUpdate", "returnDate", "location"],
     "fieldsToIgnoreForRowToModelMatch": ["lastUpdate", "picture", "createDate", "paymentDate","rentalDate", "returnDate"],
-    "    catch(e) {\n        testResults.push(require('./testStatus.js')(util.ERROR, \"update test failed - \" + e, util.SAVE));\n    }\n": [],
     "testDataRootPath": "examples/testdata",
-    "poolAlias": "sakila"
+    "modelsToExcludeFromUpdateTests": [],
+    "poolAlias": "sakila",
+    "updateTestDelayMillis": 500
 }
