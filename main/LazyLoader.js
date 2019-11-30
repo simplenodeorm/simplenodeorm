@@ -10,7 +10,7 @@ module.exports.lazyLoadData = async function (model, fieldName) {
     await loadData(model, fieldName, resultWrapper);
 
     if (util.isDefined(resultWrapper.error)) {
-        util.thowError('LazyLoadError', resultWrapper.error);
+        util.throwError('LazyLoadError', resultWrapper.error);
     } else if (util.isDefined(resultWrapper.result)) {
         resultWrapper.result.__new__ = false;
         resultWrapper.result.__modified__ = false;

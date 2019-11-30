@@ -1978,16 +1978,15 @@ async function populateModel(repo, curAlias, curDepth, curRow, pkp, pkmap, scInf
 
             if (util.isUndefined(curobj)) {
                 curobj = require(orm.appConfiguration.ormModuleRootPath + "/" + repo.getMetaData().getModule())(orm.getMetaData(objname));
+                curobj.__poolAlias__ = poolAlias;
+                curobj.__new__ = true;
+                curobj.__modified__ = false;
                 pkmap.set(objkey, curobj);
 
                 if (isRootTable(curAlias)) {
                     retval.push(curobj);
                 }
             }
-
-            curobj.__setModified(false);
-            curobj.__setNew(false);
-            curobj.__poolAlias__ = poolAlias;
 
             let cpos = columnPos[joinDepth].get(curAlias);
             for (let j = 0; j < cpos.length; ++j) {
