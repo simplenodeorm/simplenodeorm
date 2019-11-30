@@ -1095,16 +1095,14 @@ module.exports = class Repository {
         try {
             if (logger.isLogDebugEnabled()) {
                 logger.logDebug("in Repository.executeSqlQuery(), before get connection");
+                logger.logDebug('input parameters: ' + util.toString(parameters));
+                logger.logDebug('sql: ' + sql);
+                logger.logDebug('poolAlias: ' + option.poolAlias);
             }
             if (util.isValidObject(options.conn)) {
                 conn = options.conn;
             } else if (options.poolAlias) {
                 conn = await orm.getConnection(options.poolAlias);
-            }
-
-            if (logger.isLogDebugEnabled()) {
-                logger.logDebug('input parameters: ' + util.toString(parameters));
-                logger.logDebug('sql: ' + sql);
             }
 
             let result = await this.executeDatabaseSpecificQuery(conn, sql, parameters, options);
