@@ -677,6 +677,15 @@ module.exports.testSave = async function(repository, testResults, insertOnly) {
     }
 };
 
+function sleep(milliseconds) {
+    var start = new Date().getTime();
+    for (var i = 0; i < 1e7; i++) {
+        if ((new Date().getTime() - start) > milliseconds){
+            break;
+        }
+    }
+}
+
 module.exports.testUpdate = async function(repository, rows, conn, testResults) {
     let testList = [];
     logger.logInfo("            testing update");
@@ -703,6 +712,10 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                 } else {
                     let m = res.result;
                     if (await updateModelForTest(md, m)) {
+                        // sleep here to allow for
+                        // different timestamps for fields that
+                        // use time as version
+                        sleep(500);
                         let res2 = await repository.save(m, {
                             conn: conn,
                             poolAlias: orm.testConfiguration.poolAlias,
