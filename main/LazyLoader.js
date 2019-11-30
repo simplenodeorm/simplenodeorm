@@ -39,7 +39,7 @@ async function loadData(model, fieldName) {
                     }
                 }
 
-                let res = await refrepo.find(criteria, [], {joinDepth: 0});
+                let res = await refrepo.find(criteria, [], {poolAlias: model.__poolAlias__, joinDepth: 0});
                 if (util.isDefined(res.error)) {
                     result = res;
                 } else if (util.isDefined(res.result)) {
