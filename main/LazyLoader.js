@@ -38,12 +38,15 @@ async function loadData(model, fieldName) {
                         criteria.push(require('./WhereComparison.js')(refrepo.getMetaData().getFieldNameFromColumnName(tgtcols[i]), srcval, util.EQUAL_TO));
                     }
                 }
-
-                const options = {poolAlias: model["__poolAlias__"], joinDepth: 0};
+                let poolAlias = model.__poolAlias__;
+                const options = {
+                    "poolAlias": poolAlias,
+                    "joinDepth": 0
+                };
                 if (orm.logger.isLogDebugEnabled()) {
+                    orm.logger.logDebug("LazyLoader.loadData.find: poolAlias=" + poolAlias);
                     orm.logger.logDebug("LazyLoader.loadData.find: options=" + JSON.stringify(options));
-                    orm.logger.logDebug("LazyLoader.loadData.find: model=" + JSON.stringify(model));
-                }
+               }
                 let res = await refrepo.find(criteria, [], options);
                 if (util.isDefined(res.error)) {
                     result = res;
