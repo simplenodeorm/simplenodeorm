@@ -25,7 +25,7 @@ module.exports.run = async function(orm) {
     
     for (let i = 0; i < models.length; ++i) {
         repo = orm.getRepository(models[i]);
-        if (orm.getDbType(orm.testConfiguration.poolAlias)) {
+        if (repo.dbType) {
             assert(util.isDefined(repo), 'failed to load ' + models[i].name + 'Repository');
             let md = repo.getMetaData();
             assert(util.isDefined(md), 'failed to load ' + models[i].name + 'MetaData');

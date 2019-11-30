@@ -185,7 +185,10 @@ async function testCount(repository,  testResults) {
 }
 
 async function testSave(repository, testResults, insertOnly) {
-    await testUtil.testSave(repository, testResults, insertOnly);
+    if (!orm.testConfiguration.modelsToExcludeFromSave
+        || !orm.testConfiguration.modelsToExcludeFromSave.includes(repository.getMetaData().getObjectName())) {
+        await testUtil.testSave(repository, testResults, insertOnly);
+    }
 }
 
 async function testDelete(repository, testResults) {

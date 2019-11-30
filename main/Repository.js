@@ -1119,31 +1119,8 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await this.closeDatabaseConnection(conn);
+                await this.releaseConnection(conn);
             }
-        }
-    }
-    
-    closeDatabaseConnection(conn) {
-        switch(this.dbType) {
-            case util.ORACLE:
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("closing connection for oracle pool ");
-                }
-                conn.close();
-                break;
-            case util.MYSQL:
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("closing connection for mysql pool ");
-                }
-                conn.release();
-                break;
-            case util.POSTGRES:
-                if (logger.isLogDebugEnabled()) {
-                    logger.logDebug("closing connection for postgres pool ");
-                }
-                conn.release();
-                break;
         }
     }
     
@@ -1342,7 +1319,7 @@ module.exports = class Repository {
         finally {
             // only close if locally opened
             if (util.isNotValidObject(options.conn) && conn) {
-                await this.closeDatabaseConnection(conn);
+                await this.releaseConnection(conn);
             }
         }
     }
