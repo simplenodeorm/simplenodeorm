@@ -720,20 +720,17 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                             conn: conn,
                             poolAlias: orm.testConfiguration.poolAlias
                         });
-                        if (util.isDefined(res2.error)) {
-                            testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
+
+                        if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
+                            testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
                         } else {
-                            if (util.isUndefined(res2.updatedValues) || (res2.updatedValues.length === 0)) {
-                                testResults.push(require('./testStatus.js')(util.ERROR, 'No updated result returned', util.SAVE + '[update]'));
+                            let res2 = await repository.findOne(params, {poolAlias: orm.testConfiguration.poolAlias, conn: conn});
+                            if (util.isDefined(res2.error)) {
+                                testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
                             } else {
-                                let res2 = await repository.findOne(params, {poolAlias: orm.testConfiguration.poolAlias, conn: conn});
-                                if (util.isDefined(res2.error)) {
-                                    testResults.push(require('./testStatus.js')(util.ERROR, res2.error, util.SAVE + '[update]'));
-                                } else {
-                                    await verifyModelUpdates(m, res2.result, testResults);
-                                    // use for list update test
-                                    testList.push(res2.updatedValues[0]);
-                                }
+                                await verifyModelUpdates(m, res2.result, testResults);
+                                // use for list update test
+                                testList.push(res2.updatedValues[0]);
                             }
                         }
                     } else {
