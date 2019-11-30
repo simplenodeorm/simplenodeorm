@@ -92,7 +92,7 @@ server.post('/*/save/panelaccess', async function (req, res) {
     });
 ```
 For a real-world implementation see npm project <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper">Clinical Helper</a> 
-For a quick tour of the Clinical Helper application click <a href="https://github.com/clinical-helper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>
+For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>
 For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
 
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
