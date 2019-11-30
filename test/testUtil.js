@@ -733,7 +733,7 @@ module.exports.testUpdate = async function(repository, rows, conn, testResults) 
                             } else {
                                 await verifyModelUpdates(m, res2.result, testResults);
                                 // use for list update test
-                                testList.push(res2.updatedValues[0]);
+                                testList.push(res2.result);
                             }
                         }
                     } else {
