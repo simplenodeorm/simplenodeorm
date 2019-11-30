@@ -462,7 +462,7 @@ function startApiServer() {
                 if (requiredInputs.length > 0) {
                     res.status(200).send({"userInputRequired": true, "whereComparisons": requiredInputs});
                 } else {
-                    res.status(200).send(await generateReport(report, query, options));
+                    res.status(200).send(await generateReport(report, query, [], options));
                 }
             } catch (e) {
                 logger.logError('error occured while running report ' + req.params.docid, e);
