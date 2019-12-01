@@ -4,7 +4,7 @@ Source:
 https://github.com/simplenodeorm/simplenodeorm.git
 
 Simplenodeorm is an extensible, cloud-ready object relational mapping application that provides database access to Oracle, 
-MySQL and PostgreSQL databases. Query and Report Design is supported via the <a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf">Query Designer</a> and <a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf">Report Designer</a> applications. 
+MySQL and PostgreSQL databases. Query and Report Design is supported via the <a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf" target="_blank">Query Designer</a> and <a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf" target="_blank">Report Designer</a> applications. 
 REST access is supported. Simplenodeorm can be plugged into an application as shown in the example code snippet below:
 
 ```
@@ -89,17 +89,17 @@ server.post('/*/save/panelaccess', async function (req, res) {
         }
     });
 ```
-For a real-world implementation see the <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper">Clinical Helper</a> mental health practice management application on NPM. 
-For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>.
-For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
+For a real-world implementation see the <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper" target="_blank">Clinical Helper</a> mental health practice management application on NPM. 
+For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf" target="_blank">here</a>.
+For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf" target="_blank">simplenodeorm.pdf</a>
 
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
 
-<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodedesigner">Query Designer - NPM</a><br />
-<a href="https://github.com/simplenodeorm/simplenodedesigner">Query Designer - GitHub</a><br />
-<a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf">Query Designer - Documentation</a><br /><br />
+<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodedesigner" target="_blank">Query Designer - NPM</a><br />
+<a href="https://github.com/simplenodeorm/simplenodedesigner" target="_blank">Query Designer - GitHub</a><br />
+<a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf" target="_blank">Query Designer - Documentation</a><br /><br />
 
-<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodereport">Report Designer - NPM</a><br />
-<a href="https://github.com/simplenodeorm/simplenodereport">Report Designer - GitHub</a><br />
-<a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf">Report Designer - Documentation</a>
+<a href="https://www.npmjs.com/package/@simplenodeorm/simplenodereport" target="_blank">Report Designer - NPM</a><br />
+<a href="https://github.com/simplenodeorm/simplenodereport" target="_blank">Report Designer - GitHub</a><br />
+<a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf" target="_blank">Report Designer - Documentation</a>
 
