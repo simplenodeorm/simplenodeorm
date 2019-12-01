@@ -3,11 +3,9 @@ Simple ORM framework for Node.js that supports MySQL, Oracle and PostgreSQL.
 Source:
 https://github.com/simplenodeorm/simplenodeorm.git
 
-
-Simplenodeorm is a cloud-ready object relational mapping application that provides database access to Oracle, MySQL and PostgreSQL databases
-as well as query design and reporting functionality.It is designed to be imported into an existing javascript app to provide database access 
-based on configuration files provided by the parent application as in the example code snippet below:
-
+Simplenodeorm is an extensible, cloud-ready object relational mapping application that provides database access to Oracle, 
+MySQL and PostgreSQL databases. Query and Report Design is supported via the <a href="https://github.com/simplenodeorm/simplenodedesigner/blob/master/public/docs/qdesigner-full.pdf">Query Designer</a> and <a href="https://github.com/simplenodeorm/simplenodereport/blob/master/public/docs/rdesigner-full.pdf">Report Designer</a> applications. 
+REST access is supported. Simplenodeorm can be plugged into an application as shown in the example code snippet below:
 
 ```
 const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
@@ -91,8 +89,8 @@ server.post('/*/save/panelaccess', async function (req, res) {
         }
     });
 ```
-For a real-world implementation see npm project <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper">Clinical Helper</a> 
-For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>
+For a real-world implementation see the <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper">Clinical Helper</a> mental health practice management application on NPM. 
+For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf">here</a>.
 For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf">simplenodeorm.pdf</a>
 
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
