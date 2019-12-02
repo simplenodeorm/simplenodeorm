@@ -1,6 +1,6 @@
 {
   "name": "@simplenodeorm/simplenodeorm",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "description": "Cloud-ready simple Node.js ORM for MySQL, Oracle and PostgreSQL",
   "main": "./orm.js",
   "repository": {
@@ -21,12 +21,12 @@
     "express": ">=4.14",
     "express-session": "^1.17.0",
     "fs-path": ">=0.0.24",
-    "ioredis": "^4.14.1",
+    "ioredis": "^4.15.0",
     "jsonpath-plus": "^0.18.0",
     "md5": "^2.2.1",
     "mysql": "^2.16.0",
     "node-cache": "^4.2.1",
-    "pg": "^7.12.1",
+    "pg": "^7.14.0",
     "pg-pool": "^2.0.6",
     "promise-mysql": "^4.1.1",
     "properties-reader": "^0.3.1",

@@ -8,6 +8,13 @@ MySQL and PostgreSQL databases. Query and Report Design is supported via the <a 
 REST access is supported. Simplenodeorm can be plugged into an application as shown in the example code snippet below:
 
 ```
+const fs = require('fs');
+const orm = require('@simplenodeorm/simplenodeorm');
+const md5 = require('md5');
+const WhereComparison = require('@simplenodeorm/simplenodeorm/main/WhereComparison');
+const OrderByEntry = require('@simplenodeorm/simplenodeorm/main/OrderByEntry');
+const { promisify } = require('util');
+const readFileAsync = promisify(fs.readFile);
 const appConfiguration = JSON.parse(fs.readFileSync('./appconfig.json'));
 const testConfiguration = JSON.parse(fs.readFileSync('./testconfig.json'));
 const utilities = require('./utils/utilities');
@@ -17,77 +24,46 @@ orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted);
 function onServerStarted(server, logger) {
     logger.logInfo("ClinicalHelper server started");
 
- server.get('/*/dropdown/content/:module/:practiceId', async function (req, res) {
+    server.post('/*/panel/access', async function (req, res) {
         try {
-            let repo = orm.getRepository(req.params.module);
-            let whereList = [];
-            let orderByList = [];
-
-            whereList.push(new WhereComparison('practiceId', req.params.practiceId,
- 		orm.util.EQUAL_TO));
-            whereList.push(new WhereComparison('active', 1, orm.util.EQUAL_TO));
-            orderByList.push(new OrderByEntry("name"));
-
-            let result = orm.parseOrmResult(await repo.find(whereList, orderByList, {poolAlias: 
-				alias, mySession: session}), "DropdownContentException");
-
-            if (result.error) {
-                orm.util.throwError("DropdownContentLoadException", e);
+            let repo = orm.getRepository("PanelAccess");
+            let inparams = req.body;
+            let sql = "select panelId, allowView, allowCreate, allowUpdate, allowDelete "
+                + "from PanelAccess "
+                + "where roleId in (select roleId from RoleUser where practiceId = ? and userId = ?) and panelId in "
+                + utilities.buildInBindList(inparams.panelIds.length)
+                + " order by panelId";
+            let params = [];
+            params.push(inparams.practiceId);
+            params.push(inparams.userId);
+            for (let i = 0; i < inparams.panelIds.length; ++i ) {
+                params.push(inparams.panelIds[i]);
             }
-            res.status(200).send(result);
-        } catch (e) {
-            logger.logError('error occured while retrieving dropdown content for ' 
-			+ req.params.module, e);
-            res.status(500).send(e);
-        }
-    });
 
-server.post('/*/save/panelaccess', async function (req, res) {
-        let poolAlias = orm.util.getContextFromUrl(req);
-        let conn = await orm.getConnection(poolAlias);
-        let repo = orm.getRepository("PanelAccess");
-        try {
-            let options = { conn: conn, poolAlias: poolAlias, returnValues: true};
-            repo.doBeginTransaction(conn);
-            let accessObjects = [];
-            for (let i = 0; i < req.body.length; ++i) {
-                let accessInfo = req.body[i];
-                let panelAccess = orm.newModelInstance(repo.getMetaData());
-                if (accessInfo.__modified__) {
-                    panelAccess.__new__ = accessInfo.__new__;
-                    panelAccess.__modified__ = accessInfo.__modified__;
-                    panelAccess.setPracticeId(Number(accessInfo.practiceId));
-                    panelAccess.setRoleId(Number(accessInfo.roleId));
-                    panelAccess.setPanelId(Number(accessInfo.panelId));
-                    panelAccess.setAllowView(Number(accessInfo.allowView));
-                    panelAccess.setAllowCreate(Number(accessInfo.allowCreate));
-                    panelAccess.setAllowUpdate(Number(accessInfo.allowUpdate));
-                    panelAccess.setAllowDelete(Number(accessInfo.allowDelete));
-                    panelAccess.setUpdatedBy(Number(accessInfo.updatedBy));
+            let result = orm.parseOrmResult(await repo.executeSqlQuery(sql, params,{poolAlias: orm.util.getContextFromUrl(req)}), "PanelAccessCheckException");
 
-                    accessObjects.push(panelAccess);
+            let retval = {};
+
+            for (let i = 0; i < result.length; ++i) {
+                let info = result[i];
+
+                let access = retval[info[0]];
+                if (!access) {
+                    access = {
+                        panelId: info[0],
+                        allowView: false,
+                        allowCreate: false,
+                        allowUpdate: false,
+                        allowDelete: false
+                    };
+
+                    retval[info[0]] = access;
                 }
-            }
 
-            let result = await repo.save(accessObjects, options);
-            if (result.error) {
-                await repo.doRollback(conn);
-                logger.logError('error occurred while saving panel access', result.error);
-                res.status(500).send(result.error);
-            } else {
-                await repo.doCommit(conn);
-                res.status(200).send(true);
-            }
-        } catch (e) {
-            await repo.doRollback(conn);
-            logger.logError('error occurred while saving panel access', e);
-            res.status(500).send({error: e});
-        }
+                if (info[1]) {
+                    access.allowView = true;
 
-        finally {
-            conn.release()
-        }
-    });
+
 ```
 For a real-world implementation see the <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper" target="_blank">Clinical Helper</a> mental health practice management application on NPM. 
 For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf" target="_blank">here</a>.
