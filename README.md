@@ -23,46 +23,68 @@ orm.startOrm(__dirname, appConfiguration, testConfiguration, onServerStarted);
 
 function onServerStarted(server, logger) {
     logger.logInfo("ClinicalHelper server started");
-
-    server.post('/*/panel/access', async function (req, res) {
+   server.get('/*/practice/addresses/:practiceId', async function (req, res) {
         try {
-            let repo = orm.getRepository("PanelAccess");
-            let inparams = req.body;
-            let sql = "select panelId, allowView, allowCreate, allowUpdate, allowDelete "
-                + "from PanelAccess "
-                + "where roleId in (select roleId from RoleUser where practiceId = ? and userId = ?) and panelId in "
-                + utilities.buildInBindList(inparams.panelIds.length)
-                + " order by panelId";
-            let params = [];
-            params.push(inparams.practiceId);
-            params.push(inparams.userId);
-            for (let i = 0; i < inparams.panelIds.length; ++i ) {
-                params.push(inparams.panelIds[i]);
+            let repo = orm.getRepository("PracticeAddress");
+            let whereList = [];
+            whereList.push(new WhereComparison('practiceId', req.params.practiceId, orm.util.EQUAL_TO));
+            let result = orm.parseOrmResult(await repo.find(whereList, [new OrderByEntry("name")],
+                {poolAlias: orm.util.getContextFromUrl(req)}), "PracticeAddressException");
+
+            if (result.length === 0) {
+                result = [orm.newModelInstance(repo.getMetaData)];
+                result[0].address = orm.newModelInstance(orm.getRepository("Address").getMetaData());
+            }
+           res.status(200).send(result);
+        } catch (e) {
+            logger.logError('error occured while retrieving panel access summary', e);
+            res.status(500).send(e);
+        }
+    });
+
+    server.post('/*/officehours/save', async function (req, res) {
+        let poolAlias = orm.util.getContextFromUrl(req);
+        let conn = await orm.getConnection(poolAlias);
+        let options = { conn: conn, poolAlias:  poolAlias};
+        let repo = orm.getRepository("OfficeHours");
+        try {
+            await repo.doBeginTransaction(conn);
+
+            let result = await repo.save(req.body, options);
+
+            if (result.error) {
+                orm.util.throwError("SaveOfficeHoursException", result.error);
             }
 
-            let result = orm.parseOrmResult(await repo.executeSqlQuery(sql, params,{poolAlias: orm.util.getContextFromUrl(req)}), "PanelAccessCheckException");
+            await repo.doCommit(conn);
+            res.status(200).send(true);
+        } catch (e) {
+            await repo.doRollback(conn);
+            logger.logError('error occured while saving office hours', e);
+            res.status(500).send(e);
+        }
+    });
 
-            let retval = {};
+    server.get('/*/exists/rolename/:practiceId/:checkname', async function (req, res) {
+        try {
+            let repo = orm.getRepository("Role");
+            let sql = "select 1 from Role where exists (select roleId from Role where practiceId = ? and name = ?)";
+            let params = [];
+            params.push(req.params.practiceId);
+            params.push(req.params.checkname);
 
-            for (let i = 0; i < result.length; ++i) {
-                let info = result[i];
+            let result = orm.parseOrmResult(await repo.executeSqlQuery(sql, params,{poolAlias: orm.util.getContextFromUrl(req)}), "RolenameExistsException");
 
-                let access = retval[info[0]];
-                if (!access) {
-                    access = {
-                        panelId: info[0],
-                        allowView: false,
-                        allowCreate: false,
-                        allowUpdate: false,
-                        allowDelete: false
-                    };
-
-                    retval[info[0]] = access;
-                }
-
-                if (info[1]) {
-                    access.allowView = true;
-
+            if (result && result[0] && result[0][0]) {
+                res.status(200).send(result[0][0] === 1);
+            } else {
+                return res.status(200).send(false);
+            }
+        } catch (e) {
+            logger.logError('error occured while checking rolename exists', e);
+            res.status(500).send(e);
+        }
+    });
 
 ```
 For a real-world implementation see the <a href="https://www.npmjs.com/package/@clinicalhelper/clinicalhelper" target="_blank">Clinical Helper</a> mental health practice management application on NPM. 
