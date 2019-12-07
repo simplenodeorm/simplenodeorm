@@ -284,7 +284,7 @@ function startApiServer() {
                         res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                         res.sendStatus(401);
                     }
-                }  else {
+                } else {
                     res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
                     res.sendStatus(401);
                 }
@@ -357,7 +357,7 @@ function startApiServer() {
         apiServer.post('/*/api/report/load/lookuplist', async function (req, res) {
             try {
                 res.status(200).send(await loadLookupList(req.body, util.getContextFromUrl(req)));
-            } catch(e) {
+            } catch (e) {
                 logger.logError('error occured while loading lookup list', e);
                 res.status(500).send(e);
             }
@@ -693,7 +693,7 @@ function startApiServer() {
                 logger.logError("method: " + req.params.method);
                 logger.logError("poolAlias: " + util.getContextFromUrl(req));
                 logger.logError("unexpected error caught", err);
-                res.status(500).send({result: { error: err}});
+                res.status(500).send({result: {error: err}});
             }
         });
 
@@ -734,14 +734,14 @@ function startApiServer() {
                                 populateOrderByFromRequestInput(req.body.orderByEntries), options);
                             break;
                         case util.SAVE.toLowerCase():
-                            startTransaction(repo, options);
+                            await startTransaction(repo, options);
                             result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                            endTransaction(repo, result, options);
+                            await endTransaction(repo, result, options);
                             break;
                         case util.DELETE.toLowerCase():
-                            startTransaction(repo, options);
+                            await startTransaction(repo, options);
                             result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                            endTransaction(repo, result, options);
+                            await endTransaction(repo, result, options);
                             break;
                         default:
                             res.status(400).send('invalid method \'' + req.params.method + '\' specified');
@@ -773,100 +773,8 @@ function startApiServer() {
                 logger.logError("method: " + req.params.method);
                 logger.logError("poolAlias: " + util.getContextFromUrl(req));
                 logger.logError("unexpected error caught", err);
-                res.status(500).send({result: { error: err}});
+                res.status(500).send({result: {error: err}});
             }
-        });
-
-        apiServer.put('/*/ormapi/:module/:method', async function (req, res) {
-            let repo = repositoryMap.get(req.params.module);
-            let options = populateOptionsFromRequestInput(req.body.options);
-            if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req)};
-            } else {
-                options.poolAlias = util.getContextFromUrl(req);
-            }
-            let md = repo.getMetaData(req.params.module);
-            if (util.isUndefined(repo)) {
-                // support for using an alias for long module names
-                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-                }
-            }
-
-            if (util.isUndefined(repo) || util.isUndefined(md)) {
-                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-            } else {
-                let result;
-                switch (req.params.method.toLowerCase()) {
-                    case util.SAVE.toLowerCase():
-                        startTransaction(repo, options);
-                        result = await repo.save(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        endTransaction(repo, result, options);
-                        break;
-                    default:
-                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                        break;
-                }
-
-                if (util.isUndefined(result)) {
-                    res.status(404).send('not found');
-                } else if (util.isDefined(result.error)) {
-                    res.status(500).send(result.error);
-                } else if (util.isDefined(result.updatedValues)) {
-                    res.status(200).send(util.toDataTransferString(result.updatedValues));
-                } else if (util.isDefined(result.rowsAffected)) {
-                    res.status(200).send(util.toDataTransferString(result));
-                } else {
-                    res.status(200).send(result);
-                }
-            }
-
-            res.end();
-        });
-
-        apiServer.delete('/*/ormapi/:module/:method', async function (req, res) {
-            let options = populateOptionsFromRequestInput(req.body.options);
-            if (!options) {
-                options = {poolAlias: util.getContextFromUrl(req)};
-            } else {
-                options.poolAlias = util.getContextFromUrl(req);
-            }
-            let repo = getRepository(req.params.module);
-            let md = repo.getMetaData();
-            if (util.isUndefined(repo)) {
-                // support for using an alias for long module names
-                if (util.isDefined(appConfiguration.aliases[req.params.module])) {
-                    repo = repositoryMap.get(appConfiguration.aliases[req.params.module]);
-                    md = repo.getMetaData(appConfiguration.aliases[req.params.module]);
-                }
-            }
-
-            if (util.isUndefined(repo) || util.isUndefined(md)) {
-                res.status(400).send('invalid module \'' + req.params.module + '\' specified');
-            } else {
-                let result;
-                switch (req.params.method.toLowerCase()) {
-                    case util.DELETE.toLowerCase():
-                        startTransaction(repo, options);
-                        result = await repo.delete(populateModelObjectsFromRequestInput(req.body.modelInstances), options);
-                        endTransaction(repo, result, options);
-                        break;
-                    default:
-                        res.status(400).send('invalid method \'' + req.params.method + '\' specified');
-                        break;
-                }
-
-                if (util.isDefined(result.error)) {
-                    res.status(500).send(result.error);
-                } else if (util.isDefined(result.rowsAffected)) {
-                    res.status(200).send(util.toDataTransferString(result));
-                } else {
-                    res.status(200).send(result);
-                }
-            }
-
-            res.end();
         });
     }
 
