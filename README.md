@@ -91,6 +91,9 @@ For a real-world implementation see the <a href="https://www.npmjs.com/package/@
 For a quick tour of the Clinical Helper application click <a href="https://github.com/clinicalhelper/clinicalhelperclient/blob/master/public/docs/quicktour.pdf" target="_blank">here</a>.
 For detailed information on simplenodeorm see <a href="https://github.com/simplenodeorm/simplenodeorm/blob/master/simplenodeorm.pdf" target="_blank">simplenodeorm.pdf</a>
 
+There is a docker image on dockerhub that contains a running demo of the Clinical Helper as well as the Query and Report Designers. Follow the instuctions
+found <a href="https://github.com/clinicalhelper/clinicalhelperdemo/blob/master/README.md" target="_blank">here</a> to run the demo.
+
 There are 2 associated applications to create, save and run queries and reports. These can be found on NPM and in github at the links below:
 
 <a href="https://www.npmjs.com/package/@simplenodeorm/simplenodedesigner" target="_blank">Query Designer - NPM</a><br />
